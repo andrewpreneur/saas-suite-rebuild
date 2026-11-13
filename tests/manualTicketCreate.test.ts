@@ -9,7 +9,7 @@ describe("create ticket from the agency queue", () => {
     const dialog = readFileSync("src/components/support/OpenTicketFromChatDialog.tsx", "utf8");
     const chat = readFileSync("src/components/client-hub/ChatInterventionPanel.tsx", "utf8");
     const admin = readFileSync("src/pages/AdminSupport.tsx", "utf8");
-    expect(dashboard).toContain("Create Ticket");
+    expect(dashboard).toContain("Create ticket");
     expect(dashboard).toContain('source="agency_manual"');
     expect(dashboard).toContain("onCreated={() => {\n          void loadAll();");
     expect(dashboard).toContain("canEditTickets");

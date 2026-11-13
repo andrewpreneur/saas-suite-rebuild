@@ -16,6 +16,7 @@ import darkBanner from "@/assets/saassuite-dark-banner.png.asset.json";
 import { motion, MotionConfig } from "framer-motion";
 import { pageEnter } from "@/lib/motion";
 import { AppTopBar } from "@/components/premium/AppTopBar";
+import { SkinSwitch } from "@/components/premium/SkinSwitch";
 import { MobileQuickNav } from "@/components/premium/MobileQuickNav";
 import appBackground from "@/assets/app-background.png.asset.json";
 import { newUi } from "@/lib/uiVersion";
@@ -704,6 +705,7 @@ const AppPage = () => {
                     </div>
                   )}
                   <div className="flex items-center gap-1">
+                    <SkinSwitch />
                     <AccountSwitcher />
                   </div>
                 </div>

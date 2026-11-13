@@ -28,7 +28,7 @@ import {
 } from "@/lib/kitTracker";
 import { KitLandingPageField } from "@/components/dashboard/KitLandingPageField";
 import { kitProgressStepIds, syncKitOnboardingProgress } from "@/lib/kitProgressSync";
-import { Check, ExternalLink } from "lucide-react";
+import { Check, ChevronRight, ExternalLink } from "lucide-react";
 
 function isExternal(href: string): boolean {
   return href.startsWith("http");
@@ -314,7 +314,10 @@ export function KitOnboardingGuide({
   signals = emptyKitTrackerSignals(),
   syncUrl = true,
   onLandingPageSaved,
+  calm = false,
 }: {
+  /** Calm screens: the page header already names the page, so the inner breadcrumb and heading go, and account checks fold away. */
+  calm?: boolean;
   lineIds: string[];
   userId: string | null;
   signals?: KitTrackerSignals;
@@ -437,33 +440,39 @@ export function KitOnboardingGuide({
       data-testid="kit-onboarding"
       id="kit-onboarding"
     >
-      <nav aria-label="Breadcrumb" data-testid="kit-breadcrumb">
-        <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-foreground">
-          <li>
-            <Link to="/app/dashboard" className={quietLinkClass}>
-              Dashboard
-            </Link>
-          </li>
-          <li aria-hidden="true">&gt;</li>
-          <li>
-            <Link to={kitStepLocation(selected.id)} className={quietLinkClass}>
-              One Feature Kit
-            </Link>
-          </li>
-          <li aria-hidden="true">&gt;</li>
-          <li aria-current="page" className="font-semibold">
-            {crumb}
-          </li>
-        </ol>
-      </nav>
-      <div className="space-y-1">
-        <h2 className="text-base font-semibold text-foreground">
-          One Feature Training
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Take the steps in order. Your place is saved in this browser.
-        </p>
-      </div>
+      {calm ? (
+        <h2 className="sr-only">One Feature Training</h2>
+      ) : (
+        <>
+          <nav aria-label="Breadcrumb" data-testid="kit-breadcrumb">
+            <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-foreground">
+              <li>
+                <Link to="/app/dashboard" className={quietLinkClass}>
+                  Dashboard
+                </Link>
+              </li>
+              <li aria-hidden="true">&gt;</li>
+              <li>
+                <Link to={kitStepLocation(selected.id)} className={quietLinkClass}>
+                  One Feature Kit
+                </Link>
+              </li>
+              <li aria-hidden="true">&gt;</li>
+              <li aria-current="page" className="font-semibold">
+                {crumb}
+              </li>
+            </ol>
+          </nav>
+          <div className="space-y-1">
+            <h2 className="text-base font-semibold text-foreground">
+              One Feature Training
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Take the steps in order. Your place is saved in this browser.
+            </p>
+          </div>
+        </>
+      )}
       <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-[16rem_minmax(0,1fr)]">
         <nav aria-label="Onboarding steps" className="min-w-0 space-y-3 md:sticky md:top-4">
           <div className="space-y-2">
@@ -496,19 +505,41 @@ export function KitOnboardingGuide({
             confirmed={confirmedIds}
             onSelect={select}
           />
-          <ul className="space-y-1 border-t border-border pt-3" data-testid="kit-account-checks">
-            {checks.map((check) => (
-              <li
-                key={check.id}
-                data-kit-check={check.id}
-                data-kit-check-status={check.status}
-                className="text-xs leading-snug text-muted-foreground"
-              >
-                <span className="font-medium text-foreground">{check.label}. </span>
-                {check.detail}
-              </li>
-            ))}
-          </ul>
+          {calm ? (
+            <details className="group border-t border-border pt-2">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-sm text-sm font-medium text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-9 [&::-webkit-details-marker]:hidden">
+                <ChevronRight className="size-4 transition-transform duration-200 ease-out group-open:rotate-90" aria-hidden="true" />
+                Account checks ({checks.length})
+              </summary>
+              <ul className="space-y-1 pt-1" data-testid="kit-account-checks">
+                {checks.map((check) => (
+                  <li
+                    key={check.id}
+                    data-kit-check={check.id}
+                    data-kit-check-status={check.status}
+                    className="text-xs leading-snug text-muted-foreground"
+                  >
+                    <span className="font-medium text-foreground">{check.label}. </span>
+                    {check.detail}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ) : (
+              <ul className="space-y-1 border-t border-border pt-3" data-testid="kit-account-checks">
+                {checks.map((check) => (
+                  <li
+                    key={check.id}
+                    data-kit-check={check.id}
+                    data-kit-check-status={check.status}
+                    className="text-xs leading-snug text-muted-foreground"
+                  >
+                    <span className="font-medium text-foreground">{check.label}. </span>
+                    {check.detail}
+                  </li>
+                ))}
+              </ul>
+          )}
         </nav>
         <article
           className={cn(

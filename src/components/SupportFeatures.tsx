@@ -10,12 +10,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ChevronDown, Bot, Sparkles, Check, Info, Code, Ticket, AlertCircle, CheckCircle2, Clock, HelpCircle, Webhook, ExternalLink, Mail } from "lucide-react";
+import { ChevronDown, Bot, Headphones, Inbox, Sparkles, Check, Info, Code, Ticket, AlertCircle, CheckCircle2, Clock, HelpCircle, Webhook, ExternalLink, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { LoadNotice } from "@/components/platform/LoadNotice";
 import { PageHeader } from "@/components/platform/PageHeader";
-import { SectionCard } from "@/components/premium/SectionCard";
-import { SettingRow } from "@/components/premium/support/SettingRow";
+import { SettingItem, SettingList } from "@/components/premium/SettingList";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tag } from "@/components/ui/tag";
 import { Banner } from "@/components/ui/banner";
 import { TicketsTable } from "@/components/SupportDashboard";
@@ -84,6 +84,8 @@ const SupportFeatures = () => {
   const [webhookUrl, setWebhookUrl] = useState("");
   const [tempWebhookUrl, setTempWebhookUrl] = useState("");
   const [isSavingWebhook, setIsSavingWebhook] = useState(false);
+  // Read-only copies for the row summaries; ChatModeSettings owns the real controls.
+  const [humanChat, setHumanChat] = useState<{ on: boolean; mode: string; agency: string } | null>(null);
   
   // Shared state
   const [isLoading, setIsLoading] = useState(true);
@@ -111,7 +113,7 @@ const SupportFeatures = () => {
         // Fetch user settings
         const { data: userData, error: userError } = await supabase
           .from('saas_suite_users')
-          .select('show_chat_widget, branded_ai_support, ai_embed_code, support_ticketing_enabled, support_webhook_url')
+          .select('show_chat_widget, branded_ai_support, ai_embed_code, support_ticketing_enabled, support_webhook_url, human_chat_enabled, human_chat_mode, agency_name')
           .eq('email', email)
           .maybeSingle();
         
@@ -124,6 +126,11 @@ const SupportFeatures = () => {
           setTicketingEnabled(userData.support_ticketing_enabled || false);
           setWebhookUrl((userData as any).support_webhook_url ?? "");
           setTempWebhookUrl((userData as any).support_webhook_url ?? "");
+          setHumanChat({
+            on: (userData as any).human_chat_enabled ?? true,
+            mode: (userData as any).human_chat_mode || "self",
+            agency: String((userData as any).agency_name || "Your team").trim(),
+          });
         }
 
         // Fetch tickets
@@ -226,7 +233,7 @@ const SupportFeatures = () => {
       }
 
       setWebhookUrl(tempWebhookUrl);
-      toast.success("Webhook URL saved!");
+      toast.success("Webhook URL saved");
     } catch (error) {
       console.error('Error saving webhook URL:', error);
       toast.error("Failed to save webhook URL");
@@ -252,7 +259,7 @@ const SupportFeatures = () => {
       }
 
       setEmbedCode(tempEmbedCode);
-      toast.success("Embed code saved!");
+      toast.success("Embed code saved");
       setShowEmbedCodePopup(false);
     } catch (error) {
       console.error('Error saving embed code:', error);
@@ -358,173 +365,190 @@ const SupportFeatures = () => {
     );
   }
 
+  const openTickets = tickets.filter((t) => t.status === "open" || t.status === "in_progress").length;
+
   return (
     <TooltipProvider>
       <div className="space-y-6">
         <PageHeader
           title="Customize Support"
-          subtitle="Choose how clients reach you, then answer their tickets below."
+          subtitle="Choose how clients reach you."
         />
 
-        <SectionCard
-          icon={<Ticket />}
-          title="Tickets"
-          description="Let clients send a request you can track, assign and answer by email."
-          bodyClassName="divide-y divide-border"
-        >
-          <SettingRow
-            htmlFor="ticketing-toggle"
+        <SettingList label="Tickets">
+          <SettingItem
+            icon={<Ticket />}
             title="Support ticketing"
-            description={
+            value={
               ticketingEnabled
-                ? "On. Clients can open a ticket from their hub, and every ticket shows in the list below."
-                : "Off. Clients can't open tickets. Turn it on to add a request form to their hub."
+                ? `On · ${webhookUrl ? "webhook saved" : "webhook not set"}`
+                : "Off · clients can't open tickets"
             }
-            control={
+            toggle={
               <Switch
                 id="ticketing-toggle"
+                aria-label="Support ticketing"
                 checked={ticketingEnabled}
                 onCheckedChange={toggleTicketing}
                 disabled={isSaving}
               />
             }
-          />
-          {ticketingEnabled && (
-            <SettingRow
-              htmlFor="webhook-url"
-              title="Send ticket events to a webhook"
-              description="We post to this URL when a ticket is created or its status changes. Useful for HighLevel or Zapier automations."
-            >
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Input
-                  id="webhook-url"
-                  type="url"
-                  placeholder="https://hooks.example.com/webhook..."
-                  value={tempWebhookUrl}
-                  onChange={(e) => setTempWebhookUrl(e.target.value)}
-                  className="flex-1"
-                />
-                <Button
-                  onClick={saveWebhookUrl}
-                  disabled={isSavingWebhook || tempWebhookUrl === webhookUrl}
-                >
-                  {isSavingWebhook ? "Saving…" : "Save webhook"}
-                </Button>
+            panel={{
+              description: ticketingEnabled
+                ? "On. Clients can open a ticket from their hub, and every ticket shows in your ticket list."
+                : "Off. Clients can't open tickets. Turn it on to add a request form to their hub.",
+            }}
+          >
+            {ticketingEnabled ? (
+              <div className="space-y-6">
+                <div>
+                  <Label htmlFor="webhook-url" className="block text-sm font-medium text-foreground">
+                    Send ticket events to a webhook
+                  </Label>
+                  <p className="mt-0.5 text-sm text-muted-foreground">
+                    We post to this URL when a ticket is created or its status changes. Useful for HighLevel or Zapier automations.
+                  </p>
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                    <Input
+                      id="webhook-url"
+                      type="url"
+                      placeholder="https://hooks.example.com/webhook..."
+                      value={tempWebhookUrl}
+                      onChange={(e) => setTempWebhookUrl(e.target.value)}
+                      className="h-11 flex-1 sm:h-10"
+                    />
+                    <Button
+                      variant="accent"
+                      className="min-h-11 sm:min-h-0"
+                      onClick={saveWebhookUrl}
+                      disabled={isSavingWebhook || tempWebhookUrl === webhookUrl}
+                    >
+                      {isSavingWebhook ? "Saving…" : "Save webhook"}
+                    </Button>
+                  </div>
+                  {webhookUrl && (
+                    <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <CheckCircle2 className="size-3.5 text-success" aria-hidden="true" />
+                      Webhook saved. Ticket events are being sent.
+                    </p>
+                  )}
+                </div>
+                <Collapsible className="group border-t border-border pt-2">
+                  <CollapsibleTrigger className="flex min-h-11 w-full cursor-pointer items-center justify-between gap-4 rounded-sm text-left text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <span>
+                      Advanced: reply webhooks and email setup
+                      <span className="mt-0.5 block font-normal text-muted-foreground">
+                        Send ticket updates from your own CRM and bring client email replies back in.
+                      </span>
+                    </span>
+                    <ChevronDown
+                      className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180"
+                      aria-hidden="true"
+                    />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-4 space-y-4">
+                    <SupportUpdatesWebhookPanel compact />
+                    <CustomerRepliesWebhookPanel compact />
+                  </CollapsibleContent>
+                </Collapsible>
               </div>
-              {webhookUrl && (
-                <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <CheckCircle2 className="size-3.5 text-success" aria-hidden="true" />
-                  Webhook saved. Ticket events are being sent.
-                </p>
-              )}
-            </SettingRow>
-          )}
-          {ticketingEnabled && (
-            <details className="group py-4 last:pb-0">
-              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 rounded-sm text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
-                <span>
-                  Advanced: reply webhooks and email setup
-                  <span className="mt-0.5 block font-normal text-muted-foreground">
-                    Send ticket updates from your own CRM and bring client email replies back in.
-                  </span>
-                </span>
-                <ChevronDown
-                  className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
-                  aria-hidden="true"
-                />
-              </summary>
-              <div className="mt-4 space-y-4">
-                <SupportUpdatesWebhookPanel compact />
-                <CustomerRepliesWebhookPanel compact />
-              </div>
-            </details>
-          )}
-        </SectionCard>
-
-        <SectionCard
-          icon={<Bot />}
-          title="AI chat"
-          description="An assistant in your clients' accounts that answers questions around the clock."
-          bodyClassName="divide-y divide-border"
-        >
-          <SettingRow
-            htmlFor="chat-widget-toggle"
-            title="AI chat support"
-            description={
-              showChatWidget
-                ? "On. Clients see the chat bubble and can ask the assistant anything."
-                : "Off. The chat bubble is hidden from your clients."
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Turn ticketing on to set up the webhook and email options.
+              </p>
+            )}
+          </SettingItem>
+          <SettingItem
+            icon={<Inbox />}
+            title="Tickets from your clients"
+            value={
+              tickets.length === 0
+                ? "No tickets yet"
+                : `${openTickets} open · ${tickets.length} in total`
             }
-            control={
+            panel={{ wide: true, description: "Select a ticket to read it and send a response." }}
+          >
+            <TicketsTable
+              team={access.team}
+              onAssign={handleAssign}
+              canEdit={canEditTickets}
+              tickets={tickets}
+              onSelect={(ticket) => {
+                setSelectedTicket(ticket as SupportTicket);
+                setTicketResponse("");
+                setTicketAttachment(null);
+              }}
+              onStatusChange={handleStatusChange}
+              emptyLabel={
+                ticketingEnabled
+                  ? "No tickets yet. They appear here when a client sends one."
+                  : "No tickets yet. Turn on support ticketing to start receiving them."
+              }
+            />
+          </SettingItem>
+        </SettingList>
+
+        <SettingList label="Chat">
+          <SettingItem
+            icon={<Bot />}
+            title="AI chat support"
+            value={
+              showChatWidget
+                ? "On · clients see the chat bubble"
+                : "Off · the chat bubble is hidden"
+            }
+            toggle={
               <Switch
                 id="chat-widget-toggle"
+                aria-label="AI chat support"
                 checked={showChatWidget}
                 onCheckedChange={toggleChatWidget}
               />
             }
           />
-          <div className="py-4 last:pb-0">
-            <ChatModeSettings />
-          </div>
-          <SettingRow
-            title={
-              <span className="flex flex-wrap items-center gap-2">
-                Branded AI support
-                {hasBrandedSupport && (
-                  <Tag tone="success">
-                    <Check aria-hidden="true" /> Active
-                  </Tag>
-                )}
-              </span>
+          <SettingItem
+            icon={<Headphones />}
+            title="Human chat"
+            value={
+              !humanChat
+                ? "Who answers when a client asks for a person"
+                : !humanChat.on
+                  ? "Off · only the AI answers"
+                  : humanChat.mode === "managed"
+                    ? "On · SaaSSuite answers for you"
+                    : `On · ${humanChat.agency} answers`
             }
-            description="A fully customized chat with your colors, your prompts and human handover."
-            control={
+            panel={{ description: "Let a client ask for a person, and choose who answers." }}
+            onOpenChange={(open) => {
+              // The panel saves on its own; re-read so the row says what is set now.
+              if (!open) setLoadAttempt((attempt) => attempt + 1);
+            }}
+          >
+            <ChatModeSettings />
+          </SettingItem>
+          <SettingItem
+            icon={<Sparkles />}
+            title="Branded AI support"
+            value="Your colors, your prompts and human handover"
+            status={
               hasBrandedSupport ? (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setTempEmbedCode(embedCode);
-                    setShowEmbedCodePopup(true);
-                  }}
-                >
-                  <Code aria-hidden="true" />
-                  View embed code
-                </Button>
+                <Tag tone="success">
+                  <Check aria-hidden="true" /> Active
+                </Tag>
               ) : (
-                <Button variant="outline" onClick={() => setShowUpgradePopup(true)}>
-                  <Sparkles aria-hidden="true" />
-                  See the upgrade
-                </Button>
+                "See the upgrade"
               )
             }
-          />
-        </SectionCard>
-
-        <section className="space-y-3">
-          <div>
-            <h2 className="text-base font-semibold text-foreground">Tickets from your clients</h2>
-            <p className="text-sm text-muted-foreground">
-              Select a ticket to read it and send a response.
-            </p>
-          </div>
-          <TicketsTable
-            team={access.team}
-            onAssign={handleAssign}
-            canEdit={canEditTickets}
-            tickets={tickets}
-            onSelect={(ticket) => {
-              setSelectedTicket(ticket as SupportTicket);
-              setTicketResponse("");
-              setTicketAttachment(null);
+            onOpen={() => {
+              if (hasBrandedSupport) {
+                setTempEmbedCode(embedCode);
+                setShowEmbedCodePopup(true);
+              } else {
+                setShowUpgradePopup(true);
+              }
             }}
-            onStatusChange={handleStatusChange}
-            emptyLabel={
-              ticketingEnabled
-                ? "No tickets yet. They appear here when a client sends one."
-                : "No tickets yet. Turn on support ticketing above to start receiving them."
-            }
           />
-        </section>
+        </SettingList>
 
         {/* Upgrade Popup */}
         <Dialog open={showUpgradePopup} onOpenChange={setShowUpgradePopup}>
@@ -589,7 +613,7 @@ const SupportFeatures = () => {
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
                     <Ticket className="w-4 h-4" />
-                    Ticket #{selectedTicket.ticket_number} — {selectedTicket.issue_category}
+                    Ticket #{selectedTicket.ticket_number} · {selectedTicket.issue_category}
                   </DialogTitle>
                   <DialogDescription>
                     From <span className="font-medium">{selectedTicket.customer_name}</span> ({selectedTicket.customer_email})
@@ -630,7 +654,7 @@ const SupportFeatures = () => {
                   <div className="flex items-start gap-2 rounded-md bg-muted/40 border p-3 text-xs text-muted-foreground">
                     <Sparkles className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden="true" />
                     <span>
-                      Our AI will email <span className="font-medium">{selectedTicket.customer_email}</span> with their ticket update — including any attached image. The ticket will be marked as responded.
+                      Our AI will email <span className="font-medium">{selectedTicket.customer_email}</span> with their ticket update, including any attached image. The ticket will be marked as responded.
                     </span>
                   </div>
                 </div>

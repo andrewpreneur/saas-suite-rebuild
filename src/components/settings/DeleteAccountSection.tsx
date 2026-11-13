@@ -50,7 +50,7 @@ export default function DeleteAccountSection() {
     title="Delete account"
     description="Permanently delete your SaaSSuite account and account data, then sign out and return to the home page. This cannot be undone."
   >
-    <Button variant="destructive" className="h-11 w-full sm:h-10 sm:w-auto" onClick={() => { setOpen(true); setError(''); setConfirmation(''); setAcknowledged(false); }}>
+    <Button variant="outline" className="h-11 w-full border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive sm:h-10 sm:w-auto" onClick={() => { setOpen(true); setError(''); setConfirmation(''); setAcknowledged(false); }}>
       <Trash2 className="mr-2 h-4 w-4" />Delete account
     </Button>
     <Dialog open={open} onOpenChange={(value) => { if (!busy) setOpen(value); }}>

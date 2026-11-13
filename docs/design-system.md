@@ -70,3 +70,39 @@ Recolor any 21st component to the tokens above (brand purple, `px-*` surfaces, o
 - Disabled buttons are a last resort: leave it enabled and explain what is blocking.
 - Check every screen at 375, 768 and 1440 wide. No horizontal overflow.
 - This copy has no backend. Screens read the mock in `src/lib/platformMock.ts`; add fixtures there when a screen looks empty.
+
+## Calm screens (v1.1)
+
+Andrew's note after v1: "Screens still have a LOT on them. Lots of buttons and places to go." These rules fix that.
+They apply to every signed-in screen. Nothing is removed from the product: things move behind one clear door.
+
+**The budget.** When a page first loads, the content area (not the sidebar or top bar) shows:
+- one title, one sentence under it, and **one** button (the page's primary action);
+- at most **seven** other things a person can click, where a list of like rows counts as one thing;
+- no setting's editor. Editors open when asked for.
+
+**Where everything else goes.**
+
+| It was... | It becomes... | Built with |
+|---|---|---|
+| A second, third, fourth header button | One "..." menu | `PageHeader` `more={[...]}` or `premium/MoreMenu` |
+| A stack of cards, each an open form | One card of rows. Row = name + what it is set to now. Click opens the editor in a side panel (bottom sheet on phones) | `premium/SettingList` (`SettingList`, `SettingItem`, `EditorPanel`) |
+| Four big number cards that are only context | One slim strip, or nothing if a tab already shows the count | `premium/StatStrip` |
+| "Advanced" options beside the basics | Inside the same side panel, under an "Advanced" disclosure | `ui/collapsible` |
+| A paragraph of explanation | One sentence. The rest goes in the "..." menu as "How this works" | `MoreMenu` + a dialog |
+| A link, a plan picker and two icon buttons in a bar | One compact chip that opens a popover | `ui/popover` |
+| More than four tabs | Four tabs, or use the page switcher in the top bar | `21st/animated-tabs` |
+| A collection of things (trainings, files, groups) | Folders or cards you open | `21st/glass-folder-cards`, `21st/folder-card` |
+
+**Keep inline only** what a person changes on nearly every visit (a reply box, a search field, the list they came for).
+Every control must still be reachable in two clicks from its page, by mouse, touch and keyboard.
+
+**Navigation.** The sidebar is Dashboard plus five groups with one open at a time. The page name in the top bar is a
+switcher for the other pages in the same group. Cmd+K reaches everything. Don't add sidebar links; add to a group.
+
+## Skins: Clean and Glass
+
+`src/lib/skin.ts` holds the choice (`clean` or `glass`, per browser); the switch is `premium/SkinSwitch` in the top bar.
+Glass is CSS only (`html[data-skin="glass"]` in `src/index.css`): frosted panes over a fixed colour field.
+To stay correct in both skins, build surfaces from `px-surface`, `px-surface-interactive`, `bg-card`, `bg-muted` and
+`bg-background`. Never hard-code `bg-white` or a hex background on a surface: it will not frost. Check every screen in both.

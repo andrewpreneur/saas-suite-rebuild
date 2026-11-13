@@ -7,7 +7,6 @@ import DashboardOverview from "@/components/dashboard/DashboardOverview";
 import HubUrlCard from "@/components/dashboard/HubUrlCard";
 import OneFeatureKitDelivery from "@/components/dashboard/OneFeatureKitDelivery";
 import GiveawayOptInModal from "@/components/giveaway/GiveawayOptInModal";
-import SetupHelpPopup from "@/components/dashboard/SetupHelpPopup";
 import { useUser } from "@/contexts/UserContext";
 import { useGiveaway } from "@/hooks/useGiveaway";
 import { consumeKitHomeReturn } from "@/lib/kitReturn";
@@ -53,26 +52,12 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Affiliate and One Feature Kit are their own sidebar pages, so each carries its own h1. */}
+      {/* Affiliate and One Feature Kit are their own sidebar pages; each view component renders its own PageHeader. */}
       {overview && (
         <PageHeader
           eyebrow={today}
           title={firstName ? `${greeting}, ${firstName}` : greeting}
           subtitle="How your SaaS is doing, and the one thing worth doing next."
-        />
-      )}
-      {view === "affiliate" && (
-        <PageHeader
-          eyebrow="Grow"
-          title="Affiliate"
-          subtitle="Share your link, track referrals and get paid recurring commission."
-        />
-      )}
-      {kitView && (
-        <PageHeader
-          eyebrow="Grow"
-          title="One Feature Kit"
-          subtitle="Finish the training steps, then open the add-ons included with your account."
         />
       )}
 
@@ -107,7 +92,6 @@ export default function Dashboard() {
         </TabsContent>
         <TabsContent value="affiliate" className="mt-0 space-y-6">
           <AffiliateDashboard />
-          <SetupHelpPopup />
         </TabsContent>
       </Tabs>
 

@@ -126,6 +126,87 @@ html.ds-ui {
     animation: px-shimmer 1.4s ease-in-out infinite;
   }
 }
+/*
+ * Glass skin (html[data-skin="glass"], set by src/lib/skin.ts). Same layout and
+ * tokens as Clean; only surfaces change: frosted panes over a soft colour field.
+ * Panes stay at 62%+ white so body text keeps 4.5:1 against the field behind.
+ */
+html.ds-ui[data-skin="glass"] {
+  --canvas: 252 60% 96%;
+  --border: 250 40% 88%;
+  --glass-pane: rgba(255, 255, 255, 0.62);
+  --glass-pane-strong: rgba(255, 255, 255, 0.86);
+  --glass-rim: inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 0 0 1px rgba(255, 255, 255, 0.55);
+  --shadow-card: var(--glass-rim), 0 1px 2px rgba(40, 24, 120, 0.05), 0 18px 40px -22px rgba(52, 32, 150, 0.35);
+  --shadow-raised: var(--glass-rim), 0 2px 6px rgba(40, 24, 120, 0.07), 0 30px 56px -24px rgba(52, 32, 150, 0.5);
+  --shadow-popover: var(--glass-rim), 0 16px 44px -12px rgba(40, 24, 120, 0.35);
+  --shadow-dialog: var(--glass-rim), 0 40px 80px -20px rgba(40, 24, 120, 0.45);
+  --gradient-brand-soft: linear-gradient(135deg, rgba(255, 255, 255, 0.75) 0%, rgba(232, 226, 255, 0.7) 60%, rgba(255, 240, 252, 0.7) 100%);
+}
+html.ds-ui[data-skin="glass"] body.ds-app {
+  background-color: #ece9fb;
+}
+/* The colour field: fixed, so panes frost different colours as the page scrolls. */
+html.ds-ui[data-skin="glass"] .px-canvas {
+  background-color: #ece9fb;
+  background-image:
+    radial-gradient(900px 620px at 8% 4%, rgba(122, 96, 245, 0.42), transparent 62%),
+    radial-gradient(820px 560px at 92% 0%, rgba(240, 132, 214, 0.34), transparent 60%),
+    radial-gradient(900px 700px at 78% 96%, rgba(88, 176, 255, 0.36), transparent 62%),
+    radial-gradient(760px 600px at 14% 100%, rgba(110, 231, 199, 0.26), transparent 60%);
+  background-attachment: fixed;
+}
+html.ds-ui[data-skin="glass"] body.ds-app :is(.px-surface, .px-surface-interactive, .bg-card, [data-sidebar="sidebar"]) {
+  background: var(--glass-pane);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  backdrop-filter: blur(22px) saturate(170%);
+}
+/* A pane inside a pane only needs a lighter tint, not a second blur. */
+html.ds-ui[data-skin="glass"] body.ds-app :is(.px-surface, .px-surface-interactive, .bg-card) :is(.px-surface, .px-surface-interactive, .bg-card) {
+  background: rgba(255, 255, 255, 0.5);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+html.ds-ui[data-skin="glass"] body.ds-app .px-glass {
+  background: rgba(255, 255, 255, 0.42);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+/* Things that float over content are denser so what is behind never fights the text. */
+html.ds-ui[data-skin="glass"] body.ds-app :is([role="dialog"], [role="menu"], [role="listbox"], [data-radix-popper-content-wrapper] > *, [cmdk-root]) {
+  background: var(--glass-pane-strong);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  backdrop-filter: blur(28px) saturate(180%);
+}
+html.ds-ui[data-skin="glass"] body.ds-app :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea, select, [role="combobox"]):not(.bg-transparent) {
+  background-color: rgba(255, 255, 255, 0.72);
+}
+html.ds-ui[data-skin="glass"] body.ds-app :is(.bg-muted, .bg-secondary) {
+  background-color: rgba(255, 255, 255, 0.46);
+}
+html.ds-ui[data-skin="glass"] body.ds-app .bg-background {
+  background-color: rgba(255, 255, 255, 0.7);
+}
+html.ds-ui[data-skin="glass"] body.ds-app .px-icon-chip {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 0 0 1px rgba(96, 67, 239, 0.16), 0 6px 14px -8px rgba(52, 32, 150, 0.4);
+}
+html.ds-ui[data-skin="glass"] body.ds-app .px-brand-fill {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 10px 24px -8px rgba(96, 67, 239, 0.65);
+}
+@media (prefers-reduced-transparency: reduce) {
+  html.ds-ui[data-skin="glass"] body.ds-app :is(.px-surface, .px-surface-interactive, .bg-card, .px-glass, [data-sidebar="sidebar"]) {
+    background: rgba(255, 255, 255, 0.94);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+/* The floating Copilot button steps aside while a panel or dialog is open, so it never covers a Save button. */
+body:has([role="dialog"][data-state="open"]) .copilot-launcher {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-fast, 120ms) ease-out;
+}
 @keyframes px-shimmer {
   to { background-position: -135% 0; }
 }

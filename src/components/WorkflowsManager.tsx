@@ -1,11 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -30,7 +27,9 @@ import {
   CheckCircle2,
   ChevronDown,
 } from "lucide-react";
-import { SectionCard } from "@/components/premium/SectionCard";
+import { EditorPanel, SettingItem, SettingList } from "@/components/premium/SettingList";
+import { HubPlanChip } from "@/components/premium/hub/HubPlanChip";
+import { PanelActions } from "@/components/premium/hub/PanelActions";
 import { Reveal, RevealItem } from "@/components/premium/Reveal";
 import { EmptyState } from "@/components/premium/21st/empty-state";
 import { HubEmptyIcon } from "@/components/premium/hub/HubBits";
@@ -103,6 +102,14 @@ interface SlackInstallRow {
   inbound_webhook_token: string | null;
 }
 
+/** What Save would write, as a string, so the page knows when there is something to save. */
+const rowsKeyOf = (map: Record<string, WorkflowRow>) =>
+  JSON.stringify(
+    Object.keys(map)
+      .sort()
+      .map((id) => [id, map[id]?.webhook_url?.trim() || "", map[id]?.enabled ?? true, map[id]?.slack_enabled ?? false]),
+  );
+
 const WorkflowsManager = () => {
   const { email } = useUser();
   const navigate = useNavigate();
@@ -120,6 +127,7 @@ const WorkflowsManager = () => {
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [versionsLoaded, setVersionsLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savedKey, setSavedKey] = useState("{}");
   const [testingId, setTestingId] = useState<string | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [slackConnected, setSlackConnected] = useState(false);
@@ -193,6 +201,7 @@ const WorkflowsManager = () => {
     if (!versionsLoaded) return;
     if (!currentAgencyId) {
       setRows({});
+      setSavedKey(rowsKeyOf({}));
       setLoading(false);
       return;
     }
@@ -221,6 +230,7 @@ const WorkflowsManager = () => {
         });
         if (alive) {
           setRows(map);
+          setSavedKey(rowsKeyOf(map));
           setLoadError(null);
         }
       } catch (error) {
@@ -269,7 +279,7 @@ const WorkflowsManager = () => {
       await navigator.clipboard.writeText(inboundUrl);
       toast.success("Webhook URL copied");
     } catch {
-      toast.error("Could not copy — select and copy manually");
+      toast.error("Could not copy. Select the link and copy it by hand.");
     }
   };
 
@@ -356,7 +366,7 @@ const WorkflowsManager = () => {
           `Webhook responded with ${data?.status ?? "error"}${data?.error ? `: ${data.error}` : ""}`,
         );
       } else {
-        toast.success(`Test sent ✓ (${data.status}). Example payload delivered.`);
+        toast.success(`Test sent (${data.status}). Example payload delivered.`);
       }
       console.log("Test webhook payload sent:", data?.payload);
       console.log("Test webhook response:", data?.response);
@@ -392,6 +402,7 @@ const WorkflowsManager = () => {
           .eq("agency_id", currentAgencyId)
           .not("trigger_type", "in", `(${activeIds.map((i) => `"${i}"`).join(",")})`);
       }
+      setSavedKey(rowsKeyOf(rows));
       toast.success("Workflows saved");
     } catch (err: any) {
       console.error(err);
@@ -423,52 +434,98 @@ const WorkflowsManager = () => {
   const activeTriggers = TRIGGERS.filter((t) => rows[t.id]);
   const availableTriggers = TRIGGERS.filter((t) => !rows[t.id]);
 
+  // Calm layout state: which side panel is open. The data and handlers above are unchanged.
+  const [addOpen, setAddOpen] = useState(false);
+  const [slackOpen, setSlackOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const dirty = !loading && rowsKeyOf(rows) !== savedKey;
+  const ready = versionsLoaded && !loading && !!currentAgencyId;
+
+  const saveButton = (
+    <Button variant="accent" data-testid="wf-save" onClick={save} disabled={saving || loading || !dirty}>
+      <Save className="size-4" aria-hidden="true" />
+      {saving ? "Saving…" : dirty ? "Save workflows" : "Saved"}
+    </Button>
+  );
+
   return (
     <div className="min-w-0 space-y-6">
       <PageHeader
         eyebrow="Client Hub"
         title="Workflows"
-        subtitle="Tell your automations when a client does something in your hub. Each trigger posts that client's details to a webhook you choose."
+        subtitle="Tell your automations when a client does something in your hub."
+        actions={
+          ready ? (
+            <Button variant="accent" data-testid="wf-add" onClick={() => setAddOpen(true)} disabled={availableTriggers.length === 0}>
+              <Plus className="size-4" aria-hidden="true" />
+              Add trigger
+            </Button>
+          ) : undefined
+        }
+        more={
+          ready
+            ? [
+                { label: "Custom Slack messages", icon: <img src={SLACK_LOGO} alt="" className="size-4" />, onSelect: () => setSlackOpen(true) },
+                { label: "Open login settings", icon: <SettingsIcon />, onSelect: goToLoginSettings },
+              ]
+            : undefined
+        }
       />
 
-      <div className="px-surface flex min-w-0 flex-col gap-3 p-3 sm:p-4 lg:flex-row lg:items-center">
-        {availablePlans.length > 1 && (
-          <Select value={selectedPlan} onValueChange={(v) => setSelectedPlan(v as Plan)}>
-            <SelectTrigger className="h-11 w-full lg:w-[150px]" aria-label="Plan you are editing">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {availablePlans.map((p) => (
-                <SelectItem key={p} value={p}>
-                  {planLabel(p)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-        {loginOk ? (
-          <p className="flex min-h-11 min-w-0 flex-1 items-center gap-2 text-sm text-muted-foreground">
-            <CheckCircle2 className="size-4 shrink-0 text-success" aria-hidden="true" />
-            <span>
-              Ready. Clients sign in with <strong className="font-medium text-foreground">{loginWith === "BOTH" ? "email and name" : "email"}</strong>, so
-              every trigger knows who they are.
-            </span>
-          </p>
-        ) : (
-          <div role="alert" className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
-            <p className="flex min-w-0 flex-1 basis-64 items-start gap-2 text-sm text-foreground">
-              <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
-              <span>
-                Triggers cannot tell clients apart yet. Switch client login to Email, or Email and Name. Current:{" "}
-                <strong>{loginWith}</strong>.
-              </span>
-            </p>
-            <Button size="sm" variant="outline" onClick={goToLoginSettings}>
-              <SettingsIcon className="size-3.5" /> Open login settings
-            </Button>
-          </div>
-        )}
-      </div>
+      {availablePlans.length > 1 || !loginOk ? (
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
+          {availablePlans.length > 1 && (
+            <HubPlanChip
+              testId="wf-plan-chip"
+              planLabel={planLabel(selectedPlan)}
+              planSelect={
+                <Select value={selectedPlan} onValueChange={(v) => setSelectedPlan(v as Plan)}>
+                  <SelectTrigger className="h-11 w-full" aria-label="Plan you are editing">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availablePlans.map((p) => (
+                      <SelectItem key={p} value={p}>
+                        {planLabel(p)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              }
+              extra={
+                <p className="flex items-start gap-2 text-sm text-muted-foreground">
+                  {loginOk ? (
+                    <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
+                  ) : (
+                    <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
+                  )}
+                  <span>
+                    Clients sign in with{" "}
+                    <strong className="font-medium text-foreground">
+                      {loginWith === "BOTH" ? "email and name" : loginWith === "EMAIL" ? "email" : loginWith}
+                    </strong>
+                    {loginOk ? ", so every trigger knows who they are." : "."}
+                  </span>
+                </p>
+              }
+            />
+          )}
+          {!loginOk && (
+            <div role="alert" className="flex min-w-0 flex-1 basis-64 flex-wrap items-center gap-3">
+              <p className="flex min-w-0 flex-1 basis-64 items-start gap-2 text-sm text-foreground">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
+                <span>
+                  Triggers cannot tell clients apart yet. Switch client login to Email, or Email and Name. Current:{" "}
+                  <strong>{loginWith}</strong>.
+                </span>
+              </p>
+              <Button size="sm" variant="outline" onClick={goToLoginSettings}>
+                <SettingsIcon className="size-3.5" /> Open login settings
+              </Button>
+            </div>
+          )}
+        </div>
+      ) : null}
 
       {loadError && <LoadNotice error={loadError} onRetry={() => setLoadAttempt((attempt) => attempt + 1)} />}
       {!versionsLoaded || loading ? (
@@ -481,7 +538,7 @@ const WorkflowsManager = () => {
           <EmptyState
             icon={<HubEmptyIcon><Workflow className="size-6" /></HubEmptyIcon>}
             title="Create your hub link first"
-            description="Workflows fire from your hub. Set up the hub link in Hub Pages, then come back."
+            description="Workflows fire from your hub."
             action={
               <Button variant="accent" onClick={() => navigate("/app/client-hub")}>
                 Open Hub Pages
@@ -493,91 +550,99 @@ const WorkflowsManager = () => {
         <>
           <Reveal className="space-y-4">
             <RevealItem>
-              <SectionCard
-                icon={<Workflow />}
-                title="Your triggers"
-                description="Each one sends a webhook the moment it happens."
-                actions={
-                  activeTriggers.length > 0 ? (
-                    <span className="text-xs tabular-nums text-muted-foreground">
-                      {activeTriggers.filter((t) => rows[t.id]?.enabled ?? true).length} of {activeTriggers.length} on
-                    </span>
-                  ) : null
-                }
-              >
-                {activeTriggers.length === 0 ? (
+              {activeTriggers.length === 0 ? (
+                <div className="px-surface">
                   <EmptyState
-                    className="py-8"
+                    className="py-10"
                     icon={<HubEmptyIcon><Webhook className="size-6" /></HubEmptyIcon>}
                     title="No triggers yet"
-                    description="Pick a trigger below, paste your webhook link, and send a test."
+                    description="Pick a moment, paste your webhook link, and send a test."
+                    action={
+                      <Button variant="outline" onClick={() => setAddOpen(true)}>
+                        <Plus className="size-4" aria-hidden="true" />
+                        Add trigger
+                      </Button>
+                    }
                   />
-                ) : (
-                  <div className="space-y-3">
-                    {activeTriggers.map((t) => {
-                      const row = rows[t.id];
-                      const isHighlighted = highlightId === t.id;
-                      const on = row?.enabled ?? true;
-                      return (
-                        <div
-                          key={t.id}
-                          className={`rounded-md border border-border p-4 transition-colors duration-200 ${on ? "bg-card" : "bg-muted/40"} ${row?.isNew ? "animate-scale-in" : ""}`}
-                        >
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div className={`min-w-0 flex-1 basis-56 ${on ? "" : "opacity-60"}`}>
-                              <h3 className="text-sm font-semibold text-foreground">{t.label}</h3>
-                              <p className="text-sm text-muted-foreground">{t.description}</p>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <OnOffSwitch
-                                checked={on}
-                                onCheckedChange={(v) => updateRow(t.id, { enabled: v })}
-                                label={`Turn ${t.label} on or off`}
-                              />
+                </div>
+              ) : (
+                <SettingList
+                  label={`Your triggers, ${activeTriggers.filter((t) => rows[t.id]?.enabled ?? true).length} of ${activeTriggers.length} on`}
+                >
+                  {activeTriggers.map((t) => {
+                    const row = rows[t.id];
+                    const isHighlighted = highlightId === t.id;
+                    const on = row?.enabled ?? true;
+                    const url = row?.webhook_url?.trim();
+                    return (
+                      <SettingItem
+                        key={t.id}
+                        testId={`wf-row-${t.id}`}
+                        icon={<Webhook />}
+                        title={t.label}
+                        value={url ? url.replace(/^https?:\/\//, "") : "Needs a webhook link"}
+                        open={editingId === t.id}
+                        onOpenChange={(next) => setEditingId(next ? t.id : null)}
+                        toggle={
+                          <OnOffSwitch
+                            checked={on}
+                            onCheckedChange={(v) => updateRow(t.id, { enabled: v })}
+                            label={`Turn ${t.label} on or off`}
+                          />
+                        }
+                        panel={{
+                          description: t.description,
+                          footer: (
+                            <PanelActions>
                               <Button
-                                size="icon"
-                                aria-label="Delete"
                                 variant="ghost"
                                 className="text-muted-foreground hover:text-destructive"
-                                onClick={() => removeTrigger(t.id)}
+                                onClick={() => {
+                                  setEditingId(null);
+                                  removeTrigger(t.id);
+                                  toast.success("Trigger removed");
+                                }}
                               >
-                                <Trash2 className="size-4" />
+                                <Trash2 className="size-4" aria-hidden="true" />
+                                Remove trigger
                               </Button>
-                            </div>
-                          </div>
-                          <div className="mt-3 space-y-1.5">
+                              {saveButton}
+                            </PanelActions>
+                          ),
+                        }}
+                      >
+                        <div className="space-y-5">
+                          <div className="space-y-1.5">
                             <Label htmlFor={`wf-input-${t.id}`}>Webhook link</Label>
-                            <div className="flex flex-col gap-2 sm:flex-row">
-                              <Input
-                                id={`wf-input-${t.id}`}
-                                value={row?.webhook_url || ""}
-                                onChange={(e) => updateRow(t.id, { webhook_url: e.target.value })}
-                                placeholder="https://services.leadconnectorhq.com/hooks/..."
-                                className={`font-mono text-xs transition-all ${isHighlighted ? "ring-2 ring-brand ring-offset-2 ring-offset-background" : ""}`}
-                              />
-                              <Button
-                                variant="outline"
-                                className="shrink-0"
-                                onClick={() => sendTest(t.id)}
-                                disabled={testingId === t.id || !row?.webhook_url?.trim()}
-                              >
-                                <Send className="size-4" />
-                                {testingId === t.id ? "Sending…" : "Send test"}
-                              </Button>
-                            </div>
+                            <Input
+                              id={`wf-input-${t.id}`}
+                              value={row?.webhook_url || ""}
+                              onChange={(e) => updateRow(t.id, { webhook_url: e.target.value })}
+                              placeholder="https://services.leadconnectorhq.com/hooks/..."
+                              className={`font-mono text-xs transition-shadow ${isHighlighted ? "ring-2 ring-brand ring-offset-2 ring-offset-background" : ""}`}
+                            />
+                            <Button
+                              variant="outline"
+                              className="mt-2"
+                              onClick={() => sendTest(t.id)}
+                              disabled={testingId === t.id || !row?.webhook_url?.trim()}
+                            >
+                              <Send className="size-4" aria-hidden="true" />
+                              {testingId === t.id ? "Sending…" : "Send test"}
+                            </Button>
                           </div>
-                          <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <button
                               type="button"
                               aria-pressed={!!row?.slack_enabled}
                               onClick={() => {
                                 if (!slackConnected) {
-                                  toast.error("Connect Slack in Settings → Slack Integration first.");
+                                  toast.error("Connect Slack in Settings, under Slack Integration, first.");
                                   return;
                                 }
                                 updateRow(t.id, { slack_enabled: !row?.slack_enabled });
                               }}
-                              className={`flex min-h-9 items-center gap-2 rounded-full border px-3 text-sm font-medium transition-colors duration-150 ${
+                              className={`flex min-h-11 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                                 row?.slack_enabled
                                   ? "border-brand/40 bg-brand-subtle text-brand"
                                   : "border-border bg-card text-muted-foreground hover:text-foreground"
@@ -595,112 +660,105 @@ const WorkflowsManager = () => {
                             )}
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </SectionCard>
+                      </SettingItem>
+                    );
+                  })}
+                </SettingList>
+              )}
             </RevealItem>
+          </Reveal>
 
-            {availableTriggers.length > 0 && (
-              <RevealItem>
-                <SectionCard
-                  icon={<Plus />}
-                  title="Add a trigger"
-                  description="Choose the moment that should fire your webhook."
-                >
-                  <div className="grid gap-2 md:grid-cols-2">
-                    {availableTriggers.map((t) => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => addTrigger(t.id)}
-                        className="group flex min-h-[60px] items-center gap-3 rounded-md border border-border bg-card p-3 text-left transition-colors duration-150 hover:border-brand/40 hover:bg-brand-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      >
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-sm font-medium text-foreground">{t.label}</span>
-                          <span className="block text-sm text-muted-foreground">{t.description}</span>
-                        </span>
-                        <Plus className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-brand" aria-hidden="true" />
-                      </button>
-                    ))}
-                  </div>
-                </SectionCard>
-              </RevealItem>
-            )}
-
-            <RevealItem>
-              <details className="group px-surface">
-                <summary className="flex cursor-pointer list-none items-center gap-3 p-4 sm:p-6 [&::-webkit-details-marker]:hidden">
-                  <span className="px-icon-chip shrink-0" aria-hidden="true">
-                    <img src={SLACK_LOGO} alt="" className="size-5" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-base font-semibold text-foreground">Custom Slack messages</span>
-                    <span className="mt-0.5 block text-sm text-muted-foreground">
-                      Advanced. Post anything to your Slack channel from a private webhook.
+          <EditorPanel
+            open={addOpen}
+            onOpenChange={setAddOpen}
+            title="Add a trigger"
+            description="Choose the moment that should fire your webhook."
+          >
+            {availableTriggers.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Every trigger is already on your list.</p>
+            ) : (
+              <div className="grid gap-2">
+                {availableTriggers.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    data-testid={`wf-add-${t.id}`}
+                    onClick={() => {
+                      addTrigger(t.id);
+                      setAddOpen(false);
+                      setEditingId(t.id);
+                    }}
+                    className="group flex min-h-[60px] items-center gap-3 rounded-md border border-border bg-card p-3 text-left transition-colors duration-150 hover:border-brand/40 hover:bg-brand-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-medium text-foreground">{t.label}</span>
+                      <span className="block text-sm text-muted-foreground">{t.description}</span>
                     </span>
-                  </span>
-                  <ChevronDown className="size-5 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180" aria-hidden="true" />
-                </summary>
-                <div className="space-y-3 border-t border-border p-4 sm:p-6">
-                  {!slackConnected ? (
-                    <p className="text-sm text-muted-foreground">
-                      Connect Slack in <strong>Settings → Slack Integration</strong> to activate your
-                      custom webhook URL.
-                    </p>
-                  ) : !inboundToken ? (
-                    <TextShimmer className="text-sm">Generating your webhook URL…</TextShimmer>
-                  ) : (
-                    <>
-                      <div className="flex flex-col gap-2 sm:flex-row">
-                        <Input
-                          value={inboundUrl}
-                          readOnly
-                          aria-label="Your private Slack webhook link"
-                          className="font-mono text-xs"
-                          onFocus={(e) => e.currentTarget.select()}
-                        />
-                        <div className="flex gap-2">
-                          <CopyButton onCopy={copyInbound} showLabel />
-                          <Button variant="outline" onClick={rotateInbound} disabled={rotatingToken}>
-                            <RefreshCw className={`size-4 ${rotatingToken ? "animate-spin" : ""}`} />
-                            {rotatingToken ? "…" : "Regenerate"}
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="space-y-2 rounded-md border border-border bg-muted/40 p-3">
-                        <p className="text-sm font-medium">POST a JSON body like this:</p>
-                        <pre className="whitespace-pre-wrap break-all rounded-sm border border-border bg-background p-3 font-mono text-xs">
-                          {`{
+                    <Plus className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-brand" aria-hidden="true" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </EditorPanel>
+
+          <EditorPanel
+            open={slackOpen}
+            onOpenChange={setSlackOpen}
+            title="Custom Slack messages"
+            description="Advanced. Post anything to your Slack channel from a private webhook."
+          >
+            <div className="space-y-3">
+              {!slackConnected ? (
+                <p className="text-sm text-muted-foreground">
+                  Connect Slack in <strong>Settings, under Slack Integration,</strong> to activate your custom webhook URL.
+                </p>
+              ) : !inboundToken ? (
+                <TextShimmer className="text-sm">Generating your webhook URL…</TextShimmer>
+              ) : (
+                <>
+                  <Input
+                    value={inboundUrl}
+                    readOnly
+                    aria-label="Your private Slack webhook link"
+                    className="font-mono text-xs"
+                    onFocus={(e) => e.currentTarget.select()}
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <CopyButton onCopy={copyInbound} showLabel />
+                    <Button variant="outline" onClick={rotateInbound} disabled={rotatingToken}>
+                      <RefreshCw className={`size-4 ${rotatingToken ? "animate-spin" : ""}`} />
+                      {rotatingToken ? "Regenerating…" : "Regenerate link"}
+                    </Button>
+                  </div>
+                  <div className="space-y-2 rounded-md border border-border bg-muted/40 p-3">
+                    <p className="text-sm font-medium">POST a JSON body like this:</p>
+                    <pre className="whitespace-pre-wrap break-all rounded-sm border border-border bg-background p-3 font-mono text-xs">
+                      {`{
   "title": "Website form submission",
   "message": "Someone requested a demo.",
   "source": "landing-page",
   "fields": { "Name": "Jane Doe", "Email": "jane@acme.com" }
 }`}
-                        </pre>
-                        <p className="text-xs text-muted-foreground">
-                          All fields are optional. Include at least a <code>title</code>,{" "}
-                          <code>message</code>, or <code>fields</code>. Any HighLevel workflow, Zapier
-                          action, or custom code can hit this URL.
-                        </p>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </details>
-            </RevealItem>
-          </Reveal>
+                    </pre>
+                    <p className="text-xs text-muted-foreground">
+                      All fields are optional. Include at least a <code>title</code>,{" "}
+                      <code>message</code>, or <code>fields</code>. Any HighLevel workflow, Zapier
+                      action, or custom code can hit this URL.
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+          </EditorPanel>
 
-          <div className="px-glass sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3 shadow-raised">
-            <p className="min-w-0 flex-1 basis-48 text-sm text-muted-foreground">
-              Saves every trigger and webhook link for {planLabel(selectedPlan)}.
-            </p>
-            <Button variant="accent" onClick={save} disabled={saving || loading}>
-              <Save className="size-4" />
-              {saving ? "Saving…" : "Save workflows"}
-            </Button>
-          </div>
+          {dirty && !editingId ? (
+            <div className="px-glass sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3 shadow-raised" role="status">
+              <p className="min-w-0 flex-1 basis-48 text-sm text-muted-foreground">
+                You have changes for {planLabel(selectedPlan)} that are not saved yet.
+              </p>
+              {saveButton}
+            </div>
+          ) : null}
         </>
       )}
     </div>

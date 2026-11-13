@@ -7,7 +7,7 @@ export function buildMenuRemovalTour(): Tip[] {
     ['menu-manual-preset', 'Name your preset', 'Give this combination a clear name, such as AI Studio. Your automation uses that exact saved preset name.'],
     ['menu-manual-scope', 'Choose where it applies', 'For a test, enable specific sub-account only and choose your test account. Leaving this off applies the manual rule to all sub-accounts.'],
     ['menu-manual-apply', 'Save your manual rule', 'Apply saves your selected links. Install your SaaSSuite Custom CSS and JavaScript in HighLevel and refresh the test account to check. The tour never saves or changes rules for you.'],
-    ['menu-manual-rules', 'Review saved presets', 'Pause, edit or copy saved rules here. The webhook icon jumps to automation setup for that preset.'],
+    ['menu-manual-rules', 'Review saved presets', 'Pause, edit or copy saved rules here. Open the folder menu and choose Set up automation for that preset.'],
     ['menu-automation-connection', 'Connect HighLevel', 'Connect in Settings → HighLevel with a private integration token and one location ID. Include custom-menu-link.write for onboarding-link assignment, then return here.'],
     ['menu-automation-snapshot', 'Install the snapshot', 'Import this snapshot into your main agency account. It contains the workflow actions for menu removal, AI permissions and onboarding-link assignment.'],
     ['menu-automation-workflow', 'Open the workflow', 'In HighLevel, open Automations → Menu Link Removal and locate the Custom Webhook removal action.'],

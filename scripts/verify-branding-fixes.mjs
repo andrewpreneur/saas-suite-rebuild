@@ -20,6 +20,9 @@ function check(name, ok, detail = "") {
 }
 
 async function setColor(page, label, hex) {
+  // Calm screens: the colour fields live in the "Brand colors" editor, opened from its row.
+  const row = page.getByTestId("design-row-colors");
+  if (await row.count()) await row.click();
   const input = page.getByLabel(label, { exact: false }).last();
   await input.fill(hex);
   await input.press("Enter");

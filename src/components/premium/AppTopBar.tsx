@@ -1,6 +1,14 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronRight, CornerDownLeft, Search } from "lucide-react";
+import { Check, ChevronRight, ChevronsUpDown, CornerDownLeft, Search } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { SkinSwitch } from "@/components/premium/SkinSwitch";
 import {
   CommandDialog,
   CommandEmpty,
@@ -44,6 +52,10 @@ export function AppTopBar({ tool, actions }: { tool: string; actions?: ReactNode
   const sectionLabel = sectionLabelForTool(pageId);
   const section = sectionLabel === page ? null : sectionLabel;
 
+  const siblings = (
+    NEW_UI_SIDEBAR_SECTIONS.find((group) => group.toolIds.includes(pageId))?.toolIds ?? []
+  ).filter((id) => id !== "help");
+
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
@@ -77,23 +89,51 @@ export function AppTopBar({ tool, actions }: { tool: string; actions?: ReactNode
             <ChevronRight className="size-4 shrink-0 text-muted-foreground/60" aria-hidden="true" />
           </>
         ) : null}
-        <span aria-current="page" className="truncate font-semibold text-foreground">
-          {page}
-        </span>
+        {siblings.length > 1 ? (
+          // The page name doubles as a switcher for the other pages in this group.
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              data-testid="page-switcher"
+              className="-mx-2 flex h-9 min-w-0 items-center gap-1.5 rounded-lg px-2 font-semibold text-foreground transition-colors duration-150 hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <span aria-current="page" className="truncate">
+                {page}
+              </span>
+              <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-56">
+              <DropdownMenuLabel className="px-eyebrow">{sectionLabel}</DropdownMenuLabel>
+              {siblings.map((id) => (
+                <DropdownMenuItem key={id} className="min-h-10 gap-2" onSelect={() => go(id)}>
+                  <span className="flex-1">{TOOL_LABELS[id] ?? id}</span>
+                  {id === pageId ? <Check className="size-4 text-primary" aria-hidden="true" /> : null}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <span aria-current="page" className="truncate font-semibold text-foreground">
+            {page}
+          </span>
+        )}
       </nav>
 
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        data-testid="command-menu-trigger"
-        className="ml-auto flex h-9 w-full max-w-xs items-center gap-2 rounded-lg bg-card px-3 text-sm text-muted-foreground shadow-card transition-shadow hover:shadow-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-      >
-        <Search className="size-4 shrink-0" aria-hidden="true" />
-        <span className="flex-1 truncate text-left">Jump to a page…</span>
-        <kbd className="rounded-md border border-border bg-muted px-1.5 py-0.5 font-sans text-[11px] font-semibold text-muted-foreground">
-          ⌘K
-        </kbd>
-      </button>
+      <div className="ml-auto flex shrink-0 items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          data-testid="command-menu-trigger"
+          aria-label="Jump to a page"
+          className="flex h-9 items-center gap-2 rounded-full bg-card pl-3 pr-2 text-sm text-muted-foreground shadow-card transition-shadow hover:shadow-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        >
+          <Search className="size-4 shrink-0" aria-hidden="true" />
+          <span className="hidden lg:inline">Search</span>
+          <kbd className="rounded-md border border-border bg-muted px-1.5 py-0.5 font-sans text-[11px] font-semibold text-muted-foreground">
+            ⌘K
+          </kbd>
+        </button>
+        <SkinSwitch />
+      </div>
 
       {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
 

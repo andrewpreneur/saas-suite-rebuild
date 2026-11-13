@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Clock, Compass, LayoutGrid, RotateCcw, MessageSquare, Play } from "lucide-react";
+import { Clock, Compass, LayoutGrid, RotateCcw, MessageSquare, Play } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useRef, useState, type ReactNode } from "react";
+import { useRef, useState } from "react";
 import HubLiveModal from "@/components/onboarding/HubLiveModal";
 import { PageHeader } from "@/components/platform/PageHeader";
 
@@ -39,17 +39,19 @@ const WalkthroughTool = ({ onNavigateToTool, onOpenCoPilot }: WalkthroughToolPro
         eyebrow="Learn"
         title="Walkthrough"
         subtitle="A video tour of setting up SaaSSuite and your Client Hub."
-        actions={
-          <Button
-            type="button"
-            variant="outline"
-            className="h-11 sm:h-10"
-            onClick={() => window.dispatchEvent(new CustomEvent("start-walkthrough", { detail: { kind: "nav" } }))}
-          >
-            <Compass />
-            Take the interactive tour
-          </Button>
-        }
+        more={[
+          {
+            label: "Take the interactive tour",
+            icon: <Compass />,
+            onSelect: () => window.dispatchEvent(new CustomEvent("start-walkthrough", { detail: { kind: "nav" } })),
+          },
+          { label: "Set up with AI CoPilot", icon: <MessageSquare />, onSelect: () => onOpenCoPilot?.() },
+          {
+            label: "Answer the intro questions again",
+            icon: <RotateCcw />,
+            onSelect: () => navigate("/v2-onboarding?mode=reonboard"),
+          },
+        ]}
       />
       <HubLiveModal open={hubLive} onOpenChange={closeHubLive} hubUrl={hubUrl} />
 
@@ -91,76 +93,19 @@ const WalkthroughTool = ({ onNavigateToTool, onOpenCoPilot }: WalkthroughToolPro
               20 minutes · Setup, Client Hub and branding
             </p>
           </div>
-        </div>
-      </section>
-
-      <section aria-label="Get started" className="space-y-3">
-        <h2 className="text-h4 text-foreground">Get Started</h2>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <NextStep
-            primary
-            icon={<LayoutGrid />}
-            title="Open Client Hub Manager"
-            body="Choose your videos and welcome sections."
-            onClick={() => onNavigateToTool?.('client-hub')}
-          />
-          <NextStep
-            icon={<MessageSquare />}
-            title="AI CoPilot Setup"
-            body="Let the copilot set things up with you."
-            onClick={() => onOpenCoPilot?.()}
-          />
-          <NextStep
-            icon={<RotateCcw />}
-            title="Onboarding"
-            body="Run the intro questions again."
-            onClick={() => navigate("/v2-onboarding?mode=reonboard")}
-          />
+          <Button
+            type="button"
+            variant="accent"
+            className="h-11 w-full sm:h-10 sm:w-auto"
+            onClick={() => onNavigateToTool?.("client-hub")}
+          >
+            <LayoutGrid />
+            Open Client Hub Manager
+          </Button>
         </div>
       </section>
     </div>
   );
 };
-
-function NextStep({
-  icon,
-  title,
-  body,
-  onClick,
-  primary,
-}: {
-  icon: ReactNode;
-  title: string;
-  body: string;
-  onClick: () => void;
-  primary?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="px-surface-interactive group flex min-h-[72px] items-center gap-3 p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-    >
-      <span
-        className={
-          primary
-            ? "px-brand-fill flex size-10 shrink-0 items-center justify-center rounded-md [&_svg]:size-5"
-            : "px-icon-chip shrink-0 [&_svg]:size-5"
-        }
-        aria-hidden="true"
-      >
-        {icon}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold text-foreground">{title}</span>
-        <span className="block text-xs text-muted-foreground">{body}</span>
-      </span>
-      <ArrowRight
-        className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-brand"
-        aria-hidden="true"
-      />
-    </button>
-  );
-}
 
 export default WalkthroughTool;

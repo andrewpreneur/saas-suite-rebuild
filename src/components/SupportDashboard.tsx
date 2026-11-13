@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/platform/PageHeader";
 import { LoadNotice } from "@/components/platform/LoadNotice";
 import { LOAD_TIMEOUT_MESSAGE, armLoadDeadline, loadErrorText } from "@/lib/loadSettle";
@@ -39,7 +39,12 @@ import {
   RefreshCw,
   Settings,
   Plus,
-  ArrowRight,
+  PhoneCall,
+  LifeBuoy,
+  Tags,
+  UserCheck,
+  Webhook,
+  CalendarClock,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -57,11 +62,11 @@ import { useTeamAccess, type TeamMember } from "@/hooks/useTeamAccess";
 import OpenTicketFromChatDialog from "@/components/support/OpenTicketFromChatDialog";
 import { ticketAgencyChoices } from "@/lib/ticketAgencyChoices";
 import { TicketListPreview } from "@/components/support/TicketListPreview";
-import { Reveal, RevealItem } from "@/components/premium/Reveal";
 import { EmptyState, EmptyStateIllustration } from "@/components/premium/21st/empty-state";
 import SupportInbox from "@/components/premium/support/SupportInbox";
-import { FilterChips } from "@/components/premium/support/FilterChips";
-import { KpiCard } from "@/components/premium/support/KpiCard";
+import { FilterSelect } from "@/components/premium/support/FilterSelect";
+import { SettingItem, SettingList } from "@/components/premium/SettingList";
+import { PanelCard } from "@/components/premium/support/PanelCard";
 import { PersonAvatar } from "@/components/premium/support/PersonAvatar";
 
 interface SupportTicket {
@@ -324,7 +329,11 @@ export default function SupportDashboard() {
   const [ticketFiles, setTicketFiles] = useState<DropFile[]>([]);
   const [chatStats, setChatStats] = useState({ total: 0, open: 0, responded: 0 });
   const [isSending, setIsSending] = useState(false);
-  const [activeTab, setActiveTab] = useState<"tickets" | "ai-chats" | "slack">("ai-chats");
+  const [activeTab, setActiveTab] = useState<"tickets" | "ai-chats" | "slack">(() => {
+    // /app/support?tab=tickets (or notifications) opens that tab directly.
+    const tab = typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("tab");
+    return tab === "tickets" ? "tickets" : tab === "notifications" ? "slack" : "ai-chats";
+  });
   const [handoverPendingCount, setHandoverPendingCount] = useState(0);
   const [handoverQueueCount, setHandoverQueueCount] = useState(0);
   const [createOpen, setCreateOpen] = useState(false);
@@ -586,77 +595,50 @@ export default function SupportDashboard() {
   const createTicketButton = canEditTickets ? (
     <Button variant="accent" onClick={() => setCreateOpen(true)} disabled={!primaryAgencyId}>
       <Plus aria-hidden="true" />
-      Create Ticket
+      Create ticket
     </Button>
   ) : null;
+  // Numbers that used to sit in four big cards. Anything not already on a tab
+  // badge or in a filter menu is said once, quietly, beside the tabs.
+  const waitingOnClient = counts.responded + chatStats.responded;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Client Support"
-        subtitle="Every client chat and ticket in one place. Assign one and your teammate is notified."
-        actions={
-          <>
-            <Button variant="ghost" onClick={refresh} disabled={isLoading}>
-              <RefreshCw className={isLoading ? "animate-spin" : ""} aria-hidden="true" />
-              Refresh
-            </Button>
-            <Button variant="outline" onClick={() => navigate("/app/client-hub?support=1")}>
-              <Settings aria-hidden="true" />
-              Customize Support
-            </Button>
-          </>
-        }
+        subtitle="Every client chat and ticket in one place."
+        more={[
+          {
+            label: isLoading ? "Refreshing" : "Refresh",
+            icon: <RefreshCw aria-hidden="true" />,
+            onSelect: refresh,
+            disabled: isLoading,
+          },
+          {
+            label: "Customize Support",
+            icon: <Settings aria-hidden="true" />,
+            onSelect: () => navigate("/app/client-hub?support=1"),
+          },
+          {
+            label: "Onboarding calls",
+            icon: <PhoneCall aria-hidden="true" />,
+            onSelect: () => navigate("/app/onboarding-calls"),
+            separated: true,
+          },
+          {
+            label: "Agency support",
+            icon: <LifeBuoy aria-hidden="true" />,
+            onSelect: () => navigate("/app/agency-support"),
+          },
+        ]}
       />
       {loadError && <LoadNotice error={loadError} onRetry={refresh} />}
 
-      <Reveal className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-        <RevealItem>
-          <KpiCard
-            icon={<MessageSquare />}
-            label="Chats needing a reply"
-            value={chatStats.open}
-            hint={chatStats.open > 0 ? "A client asked for a person" : "No one is waiting on you"}
-            className="h-full"
-          />
-        </RevealItem>
-        <RevealItem>
-          <KpiCard
-            icon={<Ticket />}
-            label="Open tickets"
-            value={openCount}
-            loading={isLoading}
-            hint={`${counts.in_progress} in progress`}
-            className="h-full"
-          />
-        </RevealItem>
-        <RevealItem>
-          <KpiCard
-            icon={<Mail />}
-            label="Replied, waiting on client"
-            value={counts.responded + chatStats.responded}
-            loading={isLoading}
-            hint={`${counts.responded} ${counts.responded === 1 ? "ticket" : "tickets"} · ${chatStats.responded} ${chatStats.responded === 1 ? "chat" : "chats"} in 48h`}
-            className="h-full"
-          />
-        </RevealItem>
-        <RevealItem>
-          <KpiCard
-            icon={<CircleCheck />}
-            label="Tickets completed"
-            value={counts.completed}
-            loading={isLoading}
-            hint={`${tickets.length} tickets · ${chatStats.total} chats in total`}
-            className="h-full"
-          />
-        </RevealItem>
-      </Reveal>
-
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
-        <div data-tip-target="support-tabs">
+        <div data-tip-target="support-tabs" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
           <TabsList>
             <TabsTrigger value="ai-chats">
-              <Inbox className="mr-1.5 size-4" aria-hidden="true" />
+              <Inbox className="mr-1.5 hidden size-4 sm:block" aria-hidden="true" />
               Inbox
               {chatStats.open > 0 && (
                 <span className="ml-2 min-w-5 rounded-full bg-brand px-1.5 text-center text-xs font-semibold leading-5 text-white">
@@ -666,7 +648,7 @@ export default function SupportDashboard() {
               )}
             </TabsTrigger>
             <TabsTrigger value="tickets">
-              <Ticket className="mr-1.5 size-4" aria-hidden="true" />
+              <Ticket className="mr-1.5 hidden size-4 sm:block" aria-hidden="true" />
               Tickets
               {openCount > 0 && (
                 <span className="ml-2 min-w-5 rounded-full bg-muted px-1.5 text-center text-xs font-semibold leading-5 text-muted-foreground">
@@ -676,13 +658,18 @@ export default function SupportDashboard() {
               )}
             </TabsTrigger>
             <TabsTrigger value="slack">
-              <Bell className="mr-1.5 size-4" aria-hidden="true" />
+              <Bell className="mr-1.5 hidden size-4 sm:block" aria-hidden="true" />
               Notifications
             </TabsTrigger>
           </TabsList>
+          <p className="hidden text-sm text-muted-foreground md:block" aria-live="polite">
+            {isLoading
+              ? null
+              : `${waitingOnClient} waiting on a client · ${counts.completed} ${counts.completed === 1 ? "ticket" : "tickets"} completed`}
+          </p>
         </div>
 
-        <TabsContent value="ai-chats" className="mt-4">
+        <TabsContent value="ai-chats" className="mt-3">
           <SupportInbox
             agencyVersions={agencyVersions}
             onStats={setChatStats}
@@ -691,11 +678,10 @@ export default function SupportDashboard() {
         </TabsContent>
 
         <TabsContent value="tickets" className="mt-4 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <FilterChips
+          <div className="flex items-center justify-between gap-3">
+            <FilterSelect
               label="Filter tickets"
               data-tip-target="support-ticket-filters"
-              className="min-w-0 max-w-full"
               value={ticketFilter}
               onChange={(v) => {
                 filterChosenRef.current = true;
@@ -743,40 +729,70 @@ export default function SupportDashboard() {
                   disabled={!primaryAgencyId}
                 >
                   <Plus aria-hidden="true" />
-                  Create Ticket
+                  Create ticket
                 </Button>
               ) : undefined
             }
           />
-          <p className="text-sm text-muted-foreground">
-            A ticket you create here uses the same types and alerts as one opened from a chat.
-          </p>
         </TabsContent>
 
-        <TabsContent value="slack" className="mt-4 space-y-4">
-          <NotificationChannelsCard />
-          {email && <TicketTypesCard ownerEmail={email} />}
-          <DefaultAssignmentCard />
-          <CustomerUpdatesWebhookCard />
-          <WeeklySlackReportCard />
+        <TabsContent value="slack" className="mt-4">
+          <SettingList>
+            <SettingItem
+              icon={<Bell />}
+              title="Alerts"
+              value="Which support alerts reach you"
+              panel={{ wide: true }}
+            >
+              <PanelCard>
+                <NotificationChannelsCard />
+              </PanelCard>
+            </SettingItem>
+            {email ? (
+              <SettingItem
+                icon={<Tags />}
+                title="Ticket types"
+                value="The choices a client sees when a ticket is opened"
+                panel={{ wide: true }}
+              >
+                <PanelCard>
+                <TicketTypesCard ownerEmail={email} />
+              </PanelCard>
+              </SettingItem>
+            ) : null}
+            <SettingItem
+              icon={<UserCheck />}
+              title="Default assignment"
+              value="Who gets a new chat or ticket"
+              panel={{ wide: true }}
+            >
+              <PanelCard>
+                <DefaultAssignmentCard />
+              </PanelCard>
+            </SettingItem>
+            <SettingItem
+              icon={<Webhook />}
+              title="Customer updates webhook"
+              value="Send ticket updates to your own CRM"
+              panel={{ wide: true }}
+            >
+              <PanelCard>
+                <CustomerUpdatesWebhookCard />
+              </PanelCard>
+            </SettingItem>
+            <SettingItem
+              icon={<CalendarClock />}
+              title="Weekly report to Slack"
+              value="A Monday summary of open, answered and waiting tickets"
+              panel={{ wide: true }}
+            >
+              <PanelCard>
+                <WeeklySlackReportCard />
+              </PanelCard>
+            </SettingItem>
+          </SettingList>
         </TabsContent>
       </Tabs>
-
-      <p className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
-        <span className="w-full sm:w-auto">Want us to do it for you?</span>
-        <Link
-          to="/app/onboarding-calls"
-          className="inline-flex min-h-11 items-center gap-1 font-medium text-brand hover:underline sm:min-h-0"
-        >
-          Onboarding calls <ArrowRight className="size-3.5" aria-hidden="true" />
-        </Link>
-        <Link
-          to="/app/agency-support"
-          className="inline-flex min-h-11 items-center gap-1 font-medium text-brand hover:underline sm:min-h-0"
-        >
-          Agency support <ArrowRight className="size-3.5" aria-hidden="true" />
-        </Link>
-      </p>
 
       <OpenTicketFromChatDialog
         open={createOpen}

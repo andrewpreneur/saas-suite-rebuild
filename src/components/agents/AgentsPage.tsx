@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { Bot, Check, LogIn, ClipboardCheck, MessageSquare, Sparkles } from "lucide-react";
+import { Check, ChevronDown, LogIn, ClipboardCheck, MessageSquare, Sparkles } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/platform/PageHeader";
 import { Reveal, RevealItem } from "@/components/premium/Reveal";
@@ -27,6 +29,7 @@ export default function AgentsPage() {
   const { email } = useUser();
   const [planState, setPlanState] = useState<AgentsPlanState | "checking">("checking");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [examplesOpen, setExamplesOpen] = useState(false);
   const tokenLine = agentsWeeklyTokenLine();
 
   useEffect(() => {
@@ -54,75 +57,14 @@ export default function AgentsPage() {
   const included = planState === "included";
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-5xl space-y-8" data-testid="agents-page">
+    <div className="mx-auto w-full min-w-0 max-w-5xl space-y-6" data-testid="agents-page">
       <PageHeader
         eyebrow="AI agents"
         title="AI agents that work inside HighLevel"
         subtitle={AGENTS_CORE_MESSAGE}
       />
 
-      <Reveal className="space-y-8">
-        <RevealItem>
-          <section className="px-surface px-brand-wash flex items-start gap-3 p-4 sm:p-6">
-            <span className="px-icon-chip shrink-0 bg-card" aria-hidden="true">
-              <Bot className="size-5" />
-            </span>
-            <div className="min-w-0">
-              <h2 className="text-base font-semibold text-foreground">Who it is for</h2>
-              <p className="mt-0.5 max-w-[65ch] text-sm leading-relaxed text-muted-foreground">
-                {AGENTS_AUDIENCE}
-              </p>
-            </div>
-          </section>
-        </RevealItem>
-
-        <RevealItem>
-          <section aria-labelledby="agents-how">
-            <h2 id="agents-how" className="text-h4 text-foreground">
-              How it works
-            </h2>
-            <ol className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {AGENTS_STEPS.map((step, index) => {
-                const Icon = STEP_ICONS[index] ?? Sparkles;
-                return (
-                  <li key={step.title} className="px-surface min-w-0 p-4">
-                    <div className="mb-3 flex items-center justify-between gap-2">
-                      <span className="px-icon-chip" aria-hidden="true">
-                        <Icon className="size-5" />
-                      </span>
-                      <span className="px-eyebrow">Step {index + 1}</span>
-                    </div>
-                    <p className="text-sm font-semibold text-foreground">{step.title}</p>
-                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
-                  </li>
-                );
-              })}
-            </ol>
-          </section>
-        </RevealItem>
-
-        <RevealItem>
-          <section aria-labelledby="agents-use-cases">
-            <h2 id="agents-use-cases" className="text-h4 text-foreground">
-              Work agents have already done
-            </h2>
-            <p className="mt-0.5 max-w-2xl text-sm text-muted-foreground">
-              Real tasks inside HighLevel agencies and sub-accounts.
-            </p>
-            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {AGENTS_USE_CASES.map((item) => (
-                <article key={item.title} className="px-surface min-w-0 p-4 sm:p-5">
-                  <span className="mb-3 flex size-6 items-center justify-center rounded-full bg-success/10 text-success" aria-hidden="true">
-                    <Check className="size-3.5" />
-                  </span>
-                  <h3 className="text-sm font-semibold leading-snug text-foreground">{item.title}</h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{item.body}</p>
-                </article>
-              ))}
-            </div>
-          </section>
-        </RevealItem>
-
+      <Reveal className="space-y-6">
         <RevealItem>
           <section aria-labelledby="agents-upgrade">
             <div
@@ -191,6 +133,79 @@ export default function AgentsPage() {
               </div>
             </div>
           </section>
+        </RevealItem>
+
+        <RevealItem>
+          <section aria-labelledby="agents-how" className="px-surface p-4 sm:p-6">
+            <h2 id="agents-how" className="text-base font-semibold text-foreground">
+              How it works
+            </h2>
+            <p className="mt-0.5 max-w-[65ch] text-sm leading-relaxed text-muted-foreground">{AGENTS_AUDIENCE}</p>
+            <ol className="mt-5 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
+              {AGENTS_STEPS.map((step, index) => {
+                const Icon = STEP_ICONS[index] ?? Sparkles;
+                return (
+                  <li key={step.title} className="flex min-w-0 items-start gap-3">
+                    <span className="px-icon-chip size-9 shrink-0" aria-hidden="true">
+                      <Icon className="size-[18px]" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground">
+                        <span className="sr-only">Step {index + 1}: </span>
+                        {step.title}
+                      </p>
+                      <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+        </RevealItem>
+
+        <RevealItem>
+          <Collapsible open={examplesOpen} onOpenChange={setExamplesOpen} asChild>
+            <section aria-labelledby="agents-use-cases" className="px-surface overflow-hidden">
+              <CollapsibleTrigger className="group flex min-h-16 w-full items-center gap-3 px-4 py-3 text-left transition-colors duration-150 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-6">
+                <span className="min-w-0 flex-1">
+                  <span id="agents-use-cases" className="block text-base font-semibold text-foreground">
+                    Work agents have already done
+                  </span>
+                  <span className="mt-0.5 block text-sm text-muted-foreground">
+                    {AGENTS_USE_CASES.length} real tasks inside HighLevel agencies and sub-accounts.
+                  </span>
+                </span>
+                <span className="hidden shrink-0 text-sm font-medium text-muted-foreground group-hover:text-foreground sm:inline">
+                  {examplesOpen ? "Hide examples" : "Show examples"}
+                </span>
+                <ChevronDown
+                  className={cn(
+                    "size-4 shrink-0 text-muted-foreground transition-transform duration-200 ease-out motion-reduce:transition-none",
+                    examplesOpen && "rotate-180",
+                  )}
+                  aria-hidden="true"
+                />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <ul className="divide-y divide-border/70 border-t border-border/70">
+                  {AGENTS_USE_CASES.map((item) => (
+                    <li key={item.title} className="flex min-w-0 items-start gap-3 px-4 py-3.5 sm:px-6">
+                      <span
+                        className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-success/10 text-success"
+                        aria-hidden="true"
+                      >
+                        <Check className="size-3.5" />
+                      </span>
+                      <div className="min-w-0">
+                        <h3 className="text-sm font-semibold leading-snug text-foreground">{item.title}</h3>
+                        <p className="mt-1 max-w-[75ch] text-sm leading-relaxed text-muted-foreground">{item.body}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </CollapsibleContent>
+            </section>
+          </Collapsible>
         </RevealItem>
       </Reveal>
 

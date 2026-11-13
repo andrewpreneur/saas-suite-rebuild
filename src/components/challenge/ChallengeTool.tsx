@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/platform/PageHeader";
 import { Reveal, RevealItem } from "@/components/premium/Reveal";
-import { SectionCard } from "@/components/premium/SectionCard";
+import { SettingItem, SettingList } from "@/components/premium/SettingList";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, Gift, Star } from "lucide-react";
+import { CalendarDays, FileText, Gift, Star } from "lucide-react";
 import GiveawayLeaderboard from "@/components/giveaway/GiveawayLeaderboard";
 import GiveawayOptInModal from "@/components/giveaway/GiveawayOptInModal";
 import ChallengePodium from "@/components/giveaway/ChallengePodium";
@@ -33,6 +33,9 @@ const ChallengeTool = () => {
   const { stats, leaders, isLoading, isEntered, isOptingIn, optIn, refresh } = useGiveaway();
   const { ended } = useChallengeFinale();
   const [optInOpen, setOptInOpen] = useState(false);
+  const [pointsOpen, setPointsOpen] = useState(false);
+  const [datesOpen, setDatesOpen] = useState(false);
+  const navigate = useNavigate();
   const me = stats?.me ?? null;
 
   return (
@@ -64,6 +67,11 @@ const ChallengeTool = () => {
             )}
           </>
         }
+        more={[
+          { label: "How to earn points", icon: <Star />, onSelect: () => setPointsOpen(true) },
+          { label: "Dates and rules", icon: <CalendarDays />, onSelect: () => setDatesOpen(true) },
+          { label: "Read the official rules", icon: <FileText />, onSelect: () => navigate(GIVEAWAY_RULES_PATH) },
+        ]}
       />
 
       <Reveal className="space-y-4 sm:space-y-6">
@@ -93,15 +101,20 @@ const ChallengeTool = () => {
         )}
 
         <RevealItem>
-          <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
-            <SectionCard
+          <SettingList label="Points and rules">
+            <SettingItem
               icon={<Star />}
               title="How to earn points"
-              description={
+              value={
                 me
                   ? `You have ${me.points.toLocaleString()} pts${me.rank ? ` · ${ordinal(Number(me.rank))} place` : ""}`
-                  : "Every action below adds to your score"
+                  : "Every action adds to your score"
               }
+              status={`${GIVEAWAY_POINT_RULES.length} ways`}
+              open={pointsOpen}
+              onOpenChange={setPointsOpen}
+              panel={{ description: "Every action below adds to your score." }}
+              testId="challenge-points-row"
             >
               <ul className="divide-y divide-border">
                 {GIVEAWAY_POINT_RULES.map((rule) => {
@@ -120,9 +133,16 @@ const ChallengeTool = () => {
                   );
                 })}
               </ul>
-            </SectionCard>
-
-            <SectionCard icon={<CalendarDays />} title="Dates and rules" description="All times are Central Time">
+            </SettingItem>
+            <SettingItem
+              icon={<CalendarDays />}
+              title="Dates and rules"
+              value={`${GIVEAWAY_RANGE_SHORT} · all times are Central Time`}
+              open={datesOpen}
+              onOpenChange={setDatesOpen}
+              panel={{ description: "All times are Central Time." }}
+              testId="challenge-dates-row"
+            >
               <dl className="divide-y divide-border text-sm">
                 {[
                   ["Starts", GIVEAWAY_START_LABEL],
@@ -139,8 +159,8 @@ const ChallengeTool = () => {
               <Button asChild variant="outline" size="sm" className="mt-4 h-11 sm:h-9">
                 <Link to={GIVEAWAY_RULES_PATH}>Read the official rules</Link>
               </Button>
-            </SectionCard>
-          </div>
+            </SettingItem>
+          </SettingList>
         </RevealItem>
       </Reveal>
 

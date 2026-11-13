@@ -2,11 +2,13 @@ import LocationList from "@/components/highlevel/LocationList";
 import { useGhl } from "@/components/highlevel/useGhl";
 import { PageHeader } from "@/components/platform/PageHeader";
 import { SectionCard } from "@/components/premium/SectionCard";
-import { OfferCard } from "@/components/premium/support/OfferCard";
+import { EditorPanel, SettingItem, SettingList } from "@/components/premium/SettingList";
+import { StatStrip } from "@/components/premium/StatStrip";
+import { MoreMenu } from "@/components/premium/MoreMenu";
 import NumberTicker from "@/components/premium/21st/number-ticker";
 import { EmptyState } from "@/components/premium/21st/empty-state";
 import { Tag } from "@/components/ui/tag";
-import { UserPlus, Users } from "lucide-react";
+import { CircleHelp, UserPlus, Users } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
@@ -16,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -152,6 +155,19 @@ const AgencySupportManager = () => {
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState("assign");
   const tabsRef = useRef<HTMLDivElement>(null);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [includedOpen, setIncludedOpen] = useState(false);
+  // "purchase" used to be a third tab; it is now a side panel over whichever tab is showing.
+  const buyOpen = activeTab === "purchase";
+  const [tabBehind, setTabBehind] = useState("assign");
+  const openBuy = () => setActiveTab("purchase");
+  const openAssign = () => {
+    // The form lives with the client list, so show that tab behind the panel.
+    setTabBehind("assign");
+    setActiveTab("assign");
+    setAssignOpen(true);
+  };
+  const shownTab = buyOpen ? tabBehind : activeTab;
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [purchasingSeat, setPurchasingSeat] = useState(false);
@@ -624,6 +640,11 @@ const AgencySupportManager = () => {
     setClients((prev) => prev.filter((c) => c.id !== client.id));
   };
 
+  // A client was added (or removed): the panel's job is done, show the list.
+  useEffect(() => {
+    setAssignOpen(false);
+  }, [clients.length]);
+
   const existingEmails = new Set(clients.map((c) => c.client_email.toLowerCase()));
 
   return (
@@ -631,71 +652,70 @@ const AgencySupportManager = () => {
       <PageHeader
         eyebrow="Done for you"
         title="Agency Support"
-        subtitle="Our team answers your clients' support requests under your brand. Buy seats, assign them to clients, and follow their projects."
-      />
-
-      <OfferCard
-        title="We handle support for your clients"
-        description="One seat covers one client. Assign it and they can reach our team right away."
-        features={AGENCY_FEATURES}
-        price={`$${UNIT_PRICE}`}
-        priceUnit="per seat / month"
-        priceNote={
-          loading ? (
-            <span className="px-skeleton inline-block h-5 w-40" />
+        subtitle="Our team answers your clients' support requests under your brand."
+        actions={
+          !loading && available === 0 ? (
+            <Button variant="accent" className="min-h-11 gap-2 sm:min-h-0" onClick={openBuy}>
+              <ShoppingCart aria-hidden="true" /> Buy seats
+            </Button>
           ) : (
-            <span>
-              <span className="font-medium text-foreground">
-                <NumberTicker
-                  key={available}
-                  from={0}
-                  target={available}
-                  transition={{ duration: 0.8, type: "tween", ease: [0.16, 1, 0.3, 1] }}
-                />{" "}
-                available
-              </span>{" "}
-              · {used} assigned of {wallet} purchased
-            </span>
+            <Button variant="accent" className="min-h-11 gap-2 sm:min-h-0" onClick={openAssign}>
+              <UserPlus aria-hidden="true" /> Assign a seat
+            </Button>
           )
         }
-        action={
-          <Button
-            variant="accent"
-            size="lg"
-            className="min-h-11 gap-2"
-            onClick={() => {
-              setActiveTab("purchase");
-              requestAnimationFrame(() =>
-                tabsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
-              );
-            }}
-          >
-            <ShoppingCart aria-hidden="true" /> Buy seats
-          </Button>
-        }
-        footnote={`Each assignment is locked to its client for ${LOCK_DAYS} days.`}
+        more={[
+          !loading && available === 0
+            ? { label: "Assign a seat", icon: <UserPlus aria-hidden="true" />, onSelect: openAssign }
+            : { label: "Buy seats", icon: <ShoppingCart aria-hidden="true" />, onSelect: openBuy },
+          {
+            label: "What is included",
+            icon: <CircleHelp aria-hidden="true" />,
+            onSelect: () => setIncludedOpen(true),
+          },
+        ]}
+      />
+
+      {loadError && <LoadNotice error={loadError} onRetry={() => void fetchWallet()} />}
+
+      <StatStrip
+        stats={(
+          [
+            ["Available", available, undefined],
+            ["Assigned", used, undefined],
+            ["Purchased", wallet, `$${UNIT_PRICE} per seat / month`],
+          ] as const
+        ).map(([label, value, hint]) => ({
+          label,
+          hint,
+          value: loading ? (
+            <span className="px-skeleton inline-block h-6 w-8" />
+          ) : (
+            <NumberTicker
+              key={value}
+              from={0}
+              target={value}
+              transition={{ duration: 0.8, type: "tween", ease: [0.16, 1, 0.3, 1] }}
+            />
+          ),
+        }))}
       />
 
       <div ref={tabsRef} className="scroll-mt-20" />
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="min-w-0">
+      <Tabs
+        value={shownTab}
+        onValueChange={(v) => {
+          setTabBehind(v);
+          setActiveTab(v);
+        }}
+        className="min-w-0"
+      >
         <TabsList className="gap-4 sm:gap-6">
-          <TabsTrigger
-            value="purchase"
-            className="min-h-11"
-          >
-            Purchase seats
+          <TabsTrigger value="assign" className="min-h-11">
+            Clients
           </TabsTrigger>
-          <TabsTrigger
-            value="assign"
-            className="min-h-11"
-          >
-            Assign seats
-          </TabsTrigger>
-          <TabsTrigger
-            value="projects"
-            className="min-h-11"
-          >
-            Manage projects
+          <TabsTrigger value="projects" className="min-h-11">
+            Projects
           </TabsTrigger>
         </TabsList>
 
@@ -704,20 +724,22 @@ const AgencySupportManager = () => {
           className="mt-4 space-y-4 animate-in fade-in duration-200 motion-reduce:animate-none"
         >
           {/* White-label domain */}
-          <SectionCard
-            icon={<Globe />}
-            title="White-label domain"
-            description="We need this to open your clients' sub-accounts."
-            actions={
-              savedDomain ? (
-                <Tag tone="success">
-                  <Check aria-hidden="true" /> Saved
-                </Tag>
-              ) : (
-                <Tag tone="warning">Needs setup</Tag>
-              )
-            }
-          >
+          <SettingList>
+            <SettingItem
+              icon={<Globe />}
+              title="White-label domain"
+              value={savedDomain || "We need this to open your clients' sub-accounts"}
+              status={
+                savedDomain ? (
+                  <Tag tone="success">
+                    <Check aria-hidden="true" /> Saved
+                  </Tag>
+                ) : (
+                  <Tag tone="warning">Needs setup</Tag>
+                )
+              }
+              panel={{ description: "We need this to open your clients' sub-accounts." }}
+            >
               <div className="grid sm:grid-cols-[1fr_auto] gap-2">
                 <Input
                   id="as-domain"
@@ -738,21 +760,24 @@ const AgencySupportManager = () => {
                   disabled={savingDomain}
                   className="h-11 w-full sm:w-auto"
                 >
-                  {savingDomain ? "Saving…" : savedDomain ? "Update" : "Save domain"}
+                  {savingDomain ? "Saving…" : savedDomain ? "Update domain" : "Save domain"}
                 </Button>
               </div>
               {savedDomain && (
                 <p className="text-xs text-muted-foreground mt-2">Saved as {savedDomain}</p>
               )}
-          </SectionCard>
+            </SettingItem>
+          </SettingList>
 
           {/* Add clients */}
-          <SectionCard
-            icon={<UserPlus />}
+          <EditorPanel
+            open={assignOpen}
+            onOpenChange={setAssignOpen}
+            wide
             title="Assign a seat to a client"
             description={`${used} of ${wallet} seats assigned. All fields are required, and each assignment is locked for ${LOCK_DAYS} days.`}
-            bodyClassName="space-y-4"
           >
+            <div className="space-y-4">
               {ghlConn.connected && ghlConn.locations.length > 0 && (
                 <div className="space-y-1.5">
                   <Label>Pick the sub-account</Label>
@@ -895,7 +920,8 @@ const AgencySupportManager = () => {
                   </PopoverContent>
                 </Popover>
               </div>
-          </SectionCard>
+            </div>
+          </EditorPanel>
 
           {/* Roster */}
           <SectionCard icon={<Users />} title="Your clients" description="Everyone with a support seat.">
@@ -903,12 +929,8 @@ const AgencySupportManager = () => {
                 <EmptyState
                   className="py-8"
                   title="No clients have a seat yet"
-                  description="Assign your first seat with the form above."
                   action={
-                    <Button
-                      variant="outline"
-                      onClick={() => document.getElementById("as-name")?.focus()}
-                    >
+                    <Button variant="outline" onClick={openAssign}>
                       Assign a seat
                     </Button>
                   }
@@ -924,37 +946,26 @@ const AgencySupportManager = () => {
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
                               <p className="font-medium text-sm truncate">
-                                {c.client_company || c.client_name || "—"}
+                                {c.client_company || c.client_name || "Not set"}
                               </p>
                               <p className="text-xs text-muted-foreground break-all">
                                 {c.client_email}
                               </p>
                               <p className="text-[11px] text-muted-foreground mt-0.5">
-                                {c.client_name || "—"} · {c.client_phone || "no phone"}
+                                {c.client_name || "Not set"} · {c.client_phone || "no phone"}
                               </p>
                               <p className="text-[11px] text-muted-foreground font-mono break-all">
                                 {c.location_id || "no location ID"}
                               </p>
                             </div>
                             <div className="flex items-center shrink-0">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-11 w-11"
-                                onClick={() => openEdit(c)}
-                                aria-label={`Edit details for ${c.client_email}`}
-                              >
-                                <Pencil className="w-4 h-4 text-muted-foreground" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-11 w-11"
-                                onClick={() => void removeClient(c)}
-                                aria-label={`Remove ${c.client_email}`}
-                              >
-                                <Trash2 className="w-4 h-4 text-muted-foreground" />
-                              </Button>
+                              <MoreMenu
+                                label={`More for ${c.client_email}`}
+                                items={[
+                                  { label: "Edit details", icon: <Pencil aria-hidden="true" />, onSelect: () => openEdit(c) },
+                                  { label: "Remove client", icon: <Trash2 aria-hidden="true" />, danger: true, onSelect: () => void removeClient(c) },
+                                ]}
+                              />
                             </div>
                           </div>
                           <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-border">
@@ -990,7 +1001,7 @@ const AgencySupportManager = () => {
                           <TableHead>Phone</TableHead>
                           <TableHead>Location ID</TableHead>
                           <TableHead>Agency Support</TableHead>
-                          <TableHead className="w-24 text-right">Edit</TableHead>
+                          <TableHead className="w-16 text-right"><span className="sr-only">More</span></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -999,17 +1010,17 @@ const AgencySupportManager = () => {
                           return (
                             <TableRow key={c.id}>
                               <TableCell>
-                                <span className="font-medium">{c.client_company || "—"}</span>
+                                <span className="font-medium">{c.client_company || "Not set"}</span>
                                 <span className="block text-xs text-muted-foreground">
-                                  {c.client_name || "—"}
+                                  {c.client_name || "Not set"}
                                 </span>
                               </TableCell>
                               <TableCell className="whitespace-nowrap">{c.client_email}</TableCell>
                               <TableCell className="whitespace-nowrap text-muted-foreground text-xs">
-                                {c.client_phone || "—"}
+                                {c.client_phone || "Not set"}
                               </TableCell>
                               <TableCell className="font-mono text-xs">
-                                {c.location_id || "—"}
+                                {c.location_id || "Not set"}
                               </TableCell>
                               <TableCell>
                                 <div className="flex items-center gap-2">
@@ -1030,22 +1041,14 @@ const AgencySupportManager = () => {
                               </TableCell>
                               <TableCell>
                                 <div className="flex items-center justify-end">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => openEdit(c)}
-                                    aria-label={`Edit details for ${c.client_email}`}
-                                  >
-                                    <Pencil className="w-4 h-4 text-muted-foreground" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => void removeClient(c)}
-                                    aria-label={`Remove ${c.client_email}`}
-                                  >
-                                    <Trash2 className="w-4 h-4 text-muted-foreground" />
-                                  </Button>
+                                  <MoreMenu
+                                    size="sm"
+                                    label={`More for ${c.client_email}`}
+                                    items={[
+                                      { label: "Edit details", icon: <Pencil aria-hidden="true" />, onSelect: () => openEdit(c) },
+                                      { label: "Remove client", icon: <Trash2 aria-hidden="true" />, danger: true, onSelect: () => void removeClient(c) },
+                                    ]}
+                                  />
                                 </div>
                               </TableCell>
                             </TableRow>
@@ -1058,41 +1061,15 @@ const AgencySupportManager = () => {
               )}
           </SectionCard>
         </TabsContent>
-        <TabsContent
-          value="purchase"
-          className="mt-4 space-y-4 animate-in fade-in duration-200 motion-reduce:animate-none"
+        <EditorPanel
+          open={buyOpen}
+          onOpenChange={(o) => {
+            if (!o && activeTab === "purchase") setActiveTab(tabBehind);
+          }}
+          title="Buy seats"
+          description={`$${UNIT_PRICE} per seat each month. Seats are added to your balance as soon as you pay.`}
         >
-          {loadError && <LoadNotice error={loadError} onRetry={() => void fetchWallet()} />}
-          <dl className="px-surface flex divide-x divide-border">
-            {(
-              [
-                ["Available", available],
-                ["Assigned", used],
-                ["Purchased", wallet],
-              ] as const
-            ).map(([label, value]) => (
-              <div key={label} className="min-w-0 flex-1 p-4">
-                <dt className="text-sm text-muted-foreground">{label}</dt>
-                <dd className="text-h3 font-semibold tabular-nums text-foreground">
-                  {loading ? (
-                    <span className="px-skeleton inline-block h-7 w-10" />
-                  ) : (
-                    <NumberTicker
-                      key={value}
-                      from={0}
-                      target={value}
-                      transition={{ duration: 0.8, type: "tween", ease: [0.16, 1, 0.3, 1] }}
-                    />
-                  )}
-                </dd>
-              </div>
-            ))}
-          </dl>
-          <SectionCard
-            icon={<ShoppingCart />}
-            title="Add seats"
-            description={`$${UNIT_PRICE} per seat each month. Seats are added to your balance as soon as you pay.`}
-          >
+          <div>
                 {native ? (
                   <p className="text-sm text-muted-foreground mt-3">
                     In the app you buy one seat at a time through the App Store or Google Play.
@@ -1136,6 +1113,7 @@ const AgencySupportManager = () => {
                 )}
 
                 <Button
+                  variant="accent"
                   className="mt-4 min-h-11 w-full gap-2 sm:w-auto"
                   disabled={purchasingSeat}
                   onClick={() => {
@@ -1158,8 +1136,11 @@ const AgencySupportManager = () => {
                       : "Buy 1 seat"
                     : "Continue to checkout"}
                 </Button>
-          </SectionCard>
-        </TabsContent>
+                <p className="mt-4 text-xs text-muted-foreground">
+                  Each assignment is locked to its client for {LOCK_DAYS} days.
+                </p>
+          </div>
+        </EditorPanel>
         <TabsContent
           value="projects"
           className="mt-4 min-w-0 animate-in fade-in duration-200 motion-reduce:animate-none"
@@ -1175,6 +1156,28 @@ const AgencySupportManager = () => {
           />
         </TabsContent>
       </Tabs>
+
+      <Dialog open={includedOpen} onOpenChange={setIncludedOpen}>
+        <DialogContent className="sm:max-w-lg w-[calc(100vw-1.5rem)] max-h-[92dvh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>We handle support for your clients</DialogTitle>
+            <DialogDescription>
+              One seat covers one client. Assign it and they can reach our team right away.
+            </DialogDescription>
+          </DialogHeader>
+          <ul className="space-y-2">
+            {AGENCY_FEATURES.map((feature) => (
+              <li key={feature} className="flex items-start gap-2 text-sm text-foreground">
+                <Check className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden="true" />
+                {feature.replace(/\s—\s/g, ", ")}
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-muted-foreground">
+            ${UNIT_PRICE} per seat each month. Each assignment is locked to its client for {LOCK_DAYS} days.
+          </p>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit existing client details */}
       <Dialog
@@ -1301,7 +1304,7 @@ const AgencySupportManager = () => {
             <h3 className="font-semibold text-lg">
               {completed
                 ? "Payment Successful"
-                : `Agency Support — ${quantity} account${quantity === 1 ? "" : "s"} · $${quantity * UNIT_PRICE}/mo`}
+                : `Agency Support · ${quantity} account${quantity === 1 ? "" : "s"} · $${quantity * UNIT_PRICE}/mo`}
             </h3>
             <Button variant="ghost" size="icon" onClick={handleCloseCheckout} aria-label="Close">
               <X className="h-4 w-4" />
@@ -1311,7 +1314,7 @@ const AgencySupportManager = () => {
             {completed ? (
               <div className="text-center py-8">
                 <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                <h3 className="text-2xl font-bold mb-2">Thank you!</h3>
+                <h3 className="text-2xl font-bold mb-2">Thank you</h3>
                 <p className="text-muted-foreground mb-6">
                   Your Agency Support seats are ready to assign.
                 </p>

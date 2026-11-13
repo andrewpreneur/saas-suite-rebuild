@@ -36,7 +36,8 @@ import {
 } from "@/components/support/ChatAttachButton";
 import { EmptyState, EmptyStateIllustration } from "@/components/premium/21st/empty-state";
 import { AnimatedListItem } from "@/components/premium/21st/animated-list";
-import { FilterChips } from "./FilterChips";
+import { MoreMenu } from "@/components/premium/MoreMenu";
+import { FilterSelect } from "./FilterSelect";
 import { PersonAvatar } from "./PersonAvatar";
 
 interface ChatContact {
@@ -76,7 +77,7 @@ export interface SupportInboxProps {
 // checklist of everyone recently helped.
 const HANDOVER_GRACE_HOURS = 48;
 
-type ListFilter = "all" | "needs" | "mine" | "unassigned";
+type ListFilter = "all" | "needs" | "replied" | "mine" | "unassigned";
 
 const formatTime = (dateString: string) => {
   const date = new Date(dateString);
@@ -522,6 +523,7 @@ export default function SupportInbox({ agencyVersions, onStats, refreshKey = 0 }
     return {
       all: contacts.length,
       needs: contacts.filter((c) => c.is_pending_handover).length,
+      replied: contacts.filter((c) => c.in_human_queue && !c.is_pending_handover).length,
       mine: contacts.filter((c) => assigned(c) === access.me).length,
       unassigned: contacts.filter((c) => !assigned(c)).length,
     };
@@ -530,6 +532,7 @@ export default function SupportInbox({ agencyVersions, onStats, refreshKey = 0 }
   const visibleContacts = contacts.filter((c) => {
     const a = (assignments.get(threadKey(c)) || "").toLowerCase();
     if (listFilter === "needs" && !c.is_pending_handover) return false;
+    if (listFilter === "replied" && !(c.in_human_queue && !c.is_pending_handover)) return false;
     if (listFilter === "mine" && a !== access.me) return false;
     if (listFilter === "unassigned" && a) return false;
     const q = search.trim().toLowerCase();
@@ -558,9 +561,14 @@ export default function SupportInbox({ agencyVersions, onStats, refreshKey = 0 }
   }
 
   const selectedKey = selectedContact ? threadKey(selectedContact) : null;
+  const assigneeName = (key: string) => {
+    const a = (assignments.get(key) || "").toLowerCase();
+    if (!a) return null;
+    return (team.find((m) => m.email === a)?.name || a).replace(/ \(owner\)$/, "");
+  };
 
   return (
-    <div className="px-surface grid overflow-hidden p-0 lg:h-[600px] lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
+    <div className="px-surface grid overflow-hidden p-0 lg:h-[calc(100dvh-19rem)] lg:min-h-[420px] lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
       {/* List pane */}
       <div
         className={cn(
@@ -568,8 +576,8 @@ export default function SupportInbox({ agencyVersions, onStats, refreshKey = 0 }
           selectedContact ? "hidden" : "flex",
         )}
       >
-        <div className="space-y-3 border-b border-border p-4">
-          <div className="relative">
+        <div className="flex items-center gap-2 border-b border-border p-3">
+          <div className="relative min-w-0 flex-1">
             <Search
               className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
               aria-hidden="true"
@@ -577,18 +585,19 @@ export default function SupportInbox({ agencyVersions, onStats, refreshKey = 0 }
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search conversations"
+              placeholder="Search"
               aria-label="Search conversations"
-              className="pl-9"
+              className="h-11 pl-9 sm:h-10"
             />
           </div>
-          <FilterChips
+          <FilterSelect
             label="Filter conversations"
             value={listFilter}
             onChange={(v) => setListFilter(v as ListFilter)}
             options={[
               { id: "all", label: "All", count: counts.all },
               { id: "needs", label: "Needs reply", count: counts.needs },
+              { id: "replied", label: "Replied", count: counts.replied },
               { id: "mine", label: "Mine", count: counts.mine },
               { id: "unassigned", label: "Unassigned", count: counts.unassigned },
             ]}
@@ -684,19 +693,9 @@ export default function SupportInbox({ agencyVersions, onStats, refreshKey = 0 }
                             <div className="mt-2 flex flex-wrap items-center gap-2">
                               <ThreadStatus contact={contact} />
                               <span className="text-xs text-muted-foreground">
-                                {contact.plan_label} · {contact.message_count} message
-                                {contact.message_count !== 1 ? "s" : ""}
+                                {contact.plan_label} · {assigneeName(key) ?? "Unassigned"}
                               </span>
                             </div>
-                          </div>
-                          <div className="-mr-2 shrink-0" onClick={(e) => e.stopPropagation()}>
-                            <AssignUserButton
-                              team={team}
-                              assignedEmail={assignments.get(key)}
-                              onAssign={(e) => handleAssign(e, contact)}
-                              disabled={!canEditChats}
-                              showLabel={false}
-                            />
                           </div>
                         </div>
                       </AnimatedListItem>
@@ -727,7 +726,7 @@ export default function SupportInbox({ agencyVersions, onStats, refreshKey = 0 }
           </div>
         ) : (
           <>
-            <header className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-3">
+            <header className="flex items-center gap-3 border-b border-border px-4 py-3">
               <Button
                 variant="ghost"
                 size="icon"
@@ -738,31 +737,37 @@ export default function SupportInbox({ agencyVersions, onStats, refreshKey = 0 }
                 <ArrowLeft aria-hidden="true" />
               </Button>
               <PersonAvatar name={selectedContact.display_name} />
-              <div className="min-w-[8rem] flex-1">
+              <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-foreground">
                   {selectedContact.display_name}
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {selectedContact.plan_label} plan · {selectedContact.message_count} messages
+                  {selectedContact.plan_label} plan · {selectedContact.message_count} messages ·{" "}
+                  {assigneeName(threadKey(selectedContact)) ?? "Unassigned"}
                 </p>
               </div>
-              <ThreadStatus contact={selectedContact} />
-              <div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto sm:justify-end">
-                <AssignUserButton
-                  team={team}
-                  assignedEmail={assignments.get(threadKey(selectedContact))}
-                  onAssign={(e) => handleAssign(e)}
-                  disabled={!canEditChats}
-                />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={access.level("support_tickets") !== "edit"}
-                  onClick={() => setTicketOpen(true)}
-                >
-                  <Ticket aria-hidden="true" /> Create Ticket
-                </Button>
-              </div>
+              <span className="hidden sm:inline-flex">
+                <ThreadStatus contact={selectedContact} />
+              </span>
+              <AssignUserButton
+                team={team}
+                assignedEmail={assignments.get(threadKey(selectedContact))}
+                onAssign={(e) => handleAssign(e)}
+                disabled={!canEditChats}
+                showLabel={false}
+              />
+              <MoreMenu
+                size="sm"
+                label="More for this conversation"
+                items={[
+                  {
+                    label: "Create ticket from this chat",
+                    icon: <Ticket aria-hidden="true" />,
+                    disabled: access.level("support_tickets") !== "edit",
+                    onSelect: () => setTicketOpen(true),
+                  },
+                ]}
+              />
             </header>
             <OpenTicketFromChatDialog
               open={ticketOpen}
@@ -774,7 +779,7 @@ export default function SupportInbox({ agencyVersions, onStats, refreshKey = 0 }
 
             <div
               ref={messagesBoxRef}
-              className="h-[52vh] min-h-0 space-y-4 overflow-y-auto bg-muted/30 px-4 py-4 lg:h-auto lg:flex-1"
+              className="h-[calc(100dvh-22rem)] min-h-[240px] space-y-4 overflow-y-auto bg-muted/30 px-4 py-4 lg:h-auto lg:min-h-0 lg:flex-1"
             >
               {messagesLoading && messages.length === 0 ? (
                 <div className="space-y-4" role="status" aria-label="Loading conversation">
@@ -898,7 +903,7 @@ export default function SupportInbox({ agencyVersions, onStats, refreshKey = 0 }
                 <Input
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder={canEditChats ? "Write a reply" : "You have view-only access to chats"}
+                  placeholder={canEditChats ? "Write a reply. Enter sends, or drop images here" : "You have view-only access to chats"}
                   aria-label="Reply to this client"
                   className="flex-1"
                   onKeyDown={(e) => {
@@ -919,9 +924,6 @@ export default function SupportInbox({ agencyVersions, onStats, refreshKey = 0 }
                   <span className="sr-only sm:hidden">Send reply</span>
                 </Button>
               </div>
-              <p className="mt-2 hidden text-xs text-muted-foreground sm:block">
-                Your reply appears in the client's chat. Press Enter to send, or drop images here.
-              </p>
             </div>
           </>
         )}

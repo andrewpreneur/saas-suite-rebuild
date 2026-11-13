@@ -85,7 +85,7 @@ describe("agents sidebar placement", () => {
   test("Resources is the labeled section with the fewest links for a typical owner", () => {
     const counts = typicalSidebarLinkCounts();
     expect(counts).toEqual([
-      { id: "home", label: "Home", count: 2 },
+      { id: "home", label: "Home", count: 1 },
       { id: "build", label: "Client Hub", count: 5 },
       { id: "grow", label: "Resources", count: 3 },
       { id: "more", label: "More Tools", count: 6 },

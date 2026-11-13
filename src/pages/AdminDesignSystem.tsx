@@ -8,6 +8,12 @@ import { FolderCard } from "@/components/premium/21st/folder-card";
 import { ExpandableTabs } from "@/components/premium/21st/expandable-tabs";
 import { EmptyState } from "@/components/premium/21st/empty-state";
 import { Reveal, RevealItem } from "@/components/premium/Reveal";
+import GlassFolder from "@/components/premium/21st/glass-folder-cards";
+import { SkinSwitch } from "@/components/premium/SkinSwitch";
+import { SettingItem, SettingList } from "@/components/premium/SettingList";
+import { StatStrip } from "@/components/premium/StatStrip";
+import { MoreMenu } from "@/components/premium/MoreMenu";
+import { Megaphone, Hand } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import { isPlatformAdminEmail } from "@/lib/platformAdmins";
 import { platformMockEnabled } from "@/lib/platformMock";
@@ -389,6 +395,43 @@ export default function AdminDesignSystem() {
               Also in use: wizard steps (onboarding), spotlight (Dashboard), animated list rows (Support inbox), halo
               dropzone (uploads), morphing copy and success icons, and the AI prompt box (Copilot).
             </p>
+          </Section>
+
+          <Section
+            title="Calm screens and skins"
+            note="One card of rows instead of stacked forms, one strip of numbers, one menu for secondary actions. Flip the skin to see every piece in Clean and Glass."
+          >
+            <div className="space-y-6">
+              <div className="flex flex-wrap items-center gap-3">
+                <SkinSwitch showLabels />
+                <MoreMenu items={[{ label: "How this works" }, { label: "Copy link" }, { label: "Delete page", danger: true, separated: true }]} />
+              </div>
+              <StatStrip
+                stats={[
+                  { label: "Clients", value: "20", hint: "+13 this period" },
+                  { label: "Active this week", value: "15", hint: "75%" },
+                  { label: "Open tickets", value: "5", hint: "2 waiting" },
+                ]}
+              />
+              <SettingList label="Rows that open a panel">
+                <SettingItem icon={<Hand />} title="Welcome message" value="Welcome to your custom software solution" toggle={<Switch checked={on} onCheckedChange={setOn} aria-label="Welcome message" />}>
+                  <div className="space-y-4">
+                    <TextField label="Headline" defaultValue="Welcome to your custom software solution" />
+                    <Button variant="accent">Save welcome message</Button>
+                  </div>
+                </SettingItem>
+                <SettingItem icon={<Megaphone />} title="Announcement" value="Off" status="Off">
+                  <p className="text-sm text-muted-foreground">The editor for this setting goes here.</p>
+                </SettingItem>
+                <SettingItem icon={<Palette />} title="Brand colors" value="#16A34A on white">
+                  <p className="text-sm text-muted-foreground">The editor for this setting goes here.</p>
+                </SettingItem>
+              </SettingList>
+              <div className="flex flex-wrap items-end gap-8 pt-6">
+                <GlassFolder label="Trainings" meta=" " art="aurora" action="none" width={220} files={[{ name: "Getting started" }, { name: "Branding" }, { name: "Support" }]} />
+                <GlassFolder label="Assets" meta=" " art="ember" tone="dark" action="none" width={220} seed={11} files={[{ name: "Logos" }, { name: "Swipe files" }]} />
+              </div>
+            </div>
           </Section>
 
           <Section title="Dialog">

@@ -27,6 +27,9 @@ import { MenuRemovalVideoDialog } from "@/components/copilot-workspace/MenuRemov
 import { useNavigate } from "react-router-dom";
 import { SETTINGS_NAV_LINKS } from "@/components/highlevel/settingsNavLinks";
 import { SitesTopNavOptions } from "@/components/highlevel/SitesTopNavOptions";
+import { SettingItem, SettingList } from "@/components/premium/SettingList";
+import { MoreMenu } from "@/components/premium/MoreMenu";
+import { useTipsBot } from "@/components/tips-bot/TipsBotContext";
 import { isSitesTopNavPreset, SITES_TOP_NAV_ITEMS } from "@/lib/sitesTopNav";
 
 interface Feature {
@@ -81,6 +84,23 @@ const StreamlineTool = ({
   const [presetName, setPresetName] = useState("");
   const [navTab, setNavTab] = useState<"main" | "settings">("main");
   const [automationPreset, setAutomationPreset] = useState("");
+  // The automation setup is long and rarely needed: it stays folded until asked for.
+  const [automationOpen, setAutomationOpen] = useState(false);
+  const { currentTip } = useTipsBot();
+  const tourTarget = currentTip?.targetSelector ?? "";
+  useEffect(() => {
+    // The guided tour points at steps inside the folded section, so open it for the tour.
+    if (tourTarget.startsWith("menu-automation-")) setAutomationOpen(true);
+  }, [tourTarget]);
+  const openAutomation = (preset?: string) => {
+    if (preset !== undefined) setAutomationPreset(preset);
+    setAutomationOpen(true);
+    window.setTimeout(() => {
+      document
+        .querySelector(preset !== undefined ? '[data-tip-target="menu-automation-removal"]' : '[data-tip-target="menu-automation-connection"]')
+        ?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: preset !== undefined ? "center" : "start" });
+    }, 120);
+  };
   const [openPresets, setOpenPresets] = useState<Set<string>>(new Set());
 
   // Legacy mode state
@@ -546,17 +566,9 @@ const StreamlineTool = ({
         <PageHeader
           title="Menu link removal"
           subtitle="Hide the HighLevel menu links your clients don't need, for every sub-account or only the ones you pick."
-          actions={
-            <>
-              <Button variant="outline" className="gap-2" onClick={() => setTrainingVideoOpen(true)} aria-label="Play menu link removal walkthrough video">
-                <Play className="h-4 w-4" />
-                Watch walkthrough
-              </Button>
-              <MenuRemovalVideoDialog open={trainingVideoOpen} onOpenChange={setTrainingVideoOpen} />
-              <SitesTopNavOptions agencyId={agencyId} />
-            </>
-          }
+          actions={<SitesTopNavOptions agencyId={agencyId} />}
         />
+        <MenuRemovalVideoDialog open={trainingVideoOpen} onOpenChange={setTrainingVideoOpen} />
         <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
           {/* Left side: links to hide */}
           <SectionCard
@@ -756,18 +768,20 @@ const StreamlineTool = ({
                       return (
                         <div key={presetKey} className="overflow-hidden rounded-lg border border-border">
                           {/* Folder Header */}
-                          <div
-                            className="flex cursor-pointer items-center justify-between gap-2 bg-muted/40 p-3 transition-colors hover:bg-muted/70"
-                            onClick={() => {
-                              setOpenPresets(prev => {
-                                const next = new Set(prev);
-                                if (next.has(presetKey)) next.delete(presetKey);
-                                else next.add(presetKey);
-                                return next;
-                              });
-                            }}
-                          >
-                            <div className="flex min-w-0 flex-wrap items-center gap-2">
+                          <div className="flex items-center justify-between gap-1 bg-muted/40 pr-2 transition-colors duration-150 hover:bg-muted/70">
+                            <button
+                              type="button"
+                              aria-expanded={isOpen}
+                              className="flex min-h-12 min-w-0 flex-1 flex-wrap items-center gap-2 rounded-md p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                              onClick={() => {
+                                setOpenPresets(prev => {
+                                  const next = new Set(prev);
+                                  if (next.has(presetKey)) next.delete(presetKey);
+                                  else next.add(presetKey);
+                                  return next;
+                                });
+                              }}
+                            >
                               <ChevronRight className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${isOpen ? "rotate-90" : ""}`} />
                               {isOpen ? (
                                 <FolderOpen className="h-4 w-4 shrink-0 text-brand" />
@@ -784,30 +798,22 @@ const StreamlineTool = ({
                               {!allActive && !allPaused && (
                                 <Badge variant="outline" className="text-xs">{activeCount} active</Badge>
                               )}
-                            </div>
-                            <div className="flex shrink-0 items-center gap-1" onClick={e => e.stopPropagation()}>
-                              {presetKey !== '__other__' && <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`Set up automation for ${displayName}`} title="Set up automation" onClick={() => { setAutomationPreset(presetKey); document.querySelector('[data-tip-target="menu-automation-removal"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}><Webhook className="h-4 w-4" /></Button>}
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => togglePresetActive(presetKey, presetRules)}
-                                title={allActive ? "Pause All" : "Resume All"}
-                                aria-label={allActive ? `Pause all rules in ${displayName}` : `Resume all rules in ${displayName}`}
-                              >
-                                {allActive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                                onClick={() => deletePreset(presetRules)}
-                                title="Delete All Rules in Preset"
-                                aria-label={`Delete all rules in ${displayName}`}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
+                            </button>
+                            <MoreMenu
+                              size="sm"
+                              label={`Actions for ${displayName}`}
+                              items={[
+                                ...(presetKey !== '__other__'
+                                  ? [{ label: "Set up automation", icon: <Webhook />, onSelect: () => openAutomation(presetKey) }]
+                                  : []),
+                                {
+                                  label: allActive ? "Pause all rules" : "Resume all rules",
+                                  icon: allActive ? <Pause /> : <Play />,
+                                  onSelect: () => togglePresetActive(presetKey, presetRules),
+                                },
+                                { label: "Delete all rules", icon: <Trash2 />, danger: true, separated: true, onSelect: () => deletePreset(presetRules) },
+                              ]}
+                            />
                           </div>
 
                           {/* Folder Content */}
@@ -825,20 +831,16 @@ const StreamlineTool = ({
                                       <span className="min-w-0 truncate text-xs font-medium text-muted-foreground">
                                         {rule.sub_account_id || <Badge variant="secondary" className="text-xs">All sub-accounts</Badge>}
                                       </span>
-                                      <div className="flex shrink-0 items-center gap-1">
-                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleRuleActive(rule)} title={rule.is_active ? "Pause" : "Resume"} aria-label={rule.is_active ? "Pause rule" : "Resume rule"}>
-                                          {rule.is_active ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(rule)} title="Edit" aria-label="Edit rule">
-                                          <Pencil className="h-4 w-4" />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setCopyTarget(rule); setShowCopyDialog(true); }} title="Copy" aria-label="Copy rule">
-                                          <Copy className="h-4 w-4" />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" onClick={() => deleteRule(rule.id)} title="Delete" aria-label="Delete rule">
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                      </div>
+                                      <MoreMenu
+                                        size="sm"
+                                        label="Rule actions"
+                                        items={[
+                                          { label: rule.is_active ? "Pause rule" : "Resume rule", icon: rule.is_active ? <Pause /> : <Play />, onSelect: () => toggleRuleActive(rule) },
+                                          { label: "Edit rule", icon: <Pencil />, onSelect: () => startEdit(rule) },
+                                          { label: "Copy rule", icon: <Copy />, onSelect: () => { setCopyTarget(rule); setShowCopyDialog(true); } },
+                                          { label: "Delete rule", icon: <Trash2 />, danger: true, separated: true, onSelect: () => deleteRule(rule.id) },
+                                        ]}
+                                      />
                                     </div>
                                     <div className="flex flex-wrap gap-1">
                                       {rule.hidden_links.map(link => (
@@ -860,20 +862,38 @@ const StreamlineTool = ({
           </div>
         </div>
 
-        <section className="flex flex-col gap-6 border-t border-border pt-8">
-          <div className="flex items-start gap-3">
-            <span className="px-icon-chip shrink-0" aria-hidden="true"><Zap className="h-5 w-5" /></span>
-            <div className="min-w-0">
-              <h2 className="text-h4 text-foreground">Auto-remove menu links</h2>
-              <p className="mt-0.5 text-sm text-muted-foreground">Apply a preset automatically when a sub-account is created or changes plan.</p>
+        <SettingList label="More">
+          <SettingItem
+            icon={<Zap />}
+            title="Auto-remove menu links"
+            value="Apply a preset automatically when a sub-account is created or changes plan"
+            status={automationOpen ? "Hide setup" : "Show setup"}
+            onOpen={() => (automationOpen ? setAutomationOpen(false) : openAutomation())}
+            testId="menu-automation-toggle"
+          />
+          <SettingItem
+            icon={<Play />}
+            title="Watch the walkthrough"
+            value="A short video of the whole setup"
+            onOpen={() => setTrainingVideoOpen(true)}
+          />
+        </SettingList>
+
+        {automationOpen ? (
+          <motion.section
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: DURATION.slow, ease: EASE_OUT }}
+            aria-label="Auto-remove menu links"
+            className="flex flex-col gap-6"
+          >
+            <div data-tip-target="menu-automation-connection" className="px-surface flex flex-wrap items-center justify-between gap-4 p-4 sm:p-6">
+              <div className="min-w-0 space-y-1"><h3 className="text-sm font-semibold">Before you start: HighLevel connection</h3><p className="text-sm text-muted-foreground">Connect in Settings → HighLevel. Include custom-menu-link.write permission for onboarding-link assignment.</p></div>
+              <Button variant="outline" onClick={() => navigate('/app/highlevel')}><ExternalLink className="h-4 w-4" />Open HighLevel settings</Button>
             </div>
-          </div>
-          <div data-tip-target="menu-automation-connection" className="px-surface flex flex-wrap items-center justify-between gap-4 p-4 sm:p-6">
-            <div className="min-w-0 space-y-1"><h3 className="text-sm font-semibold">Before you start: HighLevel connection</h3><p className="text-sm text-muted-foreground">Connect in Settings → HighLevel. Include custom-menu-link.write permission for onboarding-link assignment.</p></div>
-            <Button variant="outline" onClick={() => navigate('/app/highlevel')}><ExternalLink className="h-4 w-4" />HighLevel Settings</Button>
-          </div>
-          <MenuAutomationPanel agencyId={agencyId} presetName={automationPreset} presets={Object.keys(presetGroups).filter((k) => k !== '__other__')} />
-        </section>
+            <MenuAutomationPanel agencyId={agencyId} presetName={automationPreset} presets={Object.keys(presetGroups).filter((k) => k !== '__other__')} />
+          </motion.section>
+        ) : null}
 
         <Dialog open={showCopyDialog} onOpenChange={setShowCopyDialog}>
           <DialogContent>

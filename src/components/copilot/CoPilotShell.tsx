@@ -214,7 +214,7 @@ function CoPilotShellInner({
             aria-label="Open SaaSSuite Copilot"
             title="Work with Copilot"
             className={cn(
-              "px-brand-fill group fixed z-[60] inline-grid h-14 w-14 place-items-center rounded-full ring-1 ring-inset ring-white/20",
+              "copilot-launcher px-brand-fill group fixed z-[60] inline-grid h-14 w-14 place-items-center rounded-full ring-1 ring-inset ring-white/20",
               "transition-[filter] duration-200 hover:brightness-110 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/30",
               isMobile ? "bottom-[calc(7.5rem+env(safe-area-inset-bottom))] right-3 scale-90" : "bottom-6 right-6",
             )}
