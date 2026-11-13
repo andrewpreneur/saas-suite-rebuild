@@ -41,3 +41,40 @@ Used as the basis for our own pieces: Animated Sidebar (sliding pills), Command 
 `npx vite dev --host 127.0.0.1 --port 5210`, then open `/app/dashboard`. The demo account is built in; no login, no backend.
 Useful previews: `/login?preview`, `/initial-questions`, `/v2-onboarding`, `/admin/design-system`,
 `/app/dashboard?ss_mock_chrome=trial.offer` (banner states: past_due, grace, cancel, limit, trial, offer, suspended, team).
+
+## Round 2: calm screens and the Glass skin (Nov 13, 2026)
+
+Andrew's note on round 1: "Screens still have a LOT on them. Lots of buttons and places to go." Rules are in
+`docs/design-system.md` ("Calm screens" and "Skins").
+
+### Done
+- Navigation: sidebar is Dashboard plus five groups, one open at a time (was 20 links). The page name in the top bar
+  switches between pages in the same group. Search is a small button; the finished install checklist is a tick.
+- Dashboard: next step, hub link, one strip of numbers, then three views (Workspace folders, Clients, Insights).
+- Every page: one primary button, the rest in a "..." menu; settings are one card of rows that open a side panel
+  (bottom sheet on phones); stat cards became a slim strip or were removed where a tab already shows the count.
+  Rough count of clickable things when a page loads, before and after: Hub Pages 25 to 6, Branding 20 to 5,
+  Client Support 20 to 9, Settings 20 to 4, Learning Hub 20 to 5, Affiliate 38 to 7, One Feature Kit 22 to 7.
+- Glass skin: a Clean / Glass switch in the top bar and phone header (`src/lib/skin.ts`, CSS only).
+- New 21st.dev components: Glassmorphism Folder Cards (dashboard workspace, Learning Hub trainings, One Feature Kit
+  add-ons), Theme Switcher (basis of the skin switch). Glass Card is in the repo but not used yet.
+- The floating Copilot button hides while a panel or dialog is open. Panels return focus to the row that opened them.
+
+### Checks
+- `tsc`: 0 errors. `bun test`: 22 failing, the same backend-only set as before (two wording tests were updated).
+- Branding checks: `tests/designPageModel.test.ts` 19 of 19, `scripts/verify-branding-fixes.mjs` 23 of 23.
+- 23 screens in Clean and Glass at 1440 wide, 22 in Glass at 390 wide: no page errors, no horizontal overflow.
+
+### Not done or not verified
+- Guided tour: steps that point inside Hub Pages panels (`v3-home-video-thumbnail`, `v3-home-add-announcement`,
+  `v3-home-add-sections`) need retargeting; the tour was not re-run end to end.
+- `scripts/verify-design-page.mjs`, `verify-design-access.mjs` and probably `verify-theme-customizer.mjs` still click
+  the removed Branding step tabs (`design-tab-*`; rows are now `design-row-<id>`) and need updating.
+- Hub Pages "Assign to Sub Account" tab is unchanged. Hub Pages Education shows 8 clickable things (budget is 7).
+- States with no demo data were not looked at: Affiliate apply form, Email Warmup and Free Leads after submitting,
+  Branding when the script is not installed, Learning Hub with setup incomplete.
+- Most "..." menu items, several panels, and actual saves in Support and Grow were not clicked through.
+- Slack and HighLevel rows in Settings describe the integration; they do not show Connected / Not connected.
+- Glass has no dark version. Folder labels are small on phones (readable buttons appear under an open folder).
+- A live Stripe publishable key is hard-coded in `OnboardingCallsManager.tsx` and `AgencySupportManager.tsx`
+  (from the original code). Publishable keys are public by design, but Andrew should decide whether to strip it.
