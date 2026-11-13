@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionCard } from "@/components/premium/SectionCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,7 +24,7 @@ const copy = async (t: string) => {
 
 const CopyRow = ({ label, value }: { label: string; value: string }) => (
   <div className="space-y-1.5">
-    <Label className="text-xs">{label}</Label>
+    <Label>{label}</Label>
     <div className="flex gap-2">
       <Input readOnly value={value} className="font-mono text-xs" />
       <Button
@@ -206,18 +206,12 @@ export default function AssignSubAccountPanel({ agencyId }: { agencyId: string |
   const name = (id: string) => locations.find((l) => l.location_id === id)?.name || id;
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <CardTitle>Assign to Sub Account</CardTitle>
-            <Badge variant="secondary">Optional</Badge>
-          </div>
-          <CardDescription>
-            Show this onboarding plan in specific sub-accounts right from SaaS Suite, instead of
-            editing the menu link in HighLevel.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <SectionCard
+        title="Assign to Sub Account"
+        description="Show this onboarding plan in specific sub-accounts right from SaaS Suite, instead of editing the menu link in HighLevel."
+        actions={<Badge variant="neutral">Optional</Badge>}
+        bodyClassName="space-y-4"
+      >
           {!menu.menu_id ? (
             <p className="text-sm text-muted-foreground">
               Save this plan's menu link in the Installation Guide first.
@@ -243,17 +237,17 @@ export default function AssignSubAccountPanel({ agencyId }: { agencyId: string |
               <div className="flex flex-wrap gap-2">
                 <Button disabled={!loc || !!busy} onClick={() => act("add")}>
                   {busy === "add" ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                    <Loader2 className="animate-spin" />
                   ) : (
-                    <Plus className="w-4 h-4 mr-1" />
+                    <Plus />
                   )}
                   Add to Sub Account
                 </Button>
                 <Button variant="outline" disabled={!loc || !!busy} onClick={() => act("remove")}>
                   {busy === "remove" ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                    <Loader2 className="animate-spin" />
                   ) : (
-                    <Minus className="w-4 h-4 mr-1" />
+                    <Minus />
                   )}
                   Remove From Sub Account
                 </Button>
@@ -283,19 +277,13 @@ export default function AssignSubAccountPanel({ agencyId }: { agencyId: string |
               )}
             </>
           )}
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Assign from a workflow</CardTitle>
-          <CardDescription>
-            Add or remove this onboarding plan automatically, e.g. after a purchase.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      </SectionCard>
+      <SectionCard
+        title="Assign from a workflow"
+        description="Add or remove this onboarding plan automatically, e.g. after a purchase."
+      >
           <WebhookInstructions agencyId={agencyId} />
-        </CardContent>
-      </Card>
+      </SectionCard>
     </div>
   );
 }

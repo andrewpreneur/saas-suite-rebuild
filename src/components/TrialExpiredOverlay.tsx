@@ -1,7 +1,9 @@
 import { useUser } from '@/contexts/UserContext';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Crown, Lock, LogOut } from 'lucide-react';
+import { Tag } from '@/components/ui/tag';
+import { LifeBuoy, Lock, LogOut } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { popIn } from '@/lib/motion';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -33,43 +35,44 @@ const TrialExpiredOverlay = () => {
   };
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <Lock className="h-12 w-12 text-destructive" />
-          </div>
-          <CardTitle className="text-2xl">
-            Access Suspended
-          </CardTitle>
-          <CardDescription>
-            Your account has been suspended by our team. Reach out and we'll get it sorted.
-          </CardDescription>
-
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Button
-            onClick={handleContactSupport}
-            className="w-full flex items-center gap-2"
-            size="lg"
-          >
-            <Crown className="h-4 w-4" />
-            Contact Support
+    <div
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="access-suspended-title"
+      aria-describedby="access-suspended-body"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-background/70 p-4 backdrop-blur-md"
+    >
+      <motion.div
+        variants={popIn}
+        initial="hidden"
+        animate="show"
+        className="w-full max-w-md rounded-xl border border-border/60 bg-card p-6 text-center shadow-dialog sm:p-8"
+      >
+        <div className="mb-4 flex justify-center">
+          <Tag tone="danger">
+            <Lock aria-hidden="true" />
+            Access suspended
+          </Tag>
+        </div>
+        <h2 id="access-suspended-title" className="text-h3 text-balance text-foreground">
+          Your account is on hold
+        </h2>
+        <p id="access-suspended-body" className="mt-2 text-small text-pretty text-muted-foreground">
+          Our team suspended this account. Your workspace and settings are safe. Write to support and we'll get it
+          sorted, including any payment issue or if you think this is a mistake.
+        </p>
+        <div className="mt-6 space-y-3">
+          <Button onClick={handleContactSupport} variant="accent" className="h-11 w-full">
+            <LifeBuoy aria-hidden="true" />
+            Contact support
           </Button>
-          <Button
-            onClick={handleSignOut}
-            variant="outline"
-            className="w-full flex items-center gap-2"
-            size="lg"
-          >
-            <LogOut className="h-4 w-4" />
-            Sign Out
+          <Button onClick={handleSignOut} variant="outline" className="h-11 w-full">
+            <LogOut aria-hidden="true" />
+            Sign out
           </Button>
-          <p className="text-sm text-muted-foreground text-center">
-            Please contact our support team if you believe this is an error or to resolve any payment issues.
-          </p>
-        </CardContent>
-      </Card>
+        </div>
+        <p className="mt-4 text-caption font-normal text-muted-foreground">support@saassuite.ai</p>
+      </motion.div>
     </div>
   );
 };

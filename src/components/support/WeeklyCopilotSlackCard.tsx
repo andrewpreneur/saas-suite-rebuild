@@ -48,11 +48,11 @@ export default function WeeklyCopilotSlackCard() {
   };
 
   return (
-    <Card className="border-primary/20 bg-primary/[0.03]">
+    <Card className="border-brand/20 bg-brand/[0.03]">
       <CardContent className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
-          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-            <Bot className="h-4 w-4 text-primary" />
+          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-subtle">
+            <Bot className="h-4 w-4 text-brand" />
           </div>
           <div className="space-y-1">
             <Label htmlFor="weekly-copilot-slack" className="text-sm font-semibold">

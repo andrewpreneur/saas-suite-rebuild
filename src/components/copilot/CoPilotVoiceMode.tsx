@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Mic, MicOff, Square, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { CopilotMark, PromptChips } from '@/components/premium/copilot/CopilotBits';
+import { TextShimmer } from '@/components/premium/21st/text-shimmer';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useChatContext } from '@/components/chat-copilot/ChatContext';
@@ -371,50 +373,64 @@ export function CoPilotVoiceMode({ onExit, proactiveOpener, playOpener = true, o
   const latestMessage = sharedMessages[sharedMessages.length - 1];
   const displayedText = latestMessage?.content || proactiveOpener || '';
 
+  const working = status === 'thinking' || status === 'transcribing';
+
   return (
-    <div className="flex flex-col h-full bg-background">
-      <div className="flex items-center justify-between p-4 border-b bg-card/60">
-        <div>
-          <h3 className="font-semibold text-sm">Voice mode</h3>
-          <p className="text-xs text-muted-foreground">{statusLabel[status]}</p>
+    <div className="px-canvas flex h-full flex-col">
+      <div className="px-glass flex items-center justify-between border-b border-border/70 px-4 py-2.5">
+        <div className="flex min-w-0 items-center gap-3">
+          <CopilotMark size="sm" />
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold text-foreground">Voice mode</h3>
+            {working ? (
+              <TextShimmer as="p" duration={1.4} className="text-caption [--base-color:hsl(var(--muted-foreground))] [--base-gradient-color:hsl(var(--brand))] dark:[--base-color:hsl(var(--muted-foreground))] dark:[--base-gradient-color:hsl(var(--brand))]">
+                {statusLabel[status]}
+              </TextShimmer>
+            ) : (
+              <p className="text-caption font-normal text-muted-foreground">{statusLabel[status]}</p>
+            )}
+          </div>
         </div>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleExit} title="Exit voice mode">
+        <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground" onClick={handleExit} title="Exit voice mode" aria-label="Exit voice mode">
           <X className="w-4 h-4" />
         </Button>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center gap-8 p-6">
-        <div
-          className={cn(
-            'w-40 h-40 md:w-52 md:h-52 rounded-full bg-gradient-to-br from-purple-500 via-blue-500 to-cyan-400',
-            'shadow-2xl transition-transform duration-150 ease-out flex items-center justify-center',
-            status === 'listening' && 'ring-4 ring-blue-400/40',
-            status === 'speaking' && 'ring-4 ring-emerald-400/50',
-            status === 'thinking' && 'ring-4 ring-amber-400/40',
-          )}
-          style={{ transform: `scale(${scale})` }}
-        >
-          {status === 'thinking' || status === 'transcribing' ? (
-            <Loader2 className="w-10 h-10 text-white animate-spin" />
-          ) : (
-            <Mic className="w-14 h-14 text-white" />
-          )}
+      <div className="flex flex-1 flex-col items-center justify-center gap-8 overflow-y-auto p-6">
+        <div className="relative">
+          <span aria-hidden="true" className={cn('px-brand-wash absolute -inset-6 rounded-full transition-opacity duration-300', status === 'idle' ? 'opacity-60' : 'opacity-100')} />
+          <div
+            className={cn(
+              'px-brand-fill relative flex h-36 w-36 items-center justify-center rounded-full md:h-44 md:w-44',
+              'transition-transform duration-150 ease-out',
+              status === 'listening' && 'ring-4 ring-brand/25',
+              status === 'speaking' && 'ring-4 ring-success/30',
+              status === 'thinking' && 'ring-4 ring-warning/30',
+            )}
+            style={{ transform: `scale(${scale})` }}
+          >
+            {working ? (
+              <Loader2 className="h-10 w-10 animate-spin" />
+            ) : (
+              <Mic className="h-12 w-12" />
+            )}
+          </div>
         </div>
 
-        <div className="max-w-md text-center min-h-[60px]">
-          <p className="text-sm text-muted-foreground">
+        <div className="min-h-[60px] max-w-md text-center">
+          <p className="text-pretty text-body text-muted-foreground">
             {displayedText}
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-center gap-2">
           <Button variant="outline" size="sm" onClick={toggleMute}>
-            {muted ? <MicOff className="w-4 h-4 mr-1" /> : <Mic className="w-4 h-4 mr-1" />}
+            {muted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
             {muted ? 'Unmute' : 'Mute'}
           </Button>
           {status === 'speaking' && (
             <Button variant="outline" size="sm" onClick={handleStopSpeaking}>
-              <Square className="w-4 h-4 mr-1" /> Stop
+              <Square className="w-4 h-4" /> Stop
             </Button>
           )}
           <Button variant="ghost" size="sm" onClick={handleExit}>Back to chat</Button>
@@ -423,23 +439,8 @@ export function CoPilotVoiceMode({ onExit, proactiveOpener, playOpener = true, o
         {/* Preset prompts — tap to ask without speaking. Useful on mobile
             when mic permission or noise is a problem. */}
         <div className="w-full max-w-md">
-          <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-2 text-center">
-            Try asking
-          </div>
-          <div className="flex flex-wrap gap-2 justify-center">
-            {VOICE_PRESETS.map((p) => (
-              <Button
-                key={p}
-                variant="outline"
-                size="sm"
-                className="text-xs h-auto py-1.5 px-3 whitespace-normal"
-                onClick={() => handlePreset(p)}
-                disabled={status === 'thinking' || status === 'transcribing'}
-              >
-                {p}
-              </Button>
-            ))}
-          </div>
+          <p className="px-eyebrow mb-2 text-center">Or tap a question</p>
+          <PromptChips prompts={VOICE_PRESETS.map((label) => ({ label }))} onPick={handlePreset} disabled={working} />
         </div>
       </div>
     </div>

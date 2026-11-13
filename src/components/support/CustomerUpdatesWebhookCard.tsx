@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUser } from "@/contexts/UserContext";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
-import { ChevronDown, ExternalLink, Loader2, Play } from "lucide-react";
+import { ChevronDown, ExternalLink, Loader2, Play, Send } from "lucide-react";
 import {
   ticketReplyHint,
   ticketUpdateSubject,
@@ -132,20 +131,22 @@ export default function CustomerUpdatesWebhookCard() {
   };
 
   return (
-    <Card>
-      <CardContent className="p-4">
+    <section className="px-surface p-4 sm:p-6">
         <Collapsible open={open} onOpenChange={setOpen}>
-          <CollapsibleTrigger className="w-full flex items-center justify-between text-left">
-            <div>
-              <p className="text-sm font-semibold">Send Support Updates From {agency}'s CRM</p>
-              <p className="text-xs text-muted-foreground">
+          <CollapsibleTrigger className="flex min-h-11 w-full items-start justify-between gap-3 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+            <span className="px-icon-chip shrink-0 [&_svg]:size-5" aria-hidden="true">
+              <Send />
+            </span>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-base font-semibold text-foreground">Send updates from {agency}'s CRM</h2>
+              <p className="mt-0.5 text-sm text-muted-foreground">
                 {saved
                   ? "Customers get reply updates from your own CRM. From Email is one fixed address on your verified sending domain."
                   : "Customers get reply updates from SaaSSuite. Swap in your own webhook to send them from you."}
               </p>
             </div>
             <ChevronDown
-              className={`w-4 h-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
+              className={`mt-1 size-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
             />
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-4 space-y-4">
@@ -155,7 +156,7 @@ export default function CustomerUpdatesWebhookCard() {
                   href={SNAPSHOT_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-primary underline inline-flex items-center gap-1"
+                  className="text-brand underline inline-flex items-center gap-1"
                 >
                   Install Snapshot <ExternalLink className="w-3 h-3" />
                 </a>{" "}
@@ -197,7 +198,6 @@ export default function CustomerUpdatesWebhookCard() {
             <GhlTicketEmailGuide replyUrl="support-settings" />
           </CollapsibleContent>
         </Collapsible>
-      </CardContent>
-    </Card>
+    </section>
   );
 }

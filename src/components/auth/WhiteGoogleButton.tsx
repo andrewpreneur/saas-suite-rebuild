@@ -11,9 +11,9 @@ export function WhiteGoogleButton({ label, disabled, onClick }: Props) {
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="flex min-h-12 w-full items-center justify-center gap-3 rounded-md border border-neutral-300 bg-white px-4 py-3 text-base font-semibold text-neutral-800 shadow-sm hover:bg-neutral-50 disabled:opacity-60"
+      className="flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-gray-300 bg-card px-4 text-sm font-semibold text-foreground transition-[transform,background-color] duration-150 ease-out hover:bg-muted active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
     >
-      <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+      <svg className="size-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
         <path
           fill="#4285F4"
           d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"

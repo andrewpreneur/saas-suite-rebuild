@@ -127,13 +127,13 @@ const AIChatSupport = () => {
     return (
       <div className="space-y-6">
         <Card className="relative overflow-hidden border-primary/50">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary to-purple-500" />
+          <div className="absolute top-0 left-0 right-0 h-1 bg-brand" />
           <CardHeader>
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 rounded-lg bg-primary/10">
                 <Sparkles className="w-6 h-6 text-primary" />
               </div>
-              <Badge className="bg-gradient-to-r from-primary to-purple-500 text-white border-0">
+              <Badge className="px-brand-fill border-0 shadow-none">
                 Active
               </Badge>
             </div>
@@ -229,7 +229,7 @@ const AIChatSupport = () => {
             <Button 
               variant="outline"
               size="sm"
-              className="bg-gradient-to-r from-primary to-purple-500 text-white border-0 hover:opacity-90"
+              className="px-brand-fill border-0 hover:brightness-110"
               onClick={() => setShowUpgradePopup(true)}
             >
               <Sparkles className="w-4 h-4 mr-2" />
@@ -294,7 +294,7 @@ const AIChatSupport = () => {
               <div className="p-2 rounded-lg bg-primary/10">
                 <Sparkles className="w-6 h-6 text-primary" />
               </div>
-              <Badge className="bg-gradient-to-r from-primary to-purple-500 text-white border-0">
+              <Badge className="px-brand-fill border-0 shadow-none">
                 Premium
               </Badge>
             </div>
@@ -332,7 +332,7 @@ const AIChatSupport = () => {
                 <span className="text-sm text-muted-foreground">/month per customer</span>
               </div>
               <Button 
-                className="w-full bg-gradient-to-r from-primary to-purple-500 hover:opacity-90 text-white"
+                className="w-full px-brand-fill hover:brightness-110"
                 onClick={() => window.open(brandedPaymentLink, "_blank")}
               >
                 <Sparkles className="w-4 h-4 mr-2" />

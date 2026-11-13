@@ -37,7 +37,7 @@ const TESTIMONIALS = [
 
 function TestimonialCard({ name, handle, quote }: (typeof TESTIMONIALS)[number]) {
   return (
-    <figure className="relative w-64 shrink-0 cursor-default overflow-hidden rounded-xl border border-border bg-card/60 p-4 transition-colors hover:border-primary/40">
+    <figure className="relative w-64 shrink-0 cursor-default overflow-hidden rounded-xl border border-border bg-card/60 p-4 transition-colors hover:border-brand/40">
       <div className="flex items-center gap-2">
         <MemberAvatar name={name} className="h-8 w-8" />
         <div className="flex flex-col">

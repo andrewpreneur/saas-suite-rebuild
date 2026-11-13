@@ -1,35 +1,15 @@
 /**
- * Old UI vs new UI (design system v0.1 + rebuilt navigation).
- *
- * Old is the default for everyone, so shipping this never changes what
- * customers see. Platform admins get a switch (UiVersionSwitch) that stores the
- * choice in this browser and reloads. It is read once at load because the
- * shared components pick their old or new styles when the page starts.
+ * Rebuild copy: there is one UI. The old UI and the admin switch were removed.
+ * `newUi` stays exported (always true) only so older conditionals keep compiling
+ * until each screen is rewritten; do not add new uses of it.
  */
-export const UI_VERSION_STORAGE_KEY = "ss_ui_version";
+export const newUi = true as boolean;
 
-function readNewUi(): boolean {
-  try {
-    return typeof window !== "undefined" && window.localStorage.getItem(UI_VERSION_STORAGE_KEY) === "new";
-  } catch {
-    return false;
-  }
-}
-
-export const newUi: boolean = readNewUi();
-
-if (newUi && typeof document !== "undefined") {
-  // Scopes the new color tokens, radius scale and brand-color mapping in index.css.
+if (typeof document !== "undefined") {
+  // Scopes the design-system tokens in index.css.
   document.documentElement.classList.add("ds-ui");
-}
-
-/** Saves the choice and reloads so every component starts in the chosen UI. */
-export function setUiVersion(version: "old" | "new"): void {
-  try {
-    if (version === "new") window.localStorage.setItem(UI_VERSION_STORAGE_KEY, "new");
-    else window.localStorage.removeItem(UI_VERSION_STORAGE_KEY);
-  } catch {
-    return;
-  }
-  window.location.reload();
+  // One UI everywhere: the app type and brand mapping apply on every route, not only inside the app shell.
+  const markBody = () => document.body?.classList.add("ds-app");
+  if (document.body) markBody();
+  else document.addEventListener("DOMContentLoaded", markBody, { once: true });
 }

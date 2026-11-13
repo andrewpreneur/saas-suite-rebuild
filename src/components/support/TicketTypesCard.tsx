@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronUp, Eye, EyeOff, Pencil, Plus, Tags, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionCard } from "@/components/premium/SectionCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -291,18 +291,12 @@ export function TicketTypesCard({ ownerEmail }: Props) {
   );
 
   return (
-    <Card className="bg-card border-border">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Tags className="w-5 h-5" />
-          Ticket types
-        </CardTitle>
-        <CardDescription>
-          These are the choices when a ticket is opened, including from a chat. Hide a standard type
-          or add your own.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <SectionCard
+      icon={<Tags />}
+      title="Ticket types"
+      description="The choices a client sees when a ticket is opened, including from a chat. Hide a standard type or add your own."
+      bodyClassName="space-y-4"
+    >
         {loadFailed && (
           <p className="text-sm text-muted-foreground">
             Ticket types could not be loaded. The standard list is still used until this is
@@ -365,7 +359,6 @@ export function TicketTypesCard({ ownerEmail }: Props) {
             <Plus className="w-4 h-4" /> Add
           </Button>
         </form>
-      </CardContent>
-    </Card>
+    </SectionCard>
   );
 }

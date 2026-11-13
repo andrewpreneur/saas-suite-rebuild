@@ -160,21 +160,21 @@ export default function CommunityGatePreview({ slug }: { slug?: string }) {
   }, [section?.kind]);
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+    <div className="px-canvas relative min-h-screen">
       <div className="mx-auto flex max-w-7xl">
         {/* Greyed-out app shell */}
         <aside
           aria-hidden
-          className="hidden w-56 shrink-0 select-none border-r border-slate-200/70 bg-white/60 px-4 py-6 opacity-50 blur-[1.5px] lg:block"
+          className="hidden w-56 shrink-0 select-none border-r border-border bg-card/60 px-4 py-6 opacity-50 blur-[1.5px] lg:block"
         >
-          <div className="mb-6 h-8 w-32 rounded bg-slate-200" />
+          <div className="mb-6 h-8 w-32 rounded bg-muted" />
           <div className="space-y-2">
             {SIDEBAR_ITEMS.map((item) => (
               <div
                 key={item}
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400"
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground"
               >
-                <div className="h-4 w-4 rounded bg-slate-200" />
+                <div className="h-4 w-4 rounded bg-muted" />
                 {item}
               </div>
             ))}
@@ -183,14 +183,14 @@ export default function CommunityGatePreview({ slug }: { slug?: string }) {
 
         <main className="min-w-0 flex-1 px-4 py-8 sm:px-8">
           <div className="mb-6 flex flex-wrap items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Icon className="h-5 w-5" />
+            <div className="px-icon-chip shrink-0" aria-hidden="true">
+              <Icon className="size-5" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+              <h1 className="text-h3 tracking-tight text-foreground sm:text-h2">
                 {heading}
               </h1>
-              <p className="max-w-2xl text-sm text-slate-600">{blurb}</p>
+              <p className="max-w-2xl text-sm text-muted-foreground">{blurb}</p>
             </div>
           </div>
 
@@ -199,18 +199,18 @@ export default function CommunityGatePreview({ slug }: { slug?: string }) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className="mb-8 overflow-hidden rounded-2xl border border-primary/20 bg-white p-5 shadow-lg sm:p-7"
+            className="px-brand-wash mb-8 overflow-hidden rounded-xl border border-brand/20 p-5 shadow-card sm:p-8"
           >
-            <Badge className="mb-3">Free account required</Badge>
-            <h2 className="text-xl font-semibold text-slate-900 sm:text-2xl">
+            <Badge variant="brand" className="mb-3">Free account required</Badge>
+            <h2 className="text-h4 text-foreground sm:text-h3">
               Create your free account to unlock {heading.toLowerCase()}
             </h2>
-            <p className="mt-2 text-sm text-slate-600">
+            <p className="mt-2 text-sm text-muted-foreground">
               It takes about 30 seconds. You'll come right back to this page with everything
               unlocked — no card needed.
             </p>
             <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-              <Button asChild size="lg" className="w-full sm:w-auto">
+              <Button asChild variant="accent" size="lg" className="w-full sm:w-auto">
                 <Link to={authHref("/signup")}>Create free account</Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
@@ -223,7 +223,7 @@ export default function CommunityGatePreview({ slug }: { slug?: string }) {
           <div className="relative">
             {rows === null ? (
               <div className="flex justify-center py-16">
-                <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -237,10 +237,10 @@ export default function CommunityGatePreview({ slug }: { slug?: string }) {
                   return (
                     <Card
                       key={row.id}
-                      className="relative h-full overflow-hidden border-slate-200 bg-white"
+                      className="relative h-full overflow-hidden bg-card"
                     >
                       {thumb && (
-                        <div className="relative aspect-video w-full overflow-hidden bg-slate-100">
+                        <div className="relative aspect-video w-full overflow-hidden bg-muted">
                           <img
                             src={thumb}
                             alt={row.title}
@@ -251,15 +251,15 @@ export default function CommunityGatePreview({ slug }: { slug?: string }) {
                       )}
                       <CardContent className="space-y-2 p-4">
                         <div className="flex items-center gap-2">
-                          <Lock className="h-3.5 w-3.5 text-slate-400" />
-                          <span className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                          <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                             Locked
                           </span>
-                          {row.is_new && <Badge variant="secondary">New</Badge>}
+                          {row.is_new && <Badge variant="brand">New</Badge>}
                         </div>
-                        <h3 className="font-semibold leading-snug text-slate-900">{row.title}</h3>
+                        <h3 className="font-semibold leading-snug text-foreground">{row.title}</h3>
                         {row.description && (
-                          <p className="line-clamp-2 text-sm text-slate-500 blur-[2px] select-none">
+                          <p className="line-clamp-2 text-sm text-muted-foreground blur-[2px] select-none">
                             {row.description}
                           </p>
                         )}
@@ -273,12 +273,12 @@ export default function CommunityGatePreview({ slug }: { slug?: string }) {
             {rows !== null && rows.length === 0 && (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <Card key={i} className="h-full border-slate-200 bg-white/70">
-                    <div className="aspect-video w-full bg-slate-100" />
+                  <Card key={i} className="h-full bg-card/70">
+                    <div className="aspect-video w-full bg-muted" />
                     <CardContent className="space-y-2 p-4">
-                      <div className="h-4 w-3/4 rounded bg-slate-200" />
-                      <div className="h-3 w-full rounded bg-slate-100" />
-                      <div className="h-3 w-2/3 rounded bg-slate-100" />
+                      <div className="h-4 w-3/4 rounded bg-muted" />
+                      <div className="h-3 w-full rounded bg-muted" />
+                      <div className="h-3 w-2/3 rounded bg-muted" />
                     </CardContent>
                   </Card>
                 ))}
@@ -287,7 +287,7 @@ export default function CommunityGatePreview({ slug }: { slug?: string }) {
           </div>
 
           <div className="mt-8 flex justify-center">
-            <Button asChild size="lg">
+            <Button asChild variant="outline" size="lg">
               <Link to={authHref("/signup")}>Sign up free to unlock everything</Link>
             </Button>
           </div>

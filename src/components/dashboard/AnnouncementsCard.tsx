@@ -1,8 +1,12 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Megaphone } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { ArrowUpRight, Megaphone } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { SectionCard } from "@/components/premium/SectionCard";
+import { EmptyState } from "@/components/premium/21st/empty-state";
+import { DURATION, EASE_OUT } from "@/lib/motion";
+import { cn } from "@/lib/utils";
 import { useTipsBot } from "@/components/tips-bot";
 import { ANNOUNCEMENT_TOURS } from "@/components/tips-bot/announcementTours";
 import communityImg from "@/assets/announcement-community.jpg.asset.json";
@@ -81,20 +85,19 @@ const ANNOUNCEMENTS: Announcement[] = [
   },
 ];
 
+const FIRST = 4;
+
+/**
+ * "What's new": a calm list of product updates. No auto-rotation; the newest four
+ * show, the rest open on request. A row with a destination opens it and starts its
+ * short tour.
+ */
 export default function AnnouncementsCard({ className = "" }: { className?: string }) {
   const navigate = useNavigate();
   const { startTipSequence } = useTipsBot();
-  const [index, setIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const [direction, setDirection] = useState(1);
-  const item = ANNOUNCEMENTS[index];
+  const [showAll, setShowAll] = useState(false);
 
-  const go = (dir: number) => {
-    setDirection(dir);
-    setIndex((i) => (i + dir + ANNOUNCEMENTS.length) % ANNOUNCEMENTS.length);
-  };
-
-  const handleImageClick = (link?: string, tour?: string) => {
+  const handleOpen = (link?: string, tour?: string) => {
     if (!link) return;
     if (link.startsWith("tool:")) {
       const tool = link.slice(5);
@@ -111,87 +114,88 @@ export default function AnnouncementsCard({ className = "" }: { className?: stri
     }
   };
 
-  useEffect(() => {
-    if (paused) return;
-    const t = setInterval(() => {
-      setDirection(1);
-      setIndex((i) => (i + 1) % ANNOUNCEMENTS.length);
-    }, 5000);
-    return () => clearInterval(t);
-  }, [paused, index]);
+  const visible = showAll ? ANNOUNCEMENTS : ANNOUNCEMENTS.slice(0, FIRST);
 
   return (
-    <Card className={"flex flex-col rounded-2xl border-border/60 bg-card " + className}>
-      <CardContent className="flex flex-1 flex-col p-5 sm:p-6">
-        <div className="flex items-center gap-2">
-          <Megaphone className="h-5 w-5 sm:h-4 sm:w-4 text-primary" />
-          <h3 className="text-lg sm:text-base font-semibold">Announcements</h3>
-        </div>
-
-        <div
-          className="relative mt-4 flex-1 overflow-hidden"
-          onMouseEnter={() => setPaused(true)}
-          onMouseLeave={() => setPaused(false)}
-        >
-          <AnimatePresence mode="popLayout" initial={false} custom={direction}>
-            <motion.div
-              key={index}
-              custom={direction}
-              initial={{ opacity: 0, x: direction * 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: direction * -40 }}
-              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-              drag="x"
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.2}
-              onDragEnd={(_, info) => {
-                if (info.offset.x < -60) go(1);
-                else if (info.offset.x > 60) go(-1);
-              }}
-              className="flex h-full cursor-grab flex-col active:cursor-grabbing"
-            >
-              <div className="flex aspect-[16/9] w-full items-center justify-center overflow-hidden rounded-xl border border-border/60 bg-muted/50">
-                <button
-                  type="button"
-                  onClick={() => handleImageClick(item.link, item.tour)}
-                  className="group/img h-full w-full overflow-hidden"
-                  title={item.link ? "Click to open" : undefined}
+    <SectionCard
+      className={className}
+      icon={<Megaphone />}
+      title="What's new"
+      description="Recent additions to your SaaS Suite account"
+      actions={
+        ANNOUNCEMENTS.length > FIRST ? (
+          <Button variant="ghost" size="sm" onClick={() => setShowAll((v) => !v)} aria-expanded={showAll}>
+            {showAll ? "Show fewer" : `Show all ${ANNOUNCEMENTS.length}`}
+          </Button>
+        ) : null
+      }
+    >
+      {ANNOUNCEMENTS.length === 0 ? (
+        <EmptyState
+          icon={<span className="px-icon-chip"><Megaphone className="size-5" /></span>}
+          title="No updates yet"
+          description="New features and changes will show up here."
+        />
+      ) : (
+        <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <AnimatePresence initial={false}>
+            {visible.map((item) => {
+              const inner = (
+                <>
+                  <span className="block aspect-square w-20 shrink-0 overflow-hidden rounded-md bg-muted sm:aspect-[16/9] sm:w-full">
+                    <img
+                      src={item.image}
+                      alt=""
+                      loading="lazy"
+                      draggable={false}
+                      className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-105"
+                    />
+                  </span>
+                  <span className="block min-w-0 flex-1 sm:mt-3">
+                    <span className="flex items-start justify-between gap-2">
+                      <span className="text-small font-semibold text-foreground">{item.title}</span>
+                      {item.link ? (
+                        <ArrowUpRight
+                          className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-brand"
+                          aria-hidden="true"
+                        />
+                      ) : null}
+                    </span>
+                    <span className="mt-1 line-clamp-3 block text-small text-muted-foreground">{item.body}</span>
+                  </span>
+                </>
+              );
+              const shell = "group flex h-full w-full items-start gap-3 rounded-lg p-2 text-left sm:flex-col sm:gap-0";
+              return (
+                <motion.li
+                  key={item.title}
+                  layout="position"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: DURATION.slow, ease: EASE_OUT }}
+                  className="min-w-0"
                 >
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    className="pointer-events-none h-full w-full select-none object-cover transition-transform duration-300 ease-out group-hover/img:scale-110"
-                    loading="lazy"
-                    draggable={false}
-                  />
-                </button>
-              </div>
-              <div className="flex flex-1 flex-col justify-center py-3 text-center">
-                <h4 className="text-base sm:text-sm font-semibold text-foreground">{item.title}</h4>
-                <p className="mt-1 text-sm sm:text-xs text-muted-foreground">{item.body}</p>
-              </div>
-            </motion.div>
+                  {item.link ? (
+                    <button
+                      type="button"
+                      onClick={() => handleOpen(item.link, item.tour)}
+                      className={cn(
+                        shell,
+                        "transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      )}
+                    >
+                      {inner}
+                    </button>
+                  ) : (
+                    <div className={shell}>{inner}</div>
+                  )}
+                </motion.li>
+              );
+            })}
           </AnimatePresence>
-        </div>
-
-        <div className="mt-2 flex justify-center gap-1.5">
-          {ANNOUNCEMENTS.map((a, i) => (
-            <button
-              key={a.title}
-              type="button"
-              aria-label={`Show ${a.title}`}
-              onClick={() => {
-                setDirection(i > index ? 1 : -1);
-                setIndex(i);
-              }}
-              className={
-                "h-1.5 rounded-full transition-all " +
-                (i === index ? "w-6 bg-primary" : "w-1.5 bg-border hover:bg-muted-foreground/50")
-              }
-            />
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+        </ul>
+      )}
+    </SectionCard>
   );
 }

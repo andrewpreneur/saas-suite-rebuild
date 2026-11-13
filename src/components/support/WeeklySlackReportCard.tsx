@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUser } from "@/contexts/UserContext";
-import { Card, CardContent } from "@/components/ui/card";
+import { SectionCard } from "@/components/premium/SectionCard";
+import { Link } from "react-router-dom";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -53,12 +54,16 @@ export default function WeeklySlackReportCard() {
   if (!pref) return null;
   if (!pref.connected) {
     return (
-      <Card className="border-dashed">
-        <CardContent className="p-4 text-sm text-muted-foreground">
-          Connect Slack first (Slack → Connection) and pick a channel, then you can turn on the
-          weekly support report here.
-        </CardContent>
-      </Card>
+      <SectionCard
+        icon={<CalendarClock />}
+        title="Weekly report to Slack"
+        description="A Monday summary of open, answered and waiting tickets. Connect Slack and pick a channel to turn it on."
+        actions={
+          <Button variant="outline" asChild>
+            <Link to="/app/slack">Connect Slack</Link>
+          </Button>
+        }
+      />
     );
   }
 
@@ -97,30 +102,25 @@ export default function WeeklySlackReportCard() {
   };
 
   return (
-    <Card className="border-primary/20 bg-primary/[0.03]">
-      <CardContent className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-3">
-          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-            <CalendarClock className="h-4 w-4 text-primary" />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="weekly-slack-report" className="text-sm font-semibold">
-              Weekly report to Slack
-            </Label>
-            <p className="text-xs text-muted-foreground max-w-md">
-              Every Monday morning we'll post a summary to your connected Slack channel: open
-              tickets, tickets you've responded to, ones still waiting on a reply, and anything that
-              needs your attention.
-              {pref.last_sent_at && (
-                <> Last sent {new Date(pref.last_sent_at).toLocaleDateString()}.</>
-              )}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 self-end sm:self-center">
+    <SectionCard
+      icon={<CalendarClock />}
+      title={
+        <Label htmlFor="weekly-slack-report" className="text-base font-semibold">
+          Weekly report to Slack
+        </Label>
+      }
+      description={
+        <>
+          Every Monday morning we post a summary to your Slack channel: open tickets, tickets you
+          answered, ones still waiting on a reply, and anything that needs attention.
+          {pref.last_sent_at && <> Last sent {new Date(pref.last_sent_at).toLocaleDateString()}.</>}
+        </>
+      }
+      actions={
+        <>
           {pref.enabled && (
             <Button variant="outline" size="sm" onClick={sendNow} disabled={sending || !agencyId}>
-              <Send className={`h-3.5 w-3.5 mr-1.5 ${sending ? "animate-pulse" : ""}`} />
+              <Send className={sending ? "animate-pulse" : ""} aria-hidden="true" />
               Send now
             </Button>
           )}
@@ -130,8 +130,8 @@ export default function WeeklySlackReportCard() {
             disabled={saving}
             onCheckedChange={toggle}
           />
-        </div>
-      </CardContent>
-    </Card>
+        </>
+      }
+    />
   );
 }

@@ -486,7 +486,7 @@ const ChatInterventionPanel = ({ agencyVersions, filterMode = 'all', onStats }: 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="size-8 animate-spin rounded-full border-b-2 border-brand motion-reduce:animate-none" role="status" aria-label="Loading conversations"></div>
       </div>
     );
   }
@@ -500,7 +500,7 @@ const ChatInterventionPanel = ({ agencyVersions, filterMode = 'all', onStats }: 
             View and respond to Native AI chat conversations with your clients
           </p>
           <Button variant="outline" size="sm" onClick={loadContacts} className="ml-auto">
-            <RefreshCw className="w-4 h-4 mr-1" />
+            <RefreshCw />
             Refresh
           </Button>
         </div>
@@ -512,7 +512,7 @@ const ChatInterventionPanel = ({ agencyVersions, filterMode = 'all', onStats }: 
             ['mine', `Assigned to me (${contacts.filter((c) => (assignments.get(threadKey(c)) || '').toLowerCase() === access.me).length})`],
             ['unassigned', `Unassigned (${contacts.filter((c) => !assignments.get(threadKey(c))).length})`],
           ] as const).map(([k, label]) => (
-            <Button key={k} size="sm" variant={listFilter === k ? 'default' : 'outline'} className="h-8 shrink-0 text-xs" onClick={() => setListFilter(k)}>
+            <Button key={k} size="sm" variant={listFilter === k ? 'default' : 'outline'} className="shrink-0" onClick={() => setListFilter(k)}>
               {label}
             </Button>
           ))}
@@ -545,8 +545,8 @@ const ChatInterventionPanel = ({ agencyVersions, filterMode = 'all', onStats }: 
                   className="w-full p-3 md:p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors text-left cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 hidden sm:flex items-center justify-center flex-shrink-0">
-                      <User className="w-5 h-5 text-primary" />
+                    <div className="w-10 h-10 rounded-full bg-brand-subtle hidden sm:flex items-center justify-center flex-shrink-0">
+                      <User className="w-5 h-5 text-brand" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
@@ -556,12 +556,12 @@ const ChatInterventionPanel = ({ agencyVersions, filterMode = 'all', onStats }: 
                         </span>
                       </div>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">{contact.plan_label}</Badge>
+                        <Badge variant="outline" className="h-5 px-1.5 py-0 text-[11px]">{contact.plan_label}</Badge>
                         {contact.is_pending_handover && (
-                          <Badge className="text-[10px] px-1 py-0 h-4 bg-destructive text-destructive-foreground">Needs response</Badge>
+                          <Badge variant="danger" className="h-5 px-1.5 py-0 text-[11px]">Needs response</Badge>
                         )}
                         {contact.in_human_queue && !contact.is_pending_handover && filterMode === 'handover' && (
-                          <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">Responded</Badge>
+                          <Badge variant="success" className="h-5 px-1.5 py-0 text-[11px]">Responded</Badge>
                         )}
                         <p className="text-xs text-muted-foreground">
                           {contact.message_count} message{contact.message_count !== 1 ? 's' : ''}
@@ -594,12 +594,12 @@ const ChatInterventionPanel = ({ agencyVersions, filterMode = 'all', onStats }: 
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-3 pb-3 border-b">
-        <Button variant="ghost" size="sm" onClick={handleBackToContacts}>
-          <ArrowLeft className="w-4 h-4" />
+      <div className="flex items-center gap-3 border-b border-border pb-3">
+        <Button variant="ghost" size="icon" aria-label="Back to conversations" onClick={handleBackToContacts}>
+          <ArrowLeft />
         </Button>
-        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-          <User className="w-5 h-5 text-primary" />
+        <div className="w-10 h-10 rounded-full bg-brand-subtle flex items-center justify-center">
+          <User className="w-5 h-5 text-brand" />
         </div>
         <div>
           <p className="font-medium">{selectedContact.display_name}</p>
@@ -635,22 +635,22 @@ const ChatInterventionPanel = ({ agencyVersions, filterMode = 'all', onStats }: 
               >
                 {!isOwner && (
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    isUser ? 'bg-muted' : 'bg-cyan-500/10'
+                    isUser ? 'bg-muted' : 'bg-info/10'
                   }`}>
                     {isUser ? (
                       <User className="w-4 h-4 text-muted-foreground" />
                     ) : (
-                      <Bot className="w-4 h-4 text-cyan-500" />
+                      <Bot className="w-4 h-4 text-info" />
                     )}
                   </div>
                 )}
                 <div className={`max-w-[70%] ${isOwner ? 'text-right' : ''}`}>
                   <div className={`rounded-lg px-3 py-2 text-sm ${
                     isOwner
-                      ? 'bg-primary text-primary-foreground'
+                      ? 'bg-brand text-brand-foreground'
                       : isUser
                         ? 'bg-muted'
-                        : 'bg-cyan-500/10 border border-cyan-500/20'
+                        : 'border border-info/20 bg-info/10'
                   }`}>
                     {renderMessageContent(message.content)}
                   </div>
@@ -659,7 +659,7 @@ const ChatInterventionPanel = ({ agencyVersions, filterMode = 'all', onStats }: 
                       {formatTime(message.created_at)}
                     </span>
                     {isOwner && (
-                      <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">You</Badge>
+                      <Badge variant="outline" className="h-5 px-1.5 py-0 text-[11px]">You</Badge>
                     )}
                     {isOwner && (
                       <button
@@ -672,13 +672,13 @@ const ChatInterventionPanel = ({ agencyVersions, filterMode = 'all', onStats }: 
                       </button>
                     )}
                     {isAI && (
-                      <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 border-cyan-500/50 text-cyan-600">AI</Badge>
+                      <Badge variant="info" className="h-5 px-1.5 py-0 text-[11px]">AI</Badge>
                     )}
                   </div>
                 </div>
                 {isOwner && (
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <User className="w-4 h-4 text-primary" />
+                  <div className="w-8 h-8 rounded-full bg-brand-subtle flex items-center justify-center flex-shrink-0">
+                    <User className="w-4 h-4 text-brand" />
                   </div>
                 )}
               </div>
@@ -690,7 +690,7 @@ const ChatInterventionPanel = ({ agencyVersions, filterMode = 'all', onStats }: 
 
       {/* Send Message */}
       <div
-        className={`pt-3 border-t rounded-md transition-colors ${dragOver ? 'bg-primary/5 ring-2 ring-primary/40' : ''}`}
+        className={`pt-3 border-t rounded-md transition-colors ${dragOver ? 'bg-brand-subtle ring-2 ring-brand/40' : ''}`}
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => {
@@ -699,7 +699,7 @@ const ChatInterventionPanel = ({ agencyVersions, filterMode = 'all', onStats }: 
           setDropFiles((prev) => [...prev, ...filesToDropFiles(e.dataTransfer.files)].slice(0, 10));
         }}
       >
-        {dragOver && <p className="text-xs text-primary mb-2">Drop images to attach</p>}
+        {dragOver && <p className="text-xs text-brand mb-2">Drop images to attach</p>}
         {dropFiles.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-2">
             {dropFiles.map((f, i) => (
@@ -708,7 +708,7 @@ const ChatInterventionPanel = ({ agencyVersions, filterMode = 'all', onStats }: 
                 <button
                   type="button"
                   onClick={() => setDropFiles((p) => p.filter((_, j) => j !== i))}
-                  className="absolute -top-2 -right-2 bg-background border border-border rounded-full px-1 text-[10px] shadow-sm"
+                  className="absolute -top-2 -right-2 bg-background border border-border rounded-full px-1 text-[11px] shadow-card"
                   aria-label="Remove attachment"
                 >×</button>
               </div>
@@ -730,7 +730,7 @@ const ChatInterventionPanel = ({ agencyVersions, filterMode = 'all', onStats }: 
           }}
         />
         <ChatAttachButton value={attachment} onChange={setAttachment} disabled={isSending} />
-        <Button onClick={handleSendMessage} disabled={!canEditChats || isSending || (!newMessage.trim() && !attachment && dropFiles.length === 0)}>
+        <Button variant="accent" onClick={handleSendMessage} disabled={!canEditChats || isSending || (!newMessage.trim() && !attachment && dropFiles.length === 0)}>
           <Send className="w-4 h-4" />
         </Button>
         </div>

@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
+import { motion } from "framer-motion";
+import { SPRING_SNAPPY } from "@/lib/motion";
 import { MessageCircle } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { newUi } from "@/lib/uiVersion";
@@ -209,6 +211,8 @@ export function AppSidebar({ selectedTool, onSelectTool }: AppSidebarProps) {
   const challengeCountdown = useChallengeCountdown();
   const teamAccess = useTeamAccess();
   const [v2NavigationEnabled, setV2NavigationEnabled] = useState(true);
+  // Row the pointer or keyboard focus is on; drives the sliding hover highlight.
+  const [hoveredTool, setHoveredTool] = useState<string | null>(null);
   const [fullName, setFullName] = useState<string | null>(null);
   const viewer = useViewerIdentity(fullName);
   const [onboardingCallAccess, setOnboardingCallAccess] = useState(false);
@@ -287,7 +291,10 @@ export function AppSidebar({ selectedTool, onSelectTool }: AppSidebarProps) {
 
   const location = useLocation();
   const dashboardView = new URLSearchParams(location.search).get("view");
+  // Copilot is its own surface with no sidebar row, so nothing is lit while it is open.
+  const onCopilotPage = location.pathname.startsWith("/app/copilot");
   const isActive = (toolId: string) => {
+    if (onCopilotPage) return false;
     // New UI: Affiliate is its own link, so Dashboard is not also lit while it is open.
     if (newUi && toolId === "affiliate-dashboard")
       return selectedTool === "dashboard" && dashboardView === "affiliate";
@@ -434,6 +441,10 @@ export function AppSidebar({ selectedTool, onSelectTool }: AppSidebarProps) {
         <SidebarMenuButton
           isActive={active}
           aria-current={active ? "page" : undefined}
+          onMouseEnter={() => setHoveredTool(tool.id)}
+          onMouseLeave={() => setHoveredTool((current) => (current === tool.id ? null : current))}
+          onFocus={() => setHoveredTool(tool.id)}
+          onBlur={() => setHoveredTool((current) => (current === tool.id ? null : current))}
           onClick={() => {
             if (locked) {
               setUpgradeOpen(true);
@@ -472,7 +483,7 @@ export function AppSidebar({ selectedTool, onSelectTool }: AppSidebarProps) {
               : undefined
           }
           className={`
-            group sidebar-nav-item relative rounded-md
+            group sidebar-nav-item relative isolate rounded-lg !bg-transparent
             ${
               tool.id === "challenge"
                 ? "h-auto min-h-9 overflow-visible py-1.5 group-data-[collapsible=icon]:!h-8 group-data-[collapsible=icon]:!min-h-0 group-data-[collapsible=icon]:!py-2"
@@ -489,21 +500,43 @@ export function AppSidebar({ selectedTool, onSelectTool }: AppSidebarProps) {
                     ? "text-sidebar-foreground/50 hover:text-sidebar-foreground/70"
                     : "text-sidebar-foreground/80 hover:text-sidebar-foreground"
                 : active
-                  ? "bg-brand-subtle font-semibold text-[#3E27AE]"
+                  ? "font-semibold text-[#3E27AE]"
                   : locked
                     ? "text-gray-500 hover:text-gray-700"
                     : "text-gray-700 hover:text-foreground"
             }
           `}
         >
-          <Icon
+          {/* Sliding highlights (idea from 21st.dev "Animated Sidebar"): one shared pill
+              follows the pointer, another marks the current page. */}
+          {hoveredTool === tool.id && !active ? (
+            <motion.span
+              layoutId="sidebar-hover-pill"
+              aria-hidden="true"
+              transition={SPRING_SNAPPY}
+              className="absolute inset-0 -z-10 rounded-lg bg-[#17124008]"
+            />
+          ) : null}
+          {active ? (
+            <motion.span
+              layoutId="sidebar-active-pill"
+              aria-hidden="true"
+              transition={SPRING_SNAPPY}
+              className="absolute inset-0 -z-10 rounded-lg bg-brand-subtle shadow-[inset_0_0_0_1px_rgba(96,67,239,0.16)]"
+            />
+          ) : null}
+          <motion.span
             aria-hidden="true"
-            className={
-              newUi
-                ? `!size-5 flex-shrink-0 ${active ? "text-[#3E27AE]" : "text-gray-500"}`
-                : `w-4 h-4 flex-shrink-0 ${active ? "text-sidebar-primary" : "text-sidebar-foreground/60"}`
+            className="flex shrink-0"
+            animate={
+              hoveredTool === tool.id
+                ? { rotate: [0, -10, 8, 0], scale: [1, 1.12, 1.12, 1] }
+                : { rotate: 0, scale: 1 }
             }
-          />
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <Icon className={`!size-5 ${active ? "text-[#3E27AE]" : "text-gray-500"}`} />
+          </motion.span>
           {!collapsed && tool.id === "challenge" && (
             <span className="ml-3 flex min-w-0 flex-1 flex-col items-start !overflow-visible !whitespace-normal leading-tight">
               <span className="w-full truncate text-sm">Challenge</span>
@@ -544,7 +577,7 @@ export function AppSidebar({ selectedTool, onSelectTool }: AppSidebarProps) {
             </span>
           )}
           {!collapsed && locked && (
-            <span className="ml-auto flex items-center gap-1 rounded-full bg-sidebar-accent/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-sidebar-foreground/70">
+            <span className="ml-auto flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600">
               <Lock className="h-3 w-3" aria-hidden="true" />
               Upgrade
             </span>
@@ -587,17 +620,7 @@ export function AppSidebar({ selectedTool, onSelectTool }: AppSidebarProps) {
             {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
           </Button>
         </div>
-        {!collapsed && (
-          <div className="relative w-full">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-sidebar-foreground/40" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search"
-              className="h-8 pl-8 text-sm bg-sidebar-accent/40 border-transparent focus-visible:ring-1 focus-visible:ring-sidebar-ring placeholder:text-sidebar-foreground/40"
-            />
-          </div>
-        )}
+        {/* The sidebar search box is gone: every tool now has a link, and Cmd+K in the top bar jumps anywhere. */}
         {!collapsed && <TrialCountdown />}
       </SidebarHeader>
 
@@ -642,7 +665,7 @@ export function AppSidebar({ selectedTool, onSelectTool }: AppSidebarProps) {
                           ? "sidebar-section-resources"
                           : `sidebar-section-${section.id}`)
                     }
-                    className="px-3 text-[11px] font-medium uppercase tracking-wide text-sidebar-foreground/50"
+                    className="px-eyebrow mt-3 h-7 px-3"
                   >
                     {section.label}
                   </SidebarGroupLabel>
@@ -664,7 +687,7 @@ export function AppSidebar({ selectedTool, onSelectTool }: AppSidebarProps) {
             type="button"
             data-tip-target="sidebar-profile"
             onClick={() => setAccountOpen(true)}
-            className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-sidebar-accent/60 ${collapsed ? "justify-center px-0" : ""}`}
+            className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left transition-colors hover:bg-[#17124008] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${collapsed ? "justify-center px-0" : ""}`}
           >
             <Avatar className="h-8 w-8 flex-shrink-0">
               {communityAvatar ? (

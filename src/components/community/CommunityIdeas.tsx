@@ -32,6 +32,7 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
+import { EmptyState, EmptyStateIllustration } from "@/components/premium/21st/empty-state";
 import { relativeTime } from "./shared";
 import type { CommunityProfile } from "@/hooks/useCommunityProfile";
 
@@ -68,11 +69,11 @@ const CATEGORIES = [
 
 const STATUS_STYLES: Record<string, string> = {
   pending: "bg-muted text-muted-foreground",
-  planned: "bg-primary/15 text-primary",
+  planned: "bg-brand/15 text-brand",
   // In development → purple
   in_progress: "bg-[hsl(270_85%_60%/0.15)] text-[hsl(270_85%_65%)]",
   // Live → green
-  implemented: "bg-emerald-500/15 text-emerald-500",
+  implemented: "bg-success/15 text-success",
 };
 
 const STATUS_OPTIONS = [
@@ -85,9 +86,9 @@ const STATUS_OPTIONS = [
 // Full-card treatment per status: colored border + light tinted background
 const CARD_STYLES: Record<string, string> = {
   pending: "border-border bg-muted/20",
-  planned: "border-primary/50 bg-primary/[0.06]",
+  planned: "border-brand/50 bg-brand/[0.06]",
   in_progress: "border-[hsl(270_85%_60%/0.5)] bg-[hsl(270_85%_60%/0.07)]",
-  implemented: "border-emerald-500/50 bg-emerald-500/[0.07]",
+  implemented: "border-success/50 bg-success/[0.07]",
 };
 
 function canonicalStatus(status?: string | null) {
@@ -521,7 +522,7 @@ export default function CommunityIdeas({
             </Button>
           ))}
         </div>
-        <Button size="sm" className="gap-2" onClick={() => setDialogOpen(true)}>
+        <Button size="sm" variant="accent" className="h-11 gap-2 sm:h-9" onClick={() => setDialogOpen(true)}>
           <Plus className="h-3.5 w-3.5" /> Submit idea
         </Button>
       </div>
@@ -531,11 +532,22 @@ export default function CommunityIdeas({
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
       ) : visible.length === 0 ? (
-        <Card>
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            No ideas here yet — submit the first one.
-          </CardContent>
-        </Card>
+        <div className="px-surface">
+          <EmptyState
+            icon={
+              <EmptyStateIllustration className="rounded-lg border-border bg-muted text-muted-foreground">
+                <Plus className="size-7" aria-hidden="true" />
+              </EmptyStateIllustration>
+            }
+            title="No ideas here yet"
+            description="Tell us what would make SaaSSuite better. Other agencies can vote your idea up."
+            action={
+              <Button variant="accent" onClick={() => setDialogOpen(true)}>
+                <Plus /> Submit an idea
+              </Button>
+            }
+          />
+        </div>
       ) : (
         <div className="space-y-3">
           {visible.map((idea, i) => {
@@ -559,8 +571,8 @@ export default function CommunityIdeas({
                       }}
                       className={`flex w-12 flex-col items-center rounded-md border py-1.5 transition-colors ${
                         voted
-                          ? "border-primary/50 bg-primary/10 text-primary"
-                          : "border-border text-muted-foreground hover:border-primary/40"
+                          ? "border-brand/50 bg-brand-subtle text-brand"
+                          : "border-border text-muted-foreground hover:border-brand/40"
                       }`}
                     >
                       <ChevronUp className="h-4 w-4" />
@@ -592,7 +604,7 @@ export default function CommunityIdeas({
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="flex items-center gap-1 text-emerald-500 hover:underline"
+                            className="flex items-center gap-1 text-success hover:underline"
                           >
                             <ExternalLink className="h-3 w-3" /> View the post
                           </a>

@@ -2,8 +2,7 @@ import PortalInviteBar from "@/components/highlevel/PortalInviteBar";
 import { LoadNotice } from "@/components/platform/LoadNotice";
 import { LOAD_TIMEOUT_MESSAGE, armLoadDeadline, loadErrorText } from "@/lib/loadSettle";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,18 +17,21 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
-  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import {
-  ArrowDownRight,
-  ArrowUpRight,
+  Activity,
   ArrowUp,
   ArrowDown,
   CalendarIcon,
+  GraduationCap,
+  LifeBuoy,
+  Rocket,
+  Sparkles,
+  UserPlus,
   ChevronLeft,
   ChevronRight,
   Pencil,
@@ -37,7 +39,6 @@ import {
   Trash2,
   Users,
   X,
-  AlertTriangle,
   ArrowUpCircle,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -62,7 +63,18 @@ import AnnouncementsCard from "@/components/dashboard/AnnouncementsCard";
 import { supabase } from "@/integrations/supabase/client";
 import { moduleCompletionUserIds } from "../../../supabase/functions/_shared/moduleCompletionIds.ts";
 import { useUser } from "@/contexts/UserContext";
-import { PanelSkeleton } from "@/components/ui/loading-skeletons";
+import { motion } from "framer-motion";
+import { Banner } from "@/components/ui/banner";
+import { Reveal, RevealItem } from "@/components/premium/Reveal";
+import { SectionCard } from "@/components/premium/SectionCard";
+import AnimatedTabs from "@/components/premium/21st/animated-tabs";
+import { EmptyState } from "@/components/premium/21st/empty-state";
+import { KpiCard } from "@/components/premium/dashboard/KpiCard";
+import { NextStepCard, type NextStep } from "@/components/premium/dashboard/NextStepCard";
+import SetupHelpPopup from "@/components/dashboard/SetupHelpPopup";
+import { chartColors } from "@/lib/chart-colors";
+import { checkInstallStatus } from "@/lib/installStatus";
+import { EASE_OUT } from "@/lib/motion";
 import UserActivityDialog from "./UserActivityDialog";
 import { dashboardVideoTotal } from "./videoTotal";
 
@@ -100,9 +112,9 @@ const SERIES: Record<
   Exclude<Metric, "all">,
   { key: "users" | "logins" | "onboarding"; label: string; color: string }
 > = {
-  users: { key: "users", label: "New users", color: "hsl(var(--primary))" },
-  logins: { key: "logins", label: "Logins", color: "hsl(142 71% 45%)" },
-  onboarding: { key: "onboarding", label: "Onboarding completions", color: "hsl(25 95% 53%)" },
+  users: { key: "users", label: "New users", color: chartColors.categorical[0] },
+  logins: { key: "logins", label: "Logins", color: chartColors.categorical[2] },
+  onboarding: { key: "onboarding", label: "Onboarding completions", color: chartColors.categorical[3] },
 };
 
 /** Custom month caption that renders <  Month Year  > in a single centered row. */
@@ -123,7 +135,7 @@ function MonthCaptionWithNav({
       <button
         type="button"
         onClick={() => previousMonth && goToMonth(previousMonth)}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-primary/10 hover:text-primary"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-brand-subtle hover:text-brand"
         aria-label="Previous month"
       >
         <ChevronLeft className="h-4 w-4" />
@@ -134,7 +146,7 @@ function MonthCaptionWithNav({
       <button
         type="button"
         onClick={() => nextMonth && goToMonth(nextMonth)}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-primary/10 hover:text-primary"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-brand-subtle hover:text-brand"
         aria-label="Next month"
       >
         <ChevronRight className="h-4 w-4" />
@@ -143,7 +155,8 @@ function MonthCaptionWithNav({
   );
 }
 
-export default function DashboardOverview() {
+/** `hubCard` is the Client Hub URL card; the page shell passes it so it sits beside the next step. */
+export default function DashboardOverview({ hubCard }: { hubCard?: ReactNode }) {
   const { email, plan } = useUser();
   const isAdvanced = (plan || "ADVANCED") === "ADVANCED";
 
@@ -172,6 +185,19 @@ export default function DashboardOverview() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
+
+  // Same account-wide install check the hub card uses; drives the "next step" card.
+  const [installed, setInstalled] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!email) return;
+    let active = true;
+    checkInstallStatus(email)
+      .then((ok) => active && setInstalled(ok))
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [email]);
 
   // "Edit Clients" from a limit warning scrolls here and highlights the list.
   const clientsRef = useRef<HTMLDivElement | null>(null);
@@ -518,146 +544,236 @@ export default function DashboardOverview() {
   };
 
   if (loadError) return <LoadNotice error={loadError} onRetry={() => setReloadKey((key) => key + 1)} />;
-  if (loading) return <PanelSkeleton stats={4} rows={8} />;
+  if (loading) return <OverviewSkeleton />;
 
   const up = headline.change >= 0;
   const isAll = metric === "all";
-  const headlineLabel = isAll ? "Total Users" : SERIES[metric as Exclude<Metric, "all">].label;
+  const headlineLabel = isAll ? "Total clients" : SERIES[metric as Exclude<Metric, "all">].label;
   const headlineValue = isAll ? stats.total : headline.curr;
   const headlineDiff = headline.diff;
   const headlinePct = headline.change;
 
+  const openTool = (tool: string) =>
+    window.dispatchEvent(new CustomEvent("tipbot-select-tool", { detail: { tool } }));
+  const scrollToClients = () =>
+    clientsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const newInRange = series.reduce((sum, d) => sum + d.users, 0);
+  const active7Pct = stats.total ? Math.round((stats.active7 / stats.total) * 100) : 0;
+
+  // One next step, picked from what the numbers say. The rest become quiet links.
+  const candidates: Array<NextStep & { short: string; when: boolean }> = [
+    {
+      when: installed === false,
+      short: "Finish installing your Client Hub",
+      title: "Finish installing your Client Hub",
+      description:
+        "Your clients can't see the hub inside HighLevel yet. Add the menu link and you are live.",
+      actionLabel: "Open Client Hub setup",
+      onAction: () => openTool("client-hub"),
+      icon: <Rocket />,
+    },
+    {
+      when: stats.total === 0,
+      short: "Invite your first client",
+      title: "Invite your first client",
+      description:
+        "Share your Client Hub link. Once someone logs in, their progress shows up on this page.",
+      actionLabel: "See how to invite clients",
+      onAction: scrollToClients,
+      icon: <UserPlus />,
+    },
+    {
+      when: stats.openTickets > 0,
+      short: `Reply to ${stats.openTickets} open ${stats.openTickets === 1 ? "ticket" : "tickets"}`,
+      title: `Reply to ${stats.openTickets} open support ${stats.openTickets === 1 ? "ticket" : "tickets"}`,
+      description:
+        "Fast answers keep clients subscribed. Write a reply and we email them a polished update.",
+      actionLabel: "Open Client Support",
+      onAction: () => openTool("support"),
+      icon: <LifeBuoy />,
+    },
+    {
+      when: stats.inactive > 0,
+      short: `Check in with ${stats.inactive} quiet ${stats.inactive === 1 ? "client" : "clients"}`,
+      title: `Check in with ${stats.inactive} quiet ${stats.inactive === 1 ? "client" : "clients"}`,
+      description: "They have not logged in for 14 days or more. A short message now can save the account.",
+      actionLabel: "Review clients",
+      onAction: scrollToClients,
+      icon: <Users />,
+    },
+  ];
+  const due = candidates.filter((c) => c.when);
+  const nextStep: NextStep = due[0] ?? {
+    title: "Make the hub feel like your own",
+    description: "Everything is on track. Polish your colors, logo and menu so the hub matches your brand.",
+    actionLabel: "Open Branding",
+    onAction: () => openTool("branding"),
+    icon: <Sparkles />,
+  };
+  const alsoDue = due.slice(1, 3).map((c) => ({ label: c.short, onClick: c.onAction }));
+
   return (
-    <div className="space-y-4">
-      <div className="grid gap-4 lg:grid-cols-3">
+    <div className="space-y-4 sm:space-y-6">
+      <Reveal className="grid gap-4 sm:gap-6 lg:grid-cols-3">
+        <RevealItem className="lg:col-span-2">
+          <NextStepCard step={nextStep} also={alsoDue} />
+        </RevealItem>
+        <RevealItem>
+          {hubCard}
+        </RevealItem>
+
+        <RevealItem className="lg:col-span-3">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+            <KpiCard
+              label="Clients"
+              value={stats.total}
+              icon={<Users />}
+              hint={`+${newInRange.toLocaleString()} in this period`}
+              onClick={scrollToClients}
+            />
+            <KpiCard
+              label="Active this week"
+              value={stats.active7}
+              icon={<Activity />}
+              hint={`${active7Pct}% of your clients`}
+            />
+            <KpiCard
+              label="Lesson completion"
+              value={stats.avgCompletion}
+              suffix="%"
+              icon={<GraduationCap />}
+              hint="Average across onboarding"
+            />
+            <KpiCard
+              label="Open tickets"
+              value={stats.openTickets}
+              icon={<LifeBuoy />}
+              hint={`${stats.waitingOnCustomer} waiting on customer · ${stats.closedTickets} closed`}
+              onClick={() => openTool("support")}
+            />
+          </div>
+        </RevealItem>
+
         {/* Main chart */}
-        <Card className="lg:col-span-2 border-border/60 bg-muted/30 rounded-2xl">
-          <CardContent className="p-5 sm:p-6">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 className="text-xl sm:text-lg font-bold text-foreground">
-                  Platform Performance
-                </h2>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <div className="inline-flex flex-wrap gap-1 rounded-lg border border-border/60 bg-background/70 p-1">
-                    {(["all", "users", "logins", "onboarding"] as Metric[]).map((m) => (
-                      <Button
-                        key={m}
-                        size="sm"
-                        variant={metric === m ? "default" : "ghost"}
-                        className="h-8 px-3 text-xs capitalize"
-                        onClick={() => setMetric(m)}
-                      >
-                        {m === "all" ? "All" : m}
-                      </Button>
-                    ))}
-                  </div>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-10 gap-2 rounded-lg border border-border/60 bg-background/70 px-3 text-xs font-medium text-primary hover:bg-primary/10 hover:text-primary"
-                      >
-                        <CalendarIcon className="h-3.5 w-3.5" />
-                        {range?.from
-                          ? `${format(range.from, "MMM d")} – ${format(range.to ?? range.from, "MMM d, yyyy")}`
-                          : "Select date range"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent
-                      className="w-auto max-w-[95vw] overflow-x-auto rounded-2xl p-0"
-                      align="start"
-                    >
-                      <Calendar
-                        mode="range"
-                        numberOfMonths={1}
-                        selected={range}
-                        hideNavigation
-                        components={{ MonthCaption: MonthCaptionWithNav }}
-                        onSelect={(next, selectedDay) => {
-                          // If a complete range is already selected, start a new one
-                          if (range?.from && range?.to) {
-                            setRange({ from: selectedDay, to: undefined });
-                            return;
-                          }
-                          setRange(next);
-                        }}
-                        defaultMonth={range?.from}
-                        initialFocus
-                        className="pointer-events-auto p-4"
-                        formatters={{
-                          formatWeekdayName: (day) => format(day, "EEEEE"),
-                        }}
-                        classNames={{
-                          months: "flex flex-col gap-3",
-                          month: "flex w-full flex-col gap-2",
-                          month_caption: "flex w-full items-center justify-center",
-                          month_grid: "w-full border-collapse",
-                          weekdays: "flex w-full",
-                          weekday:
-                            "flex h-[2.25rem] w-[2.25rem] items-center justify-center text-[11px] font-medium uppercase tracking-wide text-muted-foreground",
-                          week: "mt-1 flex w-full",
-                          day: "h-[2.25rem] w-[2.25rem] p-0 text-center align-middle",
-                          day_button:
-                            "h-[2.25rem] w-[2.25rem] flex items-center justify-center rounded-md p-0 text-sm font-normal hover:bg-muted data-[range-middle=true]:rounded-none data-[range-middle=true]:bg-foreground/10 data-[range-middle=true]:text-foreground data-[range-start=true]:rounded-md data-[range-start=true]:bg-foreground data-[range-start=true]:text-background data-[range-start=true]:hover:bg-foreground data-[range-end=true]:rounded-md data-[range-end=true]:bg-foreground data-[range-end=true]:text-background data-[range-end=true]:hover:bg-foreground data-[selected-single=true]:rounded-md data-[selected-single=true]:bg-foreground data-[selected-single=true]:text-background",
-                          range_start: "bg-transparent",
-                          range_end: "bg-transparent",
-                          range_middle: "bg-transparent",
-                          today: "font-semibold",
-                          outside: "text-muted-foreground/50",
-                        }}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
-              <div className="text-left">
-                <p className="text-xs sm:text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                  {headlineLabel}
+        <RevealItem className="lg:col-span-2">
+          <section className="px-surface h-full p-4 sm:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h2 className="text-base font-semibold text-foreground">Growth</h2>
+                <p className="mt-0.5 text-small text-muted-foreground">
+                  Running totals for the dates you pick
                 </p>
-                <div className="mt-1 flex items-center gap-1">
-                  <span className="text-4xl font-bold tabular-nums leading-none text-foreground">
+              </div>
+              <div className="text-left sm:text-right">
+                <p className="px-eyebrow">{headlineLabel}</p>
+                <div className="mt-1 flex items-baseline gap-2 sm:justify-end">
+                  <span className="text-h3 font-semibold tabular-nums leading-none text-foreground">
                     {headlineValue.toLocaleString()}
                   </span>
-                  {up ? (
-                    <ArrowUp className="h-7 w-7 text-emerald-600" strokeWidth={2.5} />
-                  ) : (
-                    <ArrowDown className="h-7 w-7 text-destructive" strokeWidth={2.5} />
-                  )}
+                  <span
+                    className={
+                      "inline-flex items-center gap-0.5 text-small font-medium tabular-nums " +
+                      (up ? "!text-success" : "!text-destructive")
+                    }
+                  >
+                    {up ? (
+                      <ArrowUp className="size-3.5" aria-hidden="true" />
+                    ) : (
+                      <ArrowDown className="size-3.5" aria-hidden="true" />
+                    )}
+                    {headlineDiff >= 0 ? "+" : "-"}
+                    {Math.abs(headlineDiff).toLocaleString()} ({headlinePct >= 0 ? "+" : "-"}
+                    {Math.abs(headlinePct)}%)
+                  </span>
                 </div>
-                <p
-                  className={
-                    "mt-1 text-sm font-medium tabular-nums " +
-                    (up ? "text-emerald-600" : "text-destructive")
-                  }
-                >
-                  {headlineDiff >= 0 ? "+" : "-"}
-                  {Math.abs(headlineDiff).toLocaleString()} ({headlinePct >= 0 ? "+" : "-"}
-                  {Math.abs(headlinePct)}%)
-                </p>
               </div>
             </div>
 
-            <div className="mt-4 h-[300px] sm:h-[260px] -ml-2">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <div className="max-w-full overflow-x-auto">
+                <AnimatedTabs
+                  variant="segment"
+                  activeTab={metric}
+                  onChange={(id) => setMetric(id as Metric)}
+                  tabs={[
+                    { id: "all", label: "All" },
+                    { id: "users", label: "Users" },
+                    { id: "logins", label: "Logins" },
+                    { id: "onboarding", label: "Onboarding" },
+                  ]}
+                />
+              </div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-11 gap-2 font-medium sm:h-9">
+                    <CalendarIcon className="size-4 text-muted-foreground" aria-hidden="true" />
+                    {range?.from
+                      ? `${format(range.from, "MMM d")} – ${format(range.to ?? range.from, "MMM d, yyyy")}`
+                      : "Select date range"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-auto max-w-[95vw] overflow-x-auto rounded-xl p-0"
+                  align="start"
+                >
+                  <Calendar
+                    mode="range"
+                    numberOfMonths={1}
+                    selected={range}
+                    hideNavigation
+                    components={{ MonthCaption: MonthCaptionWithNav }}
+                    onSelect={(next, selectedDay) => {
+                      // If a complete range is already selected, start a new one
+                      if (range?.from && range?.to) {
+                        setRange({ from: selectedDay, to: undefined });
+                        return;
+                      }
+                      setRange(next);
+                    }}
+                    defaultMonth={range?.from}
+                    initialFocus
+                    className="pointer-events-auto p-4"
+                    formatters={{
+                      formatWeekdayName: (day) => format(day, "EEEEE"),
+                    }}
+                    classNames={{
+                      months: "flex flex-col gap-3",
+                      month: "flex w-full flex-col gap-2",
+                      month_caption: "flex w-full items-center justify-center",
+                      month_grid: "w-full border-collapse",
+                      weekdays: "flex w-full",
+                      weekday:
+                        "flex h-[2.25rem] w-[2.25rem] items-center justify-center text-[11px] font-medium uppercase tracking-wide text-muted-foreground",
+                      week: "mt-1 flex w-full",
+                      day: "h-[2.25rem] w-[2.25rem] p-0 text-center align-middle",
+                      day_button:
+                        "h-[2.25rem] w-[2.25rem] flex items-center justify-center rounded-md p-0 text-sm font-normal hover:bg-muted data-[range-middle=true]:rounded-none data-[range-middle=true]:bg-brand-subtle data-[range-middle=true]:text-foreground data-[range-start=true]:rounded-md data-[range-start=true]:bg-brand data-[range-start=true]:text-brand-foreground data-[range-start=true]:hover:bg-brand data-[range-end=true]:rounded-md data-[range-end=true]:bg-brand data-[range-end=true]:text-brand-foreground data-[range-end=true]:hover:bg-brand data-[selected-single=true]:rounded-md data-[selected-single=true]:bg-brand data-[selected-single=true]:text-brand-foreground",
+                      range_start: "bg-transparent",
+                      range_end: "bg-transparent",
+                      range_middle: "bg-transparent",
+                      today: "font-semibold",
+                      outside: "text-muted-foreground/50",
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="-ml-2 mt-4 h-[260px] sm:h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={series} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                   <defs>
                     {Object.values(SERIES).map((s) => (
                       <linearGradient key={s.key} id={`fill-${s.key}`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={s.color} stopOpacity={0.3} />
+                        <stop offset="0%" stopColor={s.color} stopOpacity={0.22} />
                         <stop offset="100%" stopColor={s.color} stopOpacity={0} />
                       </linearGradient>
                     ))}
                   </defs>
-                  <CartesianGrid
-                    stroke="hsl(var(--border))"
-                    strokeDasharray="3 3"
-                    vertical={false}
-                  />
+                  <CartesianGrid stroke={chartColors.grid} strokeDasharray="3 3" vertical={false} />
                   <XAxis
                     dataKey="label"
-                    tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+                    tick={{ fontSize: 12, fill: chartColors.axis }}
                     interval={Math.max(0, Math.ceil(series.length / 8) - 1)}
                     minTickGap={4}
                     tickLine={false}
@@ -667,11 +783,14 @@ export default function DashboardOverview() {
                     allowDecimals={false}
                     width={38}
                     domain={[0, Math.max(1, maxValue)]}
-                    tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+                    tick={{ fontSize: 12, fill: chartColors.axis }}
                     tickLine={false}
                     axisLine={false}
                   />
-                  <Tooltip content={<ChartTooltip metric={metric} />} />
+                  <Tooltip
+                    content={<ChartTooltip metric={metric} />}
+                    cursor={{ stroke: chartColors.axis, strokeDasharray: "3 3" }}
+                  />
                   {activeMetrics.map((m) => (
                     <Area
                       key={m}
@@ -682,402 +801,385 @@ export default function DashboardOverview() {
                       strokeWidth={2}
                       fill={`url(#fill-${SERIES[m].key})`}
                       activeDot={{ r: 4, strokeWidth: 2 }}
-                      animationDuration={600}
+                      animationDuration={500}
                     />
                   ))}
                 </AreaChart>
               </ResponsiveContainer>
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center gap-4 pl-1">
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
               {activeMetrics.map((m) => (
                 <div key={m} className="flex items-center gap-2">
                   <span
-                    className="h-3 w-3 rounded-[4px]"
+                    className="size-2.5 rounded-full"
                     style={{ backgroundColor: SERIES[m].color }}
+                    aria-hidden="true"
                   />
-                  <span className="text-xs text-muted-foreground">{SERIES[m].label}</span>
+                  <span className="text-caption text-muted-foreground">{SERIES[m].label}</span>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </section>
+        </RevealItem>
 
-        {/* Right column: announcements matches chart height */}
-        <AnnouncementsCard className="h-full" />
-
-        {/* KPI square underneath the chart */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:col-span-2 lg:grid-rows-2">
-          <KpiBox
-            label="Avg. video completion"
-            value={`${stats.avgCompletion}%`}
-            hint="Across onboarding content"
-          />
-          <KpiBox
-            label="Open Support Tickets"
-            value={stats.openTickets.toLocaleString()}
-            hint={`${stats.waitingOnCustomer} waiting on customer · ${stats.closedTickets} closed`}
-            onClick={() =>
-              window.dispatchEvent(
-                new CustomEvent("tipbot-select-tool", { detail: { tool: "support" } }),
-              )
-            }
-          />
-          <KpiBox
-            label="AI support chats"
-            value={chatThreads.toLocaleString()}
-            hint="Conversations started"
-            onClick={() =>
-              window.dispatchEvent(
-                new CustomEvent("tipbot-select-tool", { detail: { tool: "support" } }),
-              )
-            }
-          />
-          <KpiBox
-            label="Inactive users"
-            value={stats.inactive.toLocaleString()}
-            hint="No activity in 14+ days"
-            danger={stats.inactive > 0}
-          />
-        </div>
-
-        {/* User growth underneath announcements */}
-        <Card className="h-full rounded-2xl border-0 bg-foreground text-background">
-          <CardContent className="flex h-full flex-col justify-between gap-4 p-5 sm:p-6">
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 sm:h-4 sm:w-4 opacity-60" />
-              <h3 className="text-lg sm:text-base font-semibold">User Growth</h3>
-            </div>
-            <div className="space-y-4 sm:space-y-3">
+        {/* Engagement: who is active, who has gone quiet */}
+        <RevealItem>
+          <SectionCard
+            className="flex h-full flex-col"
+            bodyClassName="flex flex-1 flex-col justify-between gap-6"
+            icon={<Activity />}
+            title="Engagement"
+            description="Clients who logged in recently"
+          >
+            <div className="space-y-4">
               {[
-                { label: "Active last 7 days", value: stats.active7 },
-                { label: "Active last 14 days", value: stats.active14 },
-                { label: "Active last 30 days", value: stats.active30 },
+                { label: "Last 7 days", value: stats.active7 },
+                { label: "Last 14 days", value: stats.active14 },
+                { label: "Last 30 days", value: stats.active30 },
               ].map((row) => {
                 const pct = stats.total ? Math.round((row.value / stats.total) * 100) : 0;
                 return (
                   <div key={row.label}>
-                    <div className="flex items-center justify-between text-base sm:text-sm">
-                      <span>{row.label}</span>
-                      <span className="font-semibold tabular-nums">
-                        {row.value} <span className="opacity-60">({pct}%)</span>
+                    <div className="flex items-baseline justify-between gap-3 text-small">
+                      <span className="text-muted-foreground">{row.label}</span>
+                      <span className="font-semibold tabular-nums text-foreground">
+                        {row.value}{" "}
+                        <span className="font-normal text-muted-foreground">({pct}%)</span>
                       </span>
                     </div>
-                    <div className="mt-1.5 h-2.5 sm:h-1.5 w-full overflow-hidden rounded-full bg-background/20">
-                      <div
-                        className="h-full rounded-full bg-background transition-all duration-500"
-                        style={{ width: `${pct}%` }}
+                    <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
+                      <motion.div
+                        className="px-brand-fill h-full rounded-full !shadow-none"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${pct}%` }}
+                        transition={{ duration: 0.5, ease: EASE_OUT, delay: 0.2 }}
                       />
                     </div>
                   </div>
                 );
               })}
             </div>
-            <p className="text-sm sm:text-xs opacity-60">
-              Everyone inside your onboarding platform
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+            <dl className="grid grid-cols-2 gap-3 border-t border-border pt-4">
+              <button
+                type="button"
+                onClick={scrollToClients}
+                className="rounded-md p-2 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <dt className="text-caption text-muted-foreground">Quiet for 14+ days</dt>
+                <dd
+                  className={
+                    "mt-1 text-h4 font-semibold tabular-nums " +
+                    (stats.inactive > 0 ? "!text-destructive" : "")
+                  }
+                >
+                  {stats.inactive.toLocaleString()}
+                </dd>
+              </button>
+              <button
+                type="button"
+                onClick={() => openTool("support")}
+                className="rounded-md p-2 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <dt className="text-caption text-muted-foreground">AI support chats</dt>
+                <dd className="mt-1 text-h4 font-semibold tabular-nums text-foreground">
+                  {chatThreads.toLocaleString()}
+                </dd>
+              </button>
+            </dl>
+          </SectionCard>
+        </RevealItem>
 
-      {/* Users table */}
-      <Card
+        <RevealItem className="lg:col-span-3">
+          <SetupHelpPopup />
+        </RevealItem>
+      </Reveal>
+
+      {/* Clients table */}
+      <section
         ref={clientsRef}
         className={cn(
-          "rounded-2xl border-border/60 scroll-mt-24 transition-shadow duration-300",
-          limitHintOpen && "ring-2 ring-yellow-500 ring-offset-2 ring-offset-background",
+          "px-surface scroll-mt-24 transition-shadow duration-300",
+          limitHintOpen && "ring-2 ring-warning ring-offset-2 ring-offset-background",
         )}
       >
-        <CardContent className="p-0">
-          {limitHintOpen && (
-            <div
-              role="status"
-              className="m-4 mb-0 rounded-xl border border-yellow-300 bg-yellow-50 p-4 text-yellow-900"
-            >
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-yellow-600" />
-                <div className="min-w-0 flex-1 space-y-2">
-                  <p className="text-sm font-semibold">You're at your client limit</p>
-                  <p className="text-sm">
-                    Edit or remove clients below to stay under your limit — use the pencil to rename
-                    a client or the trash icon to remove one. Prefer to keep everyone? Upgrade for
-                    more seats.
-                  </p>
-                  <Button
-                    size="sm"
-                    className="bg-yellow-600 text-white hover:bg-yellow-700"
-                    onClick={() =>
-                      window.open("https://billing.stripe.com/p/login/bIY04697i9jzghy4gg", "_blank")
-                    }
-                  >
-                    <ArrowUpCircle className="mr-1.5 h-4 w-4" />
-                    Show me my options
-                  </Button>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setLimitHintOpen(false)}
-                  aria-label="Dismiss client limit tip"
-                  className="rounded p-1 text-yellow-600 hover:bg-yellow-100 hover:text-yellow-800"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          )}
-          <div className="flex items-center justify-between px-5 py-4">
-            <div>
-              <h3 className="text-xl sm:text-lg font-bold text-foreground">
-                {stats.total.toLocaleString()} Total Users
-              </h3>
-              <p className="text-sm sm:text-xs text-muted-foreground">
+        {limitHintOpen && (
+          <Banner
+            tone="warning"
+            className="m-4 mb-0"
+            title="You're at your client limit"
+            onDismiss={() => setLimitHintOpen(false)}
+            action={
+              <Button
+                size="sm"
+                onClick={() =>
+                  window.open("https://billing.stripe.com/p/login/bIY04697i9jzghy4gg", "_blank")
+                }
+              >
+                <ArrowUpCircle className="mr-1.5 h-4 w-4" />
+                Show me my options
+              </Button>
+            }
+          >
+            Edit or remove clients below to stay under your limit. Use the pencil to rename a client
+            or the trash icon to remove one. Prefer to keep everyone? Upgrade for more seats.
+          </Banner>
+        )}
+        <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:px-6 sm:pt-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="px-icon-chip shrink-0 [&_svg]:size-5" aria-hidden="true">
+              <Users />
+            </span>
+            <div className="min-w-0">
+              <h2 className="text-base font-semibold text-foreground">
+                Clients{" "}
+                <span className="font-normal tabular-nums text-muted-foreground">
+                  {stats.total.toLocaleString()}
+                </span>
+              </h2>
+              <p className="text-small text-muted-foreground">
                 Status, onboarding progress{isAdvanced ? " and last activity" : ""}
               </p>
             </div>
-            {selectedIds.size > 0 && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">{selectedIds.size} selected</span>
-                <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>
-                  Clear
-                </Button>
-                <Button size="sm" variant="destructive" onClick={() => setBulkOpen(true)}>
-                  Remove
-                </Button>
-              </div>
-            )}
           </div>
+          {selectedIds.size > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-small text-muted-foreground">{selectedIds.size} selected</span>
+              <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>
+                Clear
+              </Button>
+              <Button size="sm" variant="destructive" onClick={() => setBulkOpen(true)}>
+                Remove
+              </Button>
+            </div>
+          )}
+        </div>
+        <div className="sm:px-1">
           <PortalInviteBar />
-          {tableRows.length === 0 ? (
-            <p className="px-5 pb-8 text-sm text-muted-foreground">
-              No users yet. Once people log into your onboarding they will show up here.
-            </p>
-          ) : (
-            <div className="px-5">
-              <div className="max-h-[540px] overflow-y-auto overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-10">
-                        <Checkbox
-                          aria-label="Select all on this page"
-                          checked={
-                            pagedRows.length > 0 && pagedRows.every((r) => selectedIds.has(r.id))
-                          }
-                          onCheckedChange={(v) =>
-                            setSelectedIds((prev) => {
-                              const n = new Set(prev);
-                              pagedRows.forEach((r) => (v ? n.add(r.id) : n.delete(r.id)));
-                              return n;
-                            })
-                          }
-                        />
-                      </TableHead>
-                      <TableHead>User</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Progress</TableHead>
-                      {isAdvanced && <TableHead>Last active</TableHead>}
-                      <TableHead className="w-24 text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pagedRows.map((u) => {
-                      const pct = Math.min(100, Math.round((u.completed / u.total) * 100));
-                      const days = u.last_accessed
-                        ? Math.floor((Date.now() - new Date(u.last_accessed).getTime()) / 86400000)
-                        : null;
-                      const status =
-                        days === null || days >= 14
-                          ? { label: "Inactive", variant: "destructive" as const }
-                          : days >= 7
-                            ? { label: "At risk", variant: "outline" as const }
-                            : { label: "Active", variant: "default" as const };
-                      return (
-                        <TableRow key={u.id} className="transition-colors hover:bg-primary/5">
-                          <TableCell className="w-10">
-                            <Checkbox
-                              aria-label="Select user"
-                              checked={selectedIds.has(u.id)}
-                              onCheckedChange={() => toggleSel(u.id)}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            {editingId === u.id ? (
-                              <div className="flex flex-col gap-1.5">
-                                <Input
-                                  value={editName}
-                                  onChange={(e) => setEditName(e.target.value)}
-                                  className="h-8"
-                                  placeholder="Name"
-                                />
-                                <Input
-                                  value={editEmail}
-                                  onChange={(e) => setEditEmail(e.target.value)}
-                                  className="h-8"
-                                  placeholder="Email"
-                                />
-                              </div>
-                            ) : (
-                              <>
+        </div>
+        {tableRows.length === 0 ? (
+          <EmptyState
+            icon={
+              <span className="px-icon-chip">
+                <UserPlus className="size-5" />
+              </span>
+            }
+            title="No clients yet"
+            description="Once people log into your onboarding they will show up here."
+          />
+        ) : (
+          <div className="px-2 pb-2 sm:px-4 sm:pb-4">
+            <div className="max-h-[540px] overflow-x-auto overflow-y-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-10">
+                      <Checkbox
+                        aria-label="Select all on this page"
+                        checked={
+                          pagedRows.length > 0 && pagedRows.every((r) => selectedIds.has(r.id))
+                        }
+                        onCheckedChange={(v) =>
+                          setSelectedIds((prev) => {
+                            const n = new Set(prev);
+                            pagedRows.forEach((r) => (v ? n.add(r.id) : n.delete(r.id)));
+                            return n;
+                          })
+                        }
+                      />
+                    </TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Progress</TableHead>
+                    {isAdvanced && <TableHead>Last active</TableHead>}
+                    <TableHead className="w-24 text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pagedRows.map((u) => {
+                    const pct = Math.min(100, Math.round((u.completed / u.total) * 100));
+                    const days = u.last_accessed
+                      ? Math.floor((Date.now() - new Date(u.last_accessed).getTime()) / 86400000)
+                      : null;
+                    const status =
+                      days === null || days >= 14
+                        ? { label: "Inactive", variant: "danger" as const }
+                        : days >= 7
+                          ? { label: "At risk", variant: "warning" as const }
+                          : { label: "Active", variant: "success" as const };
+                    const display = u.name || u.email || "Unknown";
+                    return (
+                      <TableRow key={u.id} className="transition-colors hover:bg-brand-subtle/50">
+                        <TableCell className="w-10">
+                          <Checkbox
+                            aria-label="Select user"
+                            checked={selectedIds.has(u.id)}
+                            onCheckedChange={() => toggleSel(u.id)}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {editingId === u.id ? (
+                            <div className="flex min-w-[180px] flex-col gap-1.5">
+                              <Input
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                className="h-9"
+                                placeholder="Name"
+                                aria-label="Name"
+                              />
+                              <Input
+                                value={editEmail}
+                                onChange={(e) => setEditEmail(e.target.value)}
+                                className="h-9"
+                                placeholder="Email"
+                                aria-label="Email"
+                              />
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-3">
+                              <span
+                                className="grid size-8 shrink-0 place-items-center rounded-full bg-brand-subtle text-caption font-semibold text-brand"
+                                aria-hidden="true"
+                              >
+                                {initials(display)}
+                              </span>
+                              <div className="min-w-0">
                                 <Button
                                   variant="link"
                                   onClick={() => setActivityUser(u)}
                                   aria-label={`View activity for ${u.name || u.email || "user"}`}
-                                  className="h-auto max-w-[220px] justify-start p-0 text-base font-medium text-foreground sm:text-sm"
+                                  className="h-auto max-w-[220px] justify-start p-0 text-small font-medium text-foreground"
                                 >
-                                  <span className="truncate">{u.name || u.email || "Unknown"}</span>
+                                  <span className="truncate">{display}</span>
                                 </Button>
                                 {u.name && u.email && (
-                                  <div className="text-sm sm:text-xs text-muted-foreground truncate max-w-[220px]">
+                                  <div className="max-w-[220px] truncate text-caption font-normal text-muted-foreground">
                                     {u.email}
                                   </div>
                                 )}
-                              </>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {status.label === "Inactive" ? (
-                              <Badge
-                                variant="outline"
-                                className="text-sm sm:text-xs"
-                                style={{
-                                  backgroundColor: "#FFE8EA",
-                                  borderColor: "#BD5558",
-                                  color: "#BD5558",
-                                }}
-                              >
-                                {status.label}
-                              </Badge>
-                            ) : status.label === "Active" ? (
-                              <Badge
-                                variant="outline"
-                                className="text-sm sm:text-xs"
-                                style={{
-                                  backgroundColor: "#E1F5E6",
-                                  borderColor: "#2D8543",
-                                  color: "#2D8543",
-                                }}
-                              >
-                                {status.label}
-                              </Badge>
-                            ) : (
-                              <Badge variant={status.variant} className="text-sm sm:text-xs">
-                                {status.label}
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <div className="h-2.5 sm:h-1.5 w-20 sm:w-16 overflow-hidden rounded-full bg-muted">
-                                <div
-                                  className="h-full rounded-full bg-primary"
-                                  style={{ width: `${pct}%` }}
-                                />
                               </div>
-                              <span className="text-sm sm:text-xs text-muted-foreground tabular-nums">
-                                {u.completed}/{u.total}
-                              </span>
                             </div>
-                          </TableCell>
-                          {isAdvanced && (
-                            <TableCell className="text-base sm:text-sm text-muted-foreground">
-                              {days === null
-                                ? "Never"
-                                : days === 0
-                                  ? "Today"
-                                  : days === 1
-                                    ? "1 day ago"
-                                    : `${days} days ago`}
-                            </TableCell>
                           )}
-                          <TableCell className="text-right">
-                            {editingId === u.id ? (
-                              <div className="flex justify-end gap-1">
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={saveEdit}
-                                  aria-label="Save changes"
-                                  className="h-9 w-9"
-                                >
-                                  <Save className="h-4 w-4 text-emerald-600" />
-                                </Button>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => setEditingId(null)}
-                                  aria-label="Cancel edit"
-                                  className="h-9 w-9"
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <div className="flex justify-end gap-1">
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => startEdit(u)}
-                                  aria-label={`Edit ${u.name || u.email || "user"}`}
-                                  className="h-9 w-9"
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => setDeleteTarget(u)}
-                                  aria-label={`Remove ${u.name || u.email || "user"}`}
-                                  className="h-9 w-9"
-                                >
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </div>
-                            )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={status.variant} className="whitespace-nowrap">
+                            {status.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
+                              <div
+                                className="h-full rounded-full bg-brand"
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                            <span className="whitespace-nowrap text-caption tabular-nums text-muted-foreground">
+                              {u.completed}/{u.total}
+                            </span>
+                          </div>
+                        </TableCell>
+                        {isAdvanced && (
+                          <TableCell className="whitespace-nowrap text-small text-muted-foreground">
+                            {days === null
+                              ? "Never"
+                              : days === 0
+                                ? "Today"
+                                : days === 1
+                                  ? "1 day ago"
+                                  : `${days} days ago`}
                           </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
+                        )}
+                        <TableCell className="text-right">
+                          {editingId === u.id ? (
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={saveEdit}
+                                aria-label="Save changes"
+                                className="size-9"
+                              >
+                                <Save className="size-4 text-success" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => setEditingId(null)}
+                                aria-label="Cancel edit"
+                                className="size-9"
+                              >
+                                <X className="size-4" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => startEdit(u)}
+                                aria-label={`Edit ${u.name || u.email || "user"}`}
+                                className="size-9 text-muted-foreground hover:text-foreground"
+                              >
+                                <Pencil className="size-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => setDeleteTarget(u)}
+                                aria-label={`Remove ${u.name || u.email || "user"}`}
+                                className="size-9 text-muted-foreground hover:text-destructive"
+                              >
+                                <Trash2 className="size-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </div>
-          )}
+          </div>
+        )}
 
-          {tableRows.length > ROWS_PER_PAGE && (
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 px-5 py-4">
-              <p className="text-sm sm:text-xs text-muted-foreground">
-                Showing {(currentPage - 1) * ROWS_PER_PAGE + 1}–
-                {Math.min(currentPage * ROWS_PER_PAGE, tableRows.length)} of {tableRows.length}
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-9"
-                  disabled={currentPage === 1}
-                  onClick={() => setPage(currentPage - 1)}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Previous
-                </Button>
-                <span className="text-sm sm:text-xs text-muted-foreground tabular-nums">
-                  Page {currentPage} of {totalPages}
-                </span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-9"
-                  disabled={currentPage === totalPages}
-                  onClick={() => setPage(currentPage + 1)}
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
+        {tableRows.length > ROWS_PER_PAGE && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-4 sm:px-6">
+            <p className="text-small text-muted-foreground">
+              Showing {(currentPage - 1) * ROWS_PER_PAGE + 1}–
+              {Math.min(currentPage * ROWS_PER_PAGE, tableRows.length)} of {tableRows.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-9"
+                disabled={currentPage === 1}
+                onClick={() => setPage(currentPage - 1)}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Button>
+              <span className="text-small tabular-nums text-muted-foreground">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-9"
+                disabled={currentPage === totalPages}
+                onClick={() => setPage(currentPage + 1)}
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        )}
+      </section>
+
+      <AnnouncementsCard />
 
       {activityUser && (
         <UserActivityDialog
@@ -1139,53 +1241,30 @@ export default function DashboardOverview() {
   );
 }
 
-function KpiBox({
-  label,
-  value,
-  hint,
-  danger,
-  onClick,
-}: {
-  label: string;
-  value: string;
-  hint: string;
-  danger?: boolean;
-  onClick?: () => void;
-}) {
+function initials(name: string) {
+  const parts = name.replace(/@.*/, "").split(/[\s._-]+/).filter(Boolean);
+  return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "?";
+}
+
+/** Loading placeholder in the shape of the real page, so nothing jumps on arrival. */
+function OverviewSkeleton() {
   return (
-    <Card
-      className={
-        "h-full rounded-2xl border-border/60 bg-card" +
-        (onClick ? " cursor-pointer transition-colors hover:bg-muted/40" : "")
-      }
-      onClick={onClick}
-      role={onClick ? "link" : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onKeyDown={
-        onClick
-          ? (event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                onClick();
-              }
-            }
-          : undefined
-      }
-    >
-      <CardContent className="flex h-full flex-col justify-center p-5">
-        <p className="text-xs sm:text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          {label}
-        </p>
-        <p
-          className={
-            "mt-2 text-3xl sm:text-2xl font-bold tabular-nums " + (danger ? "text-destructive" : "")
-          }
-        >
-          {value}
-        </p>
-        <p className="mt-1 text-sm sm:text-xs text-muted-foreground">{hint}</p>
-      </CardContent>
-    </Card>
+    <div className="space-y-4 sm:space-y-6" aria-busy="true" aria-live="polite">
+      <span className="sr-only">Loading your dashboard</span>
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
+        <div className="px-skeleton h-36 lg:col-span-2" />
+        <div className="px-skeleton h-36" />
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="px-skeleton h-28" />
+        ))}
+      </div>
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
+        <div className="px-skeleton h-96 lg:col-span-2" />
+        <div className="px-skeleton h-96" />
+      </div>
+    </div>
   );
 }
 
@@ -1194,15 +1273,17 @@ function ChartTooltip({ active, payload, metric }: any) {
   const point = payload[0].payload as DayPoint;
   const showNames = metric === "logins" || metric === "all";
   return (
-    <div className="rounded-lg border border-border bg-popover/95 px-3 py-2 shadow-elevated backdrop-blur">
+    <div className="rounded-md border border-border bg-popover px-3 py-2 shadow-popover">
       <p className="text-xs font-medium text-foreground">{point.label}</p>
       <div className="mt-1 space-y-0.5">
         {payload.map((p: any) => {
           const rawKey = String(p.dataKey).replace(/_s$/, "") as keyof DayPoint;
           const raw = (point as any)[rawKey] ?? p.value;
           return (
-            <p key={p.dataKey} className="text-xs" style={{ color: p.stroke }}>
-              {p.name}: <span className="font-semibold">{raw}</span>
+            <p key={p.dataKey} className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="size-2 rounded-full" style={{ backgroundColor: p.stroke }} aria-hidden="true" />
+              {p.name}
+              <span className="ml-auto pl-3 font-semibold tabular-nums text-foreground">{raw}</span>
             </p>
           );
         })}

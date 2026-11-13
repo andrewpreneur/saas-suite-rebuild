@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import confetti from "canvas-confetti";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowLeft, ArrowRight, ExternalLink, Workflow } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { SectionCard } from "@/components/premium/SectionCard";
+import { ArrowLeft, ArrowRight, CircleCheck, ExternalLink, Terminal, Workflow } from "lucide-react";
 import { toast } from "sonner";
 import slackLogoAsset from "@/assets/slack-logo.webp.asset.json";
 import { useUser } from "@/contexts/UserContext";
@@ -74,40 +75,40 @@ function SuccessView({ teamId }: { teamId: string | null }) {
   const goNext = () => setSlideIdx((i) => Math.min(SLIDES.length - 1, i + 1));
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5 flex items-center justify-center p-6">
+    <div className="px-canvas flex min-h-screen items-center justify-center p-4 sm:p-6">
       <div className="w-full max-w-2xl space-y-8 text-center">
         <div ref={iconRef} className="mx-auto flex h-24 w-24 items-center justify-center animate-scale-in">
           <img src={SLACK_LOGO} alt="Slack" className="h-20 w-20" />
         </div>
 
         <div className="space-y-2 animate-fade-in">
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Slack is connected!</h1>
+          <h1 className="text-h3 tracking-tight text-foreground sm:text-h2">Slack is connected</h1>
           <p className="text-muted-foreground">
             Your SaaSSuite workspace is live in Slack. Swipe through what you can do:
           </p>
         </div>
 
-        <Card className="overflow-hidden">
-          <CardContent
+        <div className="px-surface overflow-hidden">
+          <div
             key={slideIdx}
-            className="p-8 min-h-[240px] flex flex-col items-center justify-center gap-4 animate-fade-in"
+            className="flex min-h-[240px] flex-col items-center justify-center gap-4 p-6 animate-fade-in motion-reduce:animate-none sm:p-8"
           >
             {slide.workflow ? (
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                <Workflow className="h-6 w-6 text-primary" />
-              </div>
+              <span className="px-icon-chip [&_svg]:size-5" aria-hidden="true">
+                <Workflow />
+              </span>
             ) : null}
-            <h2 className="text-2xl font-bold tracking-tight">{slide.title}</h2>
+            <h2 className="text-h4 text-foreground">{slide.title}</h2>
             {slide.cmd && (
-              <code className="rounded-md bg-primary/10 px-3 py-1.5 font-mono text-sm text-primary">
+              <code className="rounded-md bg-brand-subtle px-3 py-1.5 font-mono text-sm text-brand">
                 {slide.cmd}
               </code>
             )}
             <p className="text-sm text-muted-foreground max-w-md">{slide.subhead}</p>
-          </CardContent>
-          <div className="flex items-center justify-between border-t px-4 py-3">
-            <Button variant="ghost" size="sm" onClick={goPrev} disabled={slideIdx === 0}>
-              <ArrowLeft className="h-4 w-4" />
+          </div>
+          <div className="flex items-center justify-between border-t border-border px-4 py-3">
+            <Button variant="ghost" size="icon" aria-label="Previous slide" onClick={goPrev} disabled={slideIdx === 0}>
+              <ArrowLeft />
             </Button>
             <div className="flex items-center gap-1.5">
               {SLIDES.map((_, i) => (
@@ -116,24 +117,24 @@ function SuccessView({ teamId }: { teamId: string | null }) {
                   aria-label={`Go to slide ${i + 1}`}
                   onClick={() => setSlideIdx(i)}
                   className={`h-1.5 rounded-full transition-all ${
-                    i === slideIdx ? "w-6 bg-primary" : "w-1.5 bg-muted-foreground/30"
+                    i === slideIdx ? "w-6 bg-brand" : "w-1.5 bg-muted-foreground/30"
                   }`}
                 />
               ))}
             </div>
-            <Button variant="ghost" size="sm" onClick={goNext} disabled={slideIdx === SLIDES.length - 1}>
-              <ArrowRight className="h-4 w-4" />
+            <Button variant="ghost" size="icon" aria-label="Next slide" onClick={goNext} disabled={slideIdx === SLIDES.length - 1}>
+              <ArrowRight />
             </Button>
           </div>
-        </Card>
+        </div>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2 animate-fade-in">
-          <Button size="lg" onClick={openSlack} className="gap-2">
+          <Button size="lg" variant="accent" onClick={openSlack}>
             <img src={SLACK_LOGO} alt="" className="h-5 w-5" />
             Open Slack
             <ExternalLink className="h-4 w-4 opacity-70" />
           </Button>
-          <Button size="lg" variant="outline" onClick={() => navigate("/app")} className="gap-2">
+          <Button size="lg" variant="outline" onClick={() => navigate("/app")}>
             <ArrowLeft className="h-4 w-4" />
             Back to SaaSSuite
           </Button>
@@ -197,38 +198,45 @@ function InstallView() {
     ? `${INSTALL_ENDPOINT}?agency_id=${encodeURIComponent(agencyId)}&email=${encodeURIComponent(userEmail ?? "")}`
     : "#";
 
+  // Inside Settings the shell already supplies the canvas, padding and the page's h1.
+  const embedded = useLocation().pathname.startsWith("/app");
+  const Title = embedded ? "h2" : "h1";
+
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="mx-auto max-w-2xl space-y-6">
+    <div className={embedded ? "" : "px-canvas min-h-screen p-4 sm:p-6"}>
+      <div className={embedded ? "space-y-6" : "mx-auto max-w-2xl space-y-6"}>
         <div className="flex items-center gap-3" data-tip-target="slack-header">
-          <img src={SLACK_LOGO} alt="Slack" className="h-8 w-8" />
-          <div>
-            <h1 className="text-3xl font-bold">Slack Integration</h1>
-            <p className="text-muted-foreground">Connect your Slack workspace to run SaaSSuite slash commands.</p>
+          <img src={SLACK_LOGO} alt="Slack" className="size-10 shrink-0" />
+          <div className="min-w-0">
+            <Title className={embedded ? "text-h4 text-foreground" : "text-h3 tracking-tight text-foreground sm:text-h2"}>
+              Slack Integration
+            </Title>
+            <p className="text-sm text-muted-foreground">Connect your Slack workspace to run SaaSSuite slash commands.</p>
           </div>
+          {connectedInstall ? (
+            <Badge variant="success" className="ml-auto shrink-0">
+              <CircleCheck /> Connected
+            </Badge>
+          ) : null}
         </div>
 
         {connectedInstall && (
-          <Card className="border-primary/30">
-            <CardHeader>
-              <CardTitle>Slack is connected</CardTitle>
-              <CardDescription>
-                {connectedInstall.teamDomain || "Your Slack workspace"} is linked to this SaaSSuite account.
-              </CardDescription>
-            </CardHeader>
-          </Card>
+          <SectionCard
+            icon={<CircleCheck />}
+            title="Slack is connected"
+            description={`${connectedInstall.teamDomain || "Your Slack workspace"} is linked to this SaaSSuite account.`}
+          />
         )}
 
-        <Card data-tip-target="slack-install">
-          <CardHeader>
-            <CardTitle>Add SaaSSuite to Slack</CardTitle>
-            <CardDescription>
-              One click to install the SaaSSuite Slack app in your workspace. Slack will ask which channel it should post into — pick your team's channel.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <div data-tip-target="slack-install">
+          <SectionCard
+            icon={<img src={SLACK_LOGO} alt="" className="size-5" />}
+            title="Add SaaSSuite to Slack"
+            description="One click to install the SaaSSuite Slack app in your workspace. Slack will ask which channel it should post into. Pick your team's channel."
+          >
             <a
               href={installHref}
+              className="inline-block rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
               onClick={(e) => {
                 if (!agencyId) {
                   e.preventDefault();
@@ -247,23 +255,25 @@ function InstallView() {
             <p className="mt-3 text-xs text-muted-foreground">
               Each workspace gets its own private bot token, stored encrypted in SaaSSuite. Uninstall anytime from Slack settings.
             </p>
-          </CardContent>
-        </Card>
+          </SectionCard>
+        </div>
 
-        <Card data-tip-target="slack-commands">
-          <CardHeader>
-            <CardTitle>What you get</CardTitle>
-            <CardDescription>After install, run these slash commands in Slack:</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            {SLIDES.filter((s) => s.cmd).map((s) => (
-              <div key={s.cmd} className="flex items-start gap-3">
-                <code className="shrink-0 rounded bg-muted px-2 py-0.5 font-mono text-xs">{s.cmd}</code>
-                <span className="text-muted-foreground">{s.subhead}</span>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+        <div data-tip-target="slack-commands">
+          <SectionCard
+            icon={<Terminal />}
+            title="What you get"
+            description="After install, run these slash commands in Slack:"
+          >
+            <div className="divide-y divide-border text-sm">
+              {SLIDES.filter((s) => s.cmd).map((s) => (
+                <div key={s.cmd} className="flex flex-col gap-1 py-2.5 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:gap-4">
+                  <code className="w-fit shrink-0 rounded-sm bg-muted px-2 py-1 font-mono text-xs text-foreground sm:w-56">{s.cmd}</code>
+                  <span className="text-muted-foreground">{s.subhead}</span>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+        </div>
       </div>
     </div>
   );

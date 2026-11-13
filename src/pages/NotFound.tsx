@@ -1,7 +1,9 @@
 import { useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Copy, Home, Check } from "lucide-react";
+import { ExternalLink, Copy, Home, Check, Compass } from "lucide-react";
+import { Tag } from "@/components/ui/tag";
+import { EntryShell } from "@/components/premium/entry/EntryShell";
 
 const NotFound = () => {
   const location = useLocation();
@@ -40,41 +42,36 @@ const NotFound = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 px-4">
-      <div className="max-w-lg w-full text-center bg-card border rounded-2xl shadow-lg p-8 md:p-10">
-        <h1 className="text-2xl md:text-3xl font-bold mb-3 text-foreground">
-          It looks like your device is having a hard time loading this page
-        </h1>
-        <p className="text-muted-foreground mb-6">
-          This often happens inside in-app browsers (like Gmail, Facebook, or Instagram).
-          Try opening it in your normal browser for a smoother experience.
-        </p>
-
-        <div className="bg-muted/50 border rounded-lg px-3 py-2 mb-6 text-left">
-          <p className="text-xs text-muted-foreground mb-1">Page you were trying to reach:</p>
-          <p className="text-sm font-mono break-all text-foreground">{fullUrl}</p>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button onClick={openExternally} className="flex items-center gap-2" size="lg">
-            <ExternalLink className="h-4 w-4" />
-            Open in browser
-          </Button>
-          <Button onClick={copyUrl} variant="outline" className="flex items-center gap-2" size="lg">
-            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            {copied ? "Copied!" : "Copy link"}
-          </Button>
-        </div>
-
-        <a
-          href="/"
-          className="inline-flex items-center gap-1 mt-6 text-sm text-muted-foreground hover:text-foreground underline"
-        >
-          <Home className="h-3.5 w-3.5" />
+    <EntryShell
+      wide
+      title="We couldn't load this page"
+      description="This often happens inside in-app browsers like Gmail, Facebook or Instagram. Open the link in your normal browser, or head back home."
+      mark={<Tag tone="neutral"><Compass aria-hidden="true" />Page not found</Tag>}
+      footer={
+        <a href="/" className="inline-flex items-center gap-1.5 font-semibold text-brand underline-offset-4 hover:text-brand-hover hover:underline">
+          <Home className="size-4" aria-hidden="true" />
           Return to home
         </a>
+      }
+    >
+      <div className="space-y-5">
+        <div className="rounded-md border border-border bg-muted/50 px-3 py-2 text-left">
+          <p className="text-caption font-normal text-muted-foreground">Page you were trying to reach</p>
+          <p className="mt-0.5 break-all font-mono text-small text-foreground">{fullUrl}</p>
+        </div>
+
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button onClick={openExternally} variant="accent" className="h-11 shrink-0 sm:flex-1">
+            <ExternalLink aria-hidden="true" />
+            Open in browser
+          </Button>
+          <Button onClick={copyUrl} variant="outline" className="h-11 shrink-0 sm:flex-1" aria-live="polite">
+            {copied ? <Check className="text-success" aria-hidden="true" /> : <Copy aria-hidden="true" />}
+            {copied ? "Link copied" : "Copy link"}
+          </Button>
+        </div>
       </div>
-    </div>
+    </EntryShell>
   );
 };
 

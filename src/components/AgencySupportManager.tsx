@@ -1,6 +1,12 @@
 import LocationList from "@/components/highlevel/LocationList";
 import { useGhl } from "@/components/highlevel/useGhl";
 import { PageHeader } from "@/components/platform/PageHeader";
+import { SectionCard } from "@/components/premium/SectionCard";
+import { OfferCard } from "@/components/premium/support/OfferCard";
+import NumberTicker from "@/components/premium/21st/number-ticker";
+import { EmptyState } from "@/components/premium/21st/empty-state";
+import { Tag } from "@/components/ui/tag";
+import { UserPlus, Users } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
@@ -145,6 +151,7 @@ const AgencySupportManager = () => {
 
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState("assign");
+  const tabsRef = useRef<HTMLDivElement>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [purchasingSeat, setPurchasingSeat] = useState(false);
@@ -621,56 +628,96 @@ const AgencySupportManager = () => {
 
   return (
     <div className="space-y-5 max-w-5xl mx-auto min-w-0">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <PageHeader
-          title="Agency Support"
-          subtitle={
-            loading
-              ? "Loading seats…"
-              : `${available} available · ${used} assigned. Buy seats, assign them, and manage projects.`
-          }
-        />
-        <Button onClick={() => setActiveTab("purchase")} className="gap-2 h-11 ml-auto shrink-0">
-          <ShoppingCart className="w-4 h-4" /> Purchase Seats
-        </Button>
-      </div>
+      <PageHeader
+        eyebrow="Done for you"
+        title="Agency Support"
+        subtitle="Our team answers your clients' support requests under your brand. Buy seats, assign them to clients, and follow their projects."
+      />
 
+      <OfferCard
+        title="We handle support for your clients"
+        description="One seat covers one client. Assign it and they can reach our team right away."
+        features={AGENCY_FEATURES}
+        price={`$${UNIT_PRICE}`}
+        priceUnit="per seat / month"
+        priceNote={
+          loading ? (
+            <span className="px-skeleton inline-block h-5 w-40" />
+          ) : (
+            <span>
+              <span className="font-medium text-foreground">
+                <NumberTicker
+                  key={available}
+                  from={0}
+                  target={available}
+                  transition={{ duration: 0.8, type: "tween", ease: [0.16, 1, 0.3, 1] }}
+                />{" "}
+                available
+              </span>{" "}
+              · {used} assigned of {wallet} purchased
+            </span>
+          )
+        }
+        action={
+          <Button
+            variant="accent"
+            size="lg"
+            className="min-h-11 gap-2"
+            onClick={() => {
+              setActiveTab("purchase");
+              requestAnimationFrame(() =>
+                tabsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
+              );
+            }}
+          >
+            <ShoppingCart aria-hidden="true" /> Buy seats
+          </Button>
+        }
+        footnote={`Each assignment is locked to its client for ${LOCK_DAYS} days.`}
+      />
+
+      <div ref={tabsRef} className="scroll-mt-20" />
       <Tabs value={activeTab} onValueChange={setActiveTab} className="min-w-0">
-        <TabsList className="grid grid-cols-3 h-auto w-full sm:w-fit gap-1">
+        <TabsList className="gap-4 sm:gap-6">
           <TabsTrigger
             value="purchase"
-            className="min-h-11 px-2 sm:px-5 whitespace-normal text-center"
+            className="min-h-11"
           >
-            Purchase Seats
+            Purchase seats
           </TabsTrigger>
           <TabsTrigger
             value="assign"
-            className="min-h-11 px-2 sm:px-5 whitespace-normal text-center"
+            className="min-h-11"
           >
-            Assign Seats
+            Assign seats
           </TabsTrigger>
           <TabsTrigger
             value="projects"
-            className="min-h-11 px-2 sm:px-5 whitespace-normal text-center"
+            className="min-h-11"
           >
-            Manage Projects
+            Manage projects
           </TabsTrigger>
         </TabsList>
 
         <TabsContent
           value="assign"
-          className="space-y-4 animate-in fade-in duration-200 motion-reduce:animate-none"
+          className="mt-4 space-y-4 animate-in fade-in duration-200 motion-reduce:animate-none"
         >
           {/* White-label domain */}
-          <Card className={savedDomain ? undefined : "border-primary/50"}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Globe className="w-4 h-4 text-primary" />
-                White-label domain
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">Required to open client sub-accounts.</p>
-            </CardHeader>
-            <CardContent>
+          <SectionCard
+            icon={<Globe />}
+            title="White-label domain"
+            description="We need this to open your clients' sub-accounts."
+            actions={
+              savedDomain ? (
+                <Tag tone="success">
+                  <Check aria-hidden="true" /> Saved
+                </Tag>
+              ) : (
+                <Tag tone="warning">Needs setup</Tag>
+              )
+            }
+          >
               <div className="grid sm:grid-cols-[1fr_auto] gap-2">
                 <Input
                   id="as-domain"
@@ -697,26 +744,15 @@ const AgencySupportManager = () => {
               {savedDomain && (
                 <p className="text-xs text-muted-foreground mt-2">Saved as {savedDomain}</p>
               )}
-            </CardContent>
-          </Card>
+          </SectionCard>
 
           {/* Add clients */}
-          <div className="flex items-center justify-between gap-3 py-1">
-            <div>
-              <h2 className="font-semibold">Assign seats to clients</h2>
-              <p className="text-sm text-muted-foreground">
-                {used} of {wallet} seats assigned · {LOCK_DAYS}-day lock per assignment
-              </p>
-            </div>
-          </div>
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Add a client</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                All fields are required. Assignments are locked for {LOCK_DAYS} days.
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <SectionCard
+            icon={<UserPlus />}
+            title="Assign a seat to a client"
+            description={`${used} of ${wallet} seats assigned. All fields are required, and each assignment is locked for ${LOCK_DAYS} days.`}
+            bodyClassName="space-y-4"
+          >
               {ghlConn.connected && ghlConn.locations.length > 0 && (
                 <div className="space-y-1.5">
                   <Label>Pick the sub-account</Label>
@@ -859,19 +895,24 @@ const AgencySupportManager = () => {
                   </PopoverContent>
                 </Popover>
               </div>
-            </CardContent>
-          </Card>
+          </SectionCard>
 
           {/* Roster */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Your clients</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <SectionCard icon={<Users />} title="Your clients" description="Everyone with a support seat.">
               {clients.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">
-                  No clients yet. Add your first one above.
-                </p>
+                <EmptyState
+                  className="py-8"
+                  title="No clients have a seat yet"
+                  description="Assign your first seat with the form above."
+                  action={
+                    <Button
+                      variant="outline"
+                      onClick={() => document.getElementById("as-name")?.focus()}
+                    >
+                      Assign a seat
+                    </Button>
+                  }
+                />
               ) : (
                 <>
                   {/* Mobile: stacked cards */}
@@ -1015,41 +1056,43 @@ const AgencySupportManager = () => {
                   </div>
                 </>
               )}
-            </CardContent>
-          </Card>
+          </SectionCard>
         </TabsContent>
         <TabsContent
           value="purchase"
-          className="space-y-4 animate-in fade-in duration-200 motion-reduce:animate-none"
+          className="mt-4 space-y-4 animate-in fade-in duration-200 motion-reduce:animate-none"
         >
-          <div className="grid sm:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Your seats</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-4xl font-bold">
-                  {loading ? "…" : available}{" "}
-                  <span className="text-base font-normal text-muted-foreground">available</span>
-                </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  {used} assigned of {wallet} purchased
-                </p>
-                {loadError && <LoadNotice error={loadError} onRetry={() => void fetchWallet()} />}
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Purchase seats</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold">
-                  ${UNIT_PRICE}
-                  <span className="text-base font-normal text-muted-foreground">
-                    {" "}
-                    / seat / month
-                  </span>
-                </p>
+          {loadError && <LoadNotice error={loadError} onRetry={() => void fetchWallet()} />}
+          <dl className="px-surface flex divide-x divide-border">
+            {(
+              [
+                ["Available", available],
+                ["Assigned", used],
+                ["Purchased", wallet],
+              ] as const
+            ).map(([label, value]) => (
+              <div key={label} className="min-w-0 flex-1 p-4">
+                <dt className="text-sm text-muted-foreground">{label}</dt>
+                <dd className="text-h3 font-semibold tabular-nums text-foreground">
+                  {loading ? (
+                    <span className="px-skeleton inline-block h-7 w-10" />
+                  ) : (
+                    <NumberTicker
+                      key={value}
+                      from={0}
+                      target={value}
+                      transition={{ duration: 0.8, type: "tween", ease: [0.16, 1, 0.3, 1] }}
+                    />
+                  )}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <SectionCard
+            icon={<ShoppingCart />}
+            title="Add seats"
+            description={`$${UNIT_PRICE} per seat each month. Seats are added to your balance as soon as you pay.`}
+          >
                 {native ? (
                   <p className="text-sm text-muted-foreground mt-3">
                     In the app you buy one seat at a time through the App Store or Google Play.
@@ -1087,13 +1130,13 @@ const AgencySupportManager = () => {
                       <Plus className="w-4 h-4" />
                     </Button>
                     <span className="text-sm text-muted-foreground">
-                      = ${quantity * UNIT_PRICE}/mo
+                      {quantity} {quantity === 1 ? "seat" : "seats"} · ${quantity * UNIT_PRICE} per month
                     </span>
                   </div>
                 )}
 
                 <Button
-                  className="mt-3 w-full gap-2"
+                  className="mt-4 min-h-11 w-full gap-2 sm:w-auto"
                   disabled={purchasingSeat}
                   onClick={() => {
                     if (native) {
@@ -1115,26 +1158,11 @@ const AgencySupportManager = () => {
                       : "Buy 1 seat"
                     : "Continue to checkout"}
                 </Button>
-              </CardContent>
-            </Card>
-          </div>
-          <details className="border-t border-border pt-4 text-sm">
-            <summary className="cursor-pointer font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              What your clients get
-            </summary>
-            <div className="grid sm:grid-cols-2 gap-2 mt-4">
-              {AGENCY_FEATURES.map((f) => (
-                <div key={f} className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                  <span>{f}</span>
-                </div>
-              ))}
-            </div>
-          </details>
+          </SectionCard>
         </TabsContent>
         <TabsContent
           value="projects"
-          className="min-w-0 animate-in fade-in duration-200 motion-reduce:animate-none"
+          className="mt-4 min-w-0 animate-in fade-in duration-200 motion-reduce:animate-none"
         >
           <AgencyProjectsBoard
             ownerEmail={(email || "").toLowerCase()}

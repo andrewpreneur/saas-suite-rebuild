@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import { Banner } from "@/components/ui/banner";
+import { Tag } from "@/components/ui/tag";
+import { SectionCard } from "@/components/premium/SectionCard";
+import { Field, SectionFooter } from "@/components/premium/settings/Field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useUser } from "@/contexts/UserContext";
-import { ExternalLink, CheckCircle2 } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ExternalLink, CheckCircle2, Clock, Target } from "lucide-react";
 import { PageHeader } from "@/components/platform/PageHeader";
 import { LoadNotice } from "@/components/platform/LoadNotice";
 import { LOAD_TIMEOUT_MESSAGE, armLoadDeadline, loadErrorText, withDeadline } from "@/lib/loadSettle";
@@ -136,116 +137,108 @@ export function FreeLeadsRequest() {
     );
   }
 
+  const header = (
+    <PageHeader
+      eyebrow="Grow"
+      title="Free leads"
+      subtitle="Tell us who you want to reach. You can submit this request once."
+    />
+  );
+
+  const summary = (
+    <dl className="grid gap-4 rounded-lg border border-border p-4 sm:grid-cols-3">
+      <div className="min-w-0 sm:col-span-3">
+        <dt className="text-xs text-muted-foreground">Business keywords or industries</dt>
+        <dd className="mt-0.5 break-words text-sm font-medium text-foreground">{formData.businessKeywords}</dd>
+      </div>
+      <div className="min-w-0">
+        <dt className="text-xs text-muted-foreground">City</dt>
+        <dd className="mt-0.5 break-words text-sm font-medium text-foreground">{formData.city}</dd>
+      </div>
+      <div className="min-w-0">
+        <dt className="text-xs text-muted-foreground">Country</dt>
+        <dd className="mt-0.5 break-words text-sm font-medium text-foreground">{formData.country}</dd>
+      </div>
+    </dl>
+  );
+
   if (hasSubmitted) {
     if (status === "delivered" && leadsUrl) {
       return (
-        <div className="mx-auto w-full max-w-2xl space-y-4 p-1">
-          <PageHeader
-            title="Free leads"
-            subtitle="Tell us who you want to reach. You can submit this request once."
-          />
-          <Card className="max-w-2xl w-full">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-6 w-6 text-green-600" />
-                <CardTitle>Your Free Leads Are Ready!</CardTitle>
-              </div>
-              <CardDescription>Your leads list has been delivered. Open the link below to access them.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <a
-                href={leadsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
-              >
-                Open Leads List <ExternalLink className="h-4 w-4" />
-              </a>
-              <div className="pt-4 border-t space-y-2 text-sm text-muted-foreground">
-                <p><strong className="text-foreground">Keywords:</strong> {formData.businessKeywords}</p>
-                <p><strong className="text-foreground">Location:</strong> {formData.city}, {formData.country}</p>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="mx-auto w-full min-w-0 max-w-3xl space-y-6">
+          {header}
+          <SectionCard
+            icon={<CheckCircle2 />}
+            title="Your free leads are ready"
+            description="Your leads list has been delivered. Open it in a new tab."
+            actions={<Tag tone="success"><CheckCircle2 aria-hidden="true" />Delivered</Tag>}
+          >
+            <div className="space-y-4">
+              <Button asChild variant="accent" className="h-11 w-full sm:h-10 sm:w-auto">
+                <a href={leadsUrl} target="_blank" rel="noopener noreferrer">
+                  Open leads list <ExternalLink />
+                </a>
+              </Button>
+              {summary}
+            </div>
+          </SectionCard>
         </div>
       );
     }
     return (
-      <div className="mx-auto w-full max-w-2xl space-y-4 p-1">
-        <PageHeader
-          title="Free leads"
-          subtitle="Tell us who you want to reach. You can submit this request once."
-        />
-        <Card className="max-w-2xl w-full">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-6 w-6 text-green-600" />
-              <CardTitle>Free Leads Request Submitted</CardTitle>
-            </div>
-            <CardDescription>
-              You have already used your free leads token. Here's your submitted information:
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label className="text-muted-foreground">Business Keywords/Industries</Label>
-              <p className="mt-1 text-foreground">{formData.businessKeywords}</p>
-            </div>
-            <div>
-              <Label className="text-muted-foreground">City</Label>
-              <p className="mt-1 text-foreground">{formData.city}</p>
-            </div>
-            <div>
-              <Label className="text-muted-foreground">Country</Label>
-              <p className="mt-1 text-foreground">{formData.country}</p>
-            </div>
-            <Alert>
-              <AlertDescription>
-                Your free leads will be processed and delivered to you shortly.
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-        </Card>
+      <div className="mx-auto w-full min-w-0 max-w-3xl space-y-6">
+        {header}
+        <SectionCard
+          icon={<Clock />}
+          title="Free leads request submitted"
+          description="You have used your free leads token. Here is what you sent us."
+          actions={<Tag tone="info"><Clock aria-hidden="true" />In progress</Tag>}
+        >
+          <div className="space-y-4">
+            {summary}
+            <Banner tone="info" title="Nothing else to do.">
+              Your free leads will be processed and delivered to you shortly.
+            </Banner>
+          </div>
+        </SectionCard>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-4 p-1">
-      <PageHeader
-        title="Free leads"
-        subtitle="Tell us who you want to reach. You can submit this request once."
-      />
-      <div className="flex items-center justify-center">
-      <Card className="max-w-2xl w-full">
-        <CardHeader>
-          <CardTitle>Request Your Free Leads</CardTitle>
-          <CardDescription>
-            Fill out the form below to receive your free leads. You can only submit this form once.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Alert className="mb-6">
-            <AlertDescription className="flex items-start gap-2">
-              <ExternalLink className="h-4 w-4 mt-0.5 flex-shrink-0" />
-              <div>
-                <strong>Important:</strong> You must input your categories on{" "}
+    <div className="mx-auto w-full min-w-0 max-w-3xl space-y-6">
+      {header}
+      <SectionCard
+        icon={<Target />}
+        title="Request your free leads"
+        description="Describe the businesses you want to reach and where they are."
+      >
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <Banner
+            tone="warning"
+            title="First, add your categories to the Google Sheet."
+            action={
+              <Button asChild variant="outline" size="sm" className="h-11 sm:h-9">
                 <a
                   href="https://docs.google.com/spreadsheets/d/18sA5NE8hP_rb3OWyHNeem9lTv64GCMo4KjksOT1xk10/edit?usp=sharing"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="underline hover:text-primary"
                 >
-                  this Google Sheet
+                  Open the Google Sheet <ExternalLink />
                 </a>
-                . If you do not complete this step, you will not receive any leads.
-              </div>
-            </AlertDescription>
-          </Alert>
+              </Button>
+            }
+          >
+            If you skip this step, you will not receive any leads.
+          </Banner>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="businessKeywords">Business Keywords/Industries to Search For *</Label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field
+              label="Business keywords or industries"
+              htmlFor="businessKeywords"
+              hint="Separate each one with a comma."
+              className="sm:col-span-2"
+            >
               <Textarea
                 id="businessKeywords"
                 placeholder="e.g., Real Estate, HVAC, Plumbing, Dental Clinics"
@@ -254,39 +247,38 @@ export function FreeLeadsRequest() {
                 rows={4}
                 required
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="city">City *</Label>
+            </Field>
+            <Field label="City" htmlFor="city">
               <Input
                 id="city"
                 type="text"
                 placeholder="e.g., New York"
                 value={formData.city}
                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                autoComplete="address-level2"
                 required
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="country">Country *</Label>
+            </Field>
+            <Field label="Country" htmlFor="country">
               <Input
                 id="country"
                 type="text"
                 placeholder="e.g., United States"
                 value={formData.country}
                 onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                autoComplete="country-name"
                 required
               />
-            </div>
+            </Field>
+          </div>
 
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? "Submitting..." : "Submit Free Leads Request"}
+          <SectionFooter note="All three fields are required. You can only submit this form once.">
+            <Button type="submit" variant="accent" disabled={isSubmitting}>
+              {isSubmitting ? "Submitting..." : "Submit free leads request"}
             </Button>
-          </form>
-        </CardContent>
-      </Card>
-      </div>
+          </SectionFooter>
+        </form>
+      </SectionCard>
     </div>
   );
 }

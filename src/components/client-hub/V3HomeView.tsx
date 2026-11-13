@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { PreviewHeaderHost } from "@/components/client-hub/PreviewHeaderSlot";
+import { HubSection } from "@/components/premium/hub/HubSection";
+import { AddRowButton, OnOffSwitch } from "@/components/premium/hub/HubBits";
+import { HaloDropzone } from "@/components/premium/21st/halo-dropzone";
+import { Reveal, RevealItem } from "@/components/premium/Reveal";
+import { Label } from "@/components/ui/label";
 import thumbPlaceholder from "@/assets/video-thumb-placeholder.png.asset.json";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +23,9 @@ import {
   Plus,
   ListChecks,
   LogIn,
+  Hand,
+  Compass,
+  CalendarCheck,
   Link as LinkIcon,
   Trash2,
   Save,
@@ -361,7 +368,7 @@ const V3HomeView = ({
   }) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="More options">
+        <Button variant="ghost" size="icon" className="size-9" aria-label="More options">
           <MoreVertical className="w-4 h-4" />
         </Button>
       </DropdownMenuTrigger>
@@ -385,61 +392,55 @@ const V3HomeView = ({
   );
 
   const ringClass = (key: string) =>
-    highlight === key ? "ring-2 ring-primary ring-offset-2 animate-pulse" : "";
-
-  const quickActionsMenu = (
-    <button
-      onClick={onOpenLoginDialog}
-      className="flex items-center gap-2 h-9 px-3 rounded-md border bg-white hover:bg-muted/60 transition text-sm font-semibold"
-    >
-      <LogIn className="w-4 h-4" /> Customize Login
-    </button>
-  );
+    highlight === key ? "ring-2 ring-brand ring-offset-2 animate-pulse" : "";
 
   return (
-    <div className="border rounded-lg bg-background">
-      <div className="px-4 py-3 border-b shadow-sm flex items-center justify-between gap-3 flex-wrap">
-        <PreviewHeaderHost />
-        {quickActionsMenu}
-      </div>
-
-      <div className="grid grid-cols-1">
-        {/* RIGHT: Editor canvas */}
-        <div className="p-6 space-y-4">
+    <div className="min-w-0">
+      <Reveal className="space-y-4">
+        <RevealItem className="space-y-4">
           {/* Welcome Section */}
-          <div
+          <HubSection
             data-tip-target="v3-home-welcome"
-            className={`group relative rounded-lg dashed-edit-form p-5 transition ${
-              homeSettings.welcome_enabled ? "bg-background" : "bg-muted/30 opacity-60"
-            }`}
+            icon={<Hand />}
+            title="Welcome message"
+            description="The headline clients read first."
+            off={!homeSettings.welcome_enabled}
+            actions={
+              <>
+                <OnOffSwitch
+                  checked={!!homeSettings.welcome_enabled}
+                  onCheckedChange={() => update({ welcome_enabled: !homeSettings.welcome_enabled })}
+                  label="Show the welcome message"
+                />
+                <SectionMenu
+                  enabled={homeSettings.welcome_enabled}
+                  onToggle={() => update({ welcome_enabled: !homeSettings.welcome_enabled })}
+                  onDelete={() =>
+                    update({
+                      welcome_enabled: false,
+                      welcome_headline: "",
+                      welcome_subheadline: "",
+                    })
+                  }
+                />
+              </>
+            }
           >
-            <div className="absolute top-2 right-2">
-              <SectionMenu
-                enabled={homeSettings.welcome_enabled}
-                onToggle={() => update({ welcome_enabled: !homeSettings.welcome_enabled })}
-                onDelete={() =>
-                  update({
-                    welcome_enabled: false,
-                    welcome_headline: "",
-                    welcome_subheadline: "",
-                  })
-                }
-              />
-            </div>
-
-            <div className="pr-8 space-y-3">
+            <div className="space-y-4">
               <div className="space-y-1.5">
-                <span className="block text-xs font-semibold">Headline</span>
+                <Label htmlFor="home-welcome-headline">Headline</Label>
                 <Input
+                  id="home-welcome-headline"
                   value={homeSettings.welcome_headline}
                   onChange={(e) => update({ welcome_headline: e.target.value })}
-                  className="text-xl font-bold"
+                  className="font-semibold"
                   placeholder="Welcome headline"
                 />
               </div>
               <div className="space-y-1.5">
-                <span className="block text-xs font-semibold">Subheadline</span>
+                <Label htmlFor="home-welcome-sub">Subheadline</Label>
                 <Textarea
+                  id="home-welcome-sub"
                   value={homeSettings.welcome_subheadline}
                   onChange={(e) => update({ welcome_subheadline: e.target.value })}
                   rows={2}
@@ -448,60 +449,67 @@ const V3HomeView = ({
                 />
               </div>
             </div>
-          </div>
+          </HubSection>
 
           {/* Add buttons for sections not yet present */}
-          <div className="grid grid-cols-2 gap-3" data-tip-target="v3-home-add-sections">
+          <div className="flex flex-col gap-3 empty:hidden sm:flex-row [&>*]:flex-1" data-tip-target="v3-home-add-sections">
             {homeSettings.announcements_headline === null && (
-              <button
+              <AddRowButton
                 onClick={handleAddAnnouncement}
                 data-tip-target="v3-home-add-announcement"
-                className="flex items-center justify-center gap-2 py-3 rounded-lg dashed-edit text-sm text-primary hover:bg-primary/5"
+                icon={<Megaphone className="size-4" aria-hidden="true" />}
               >
-                <Megaphone className="w-4 h-4" /> Add Announcement Bar
-              </button>
+                Add an announcement
+              </AddRowButton>
             )}
             {!homeSettings.welcome_video_url && !homeSettings.welcome_video_enabled && (
-              <button
-                onClick={addWelcomeVideo}
-                className="flex items-center justify-center gap-2 py-3 rounded-lg dashed-edit text-sm text-primary hover:bg-primary/5"
-              >
-                <Video className="w-4 h-4" /> Add Welcome Video
-              </button>
+              <AddRowButton onClick={addWelcomeVideo} icon={<Video className="size-4" aria-hidden="true" />}>
+                Add a welcome video
+              </AddRowButton>
             )}
           </div>
 
           {/* Announcement Bar */}
           {homeSettings.announcements_headline !== null && (
-            <div
+            <HubSection
               ref={announcementRef}
               data-tip-target="v3-home-announcement"
-              className={`rounded-lg dashed-edit-form p-4 relative transition ${
-                !homeSettings.announcements_enabled ? "bg-muted/40 opacity-60" : ""
-              } ${ringClass("announcement")}`}
+              icon={<Megaphone />}
+              title="Announcement"
+              description="A highlighted note with an optional image."
+              off={!homeSettings.announcements_enabled}
+              className={ringClass("announcement")}
+              actions={
+                <>
+                  <OnOffSwitch
+                    checked={!!homeSettings.announcements_enabled}
+                    onCheckedChange={() =>
+                      update({ announcements_enabled: !homeSettings.announcements_enabled })
+                    }
+                    label="Show the announcement"
+                  />
+                  <SectionMenu
+                    enabled={!!homeSettings.announcements_enabled}
+                    onToggle={() =>
+                      update({ announcements_enabled: !homeSettings.announcements_enabled })
+                    }
+                    onDelete={() =>
+                      update({
+                        announcements_enabled: false,
+                        announcements_headline: null,
+                        announcements_paragraph: null,
+                        announcements_image_url: null,
+                      })
+                    }
+                  />
+                </>
+              }
             >
-              <div className="absolute top-2 right-2">
-                <SectionMenu
-                  enabled={!!homeSettings.announcements_enabled}
-                  onToggle={() =>
-                    update({ announcements_enabled: !homeSettings.announcements_enabled })
-                  }
-                  onDelete={() =>
-                    update({
-                      announcements_enabled: false,
-                      announcements_headline: null,
-                      announcements_paragraph: null,
-                      announcements_image_url: null,
-                    })
-                  }
-                />
-              </div>
-              <div className="flex flex-col sm:flex-row gap-4 items-start pr-12">
+              <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-start">
                 <button
                   type="button"
                   onClick={openImageDialog}
-                  className="w-full sm:w-[22%] shrink-0 aspect-video rounded-md thumb-placeholder overflow-hidden flex flex-col items-center justify-center hover:opacity-90 transition text-muted-foreground"
-                  style={{ backgroundImage: `url(${thumbPlaceholder.url})` }}
+                  className="flex aspect-video w-full shrink-0 flex-col items-center justify-center overflow-hidden rounded-md border border-dashed border-border bg-muted/40 text-muted-foreground transition-colors duration-150 hover:border-brand/50 hover:bg-brand-subtle hover:text-brand sm:w-48"
                   title="Click to set image"
                 >
                   {homeSettings.announcements_image_url ? (
@@ -533,38 +541,44 @@ const V3HomeView = ({
                   />
                 </div>
               </div>
-            </div>
+            </HubSection>
           )}
 
           {/* Welcome Video */}
           {(homeSettings.welcome_video_enabled || homeSettings.welcome_video_url) && (
-            <div
+            <HubSection
               ref={welcomeVideoRef}
               data-tip-target="v3-home-welcome-video"
-              className={`rounded-lg dashed-edit-form p-4 space-y-3 relative transition ${
-                !homeSettings.welcome_video_enabled ? "bg-muted/40 opacity-60" : ""
-              } ${ringClass("welcome-video")}`}
+              icon={<Video />}
+              title="Welcome video"
+              description="One video at the top of Home. Paste a link or pick one of your lessons."
+              off={!homeSettings.welcome_video_enabled}
+              className={ringClass("welcome-video")}
+              actions={
+                <>
+                  <OnOffSwitch
+                    checked={!!homeSettings.welcome_video_enabled}
+                    onCheckedChange={() =>
+                      update({ welcome_video_enabled: !homeSettings.welcome_video_enabled })
+                    }
+                    label="Show the welcome video"
+                  />
+                  <SectionMenu
+                    enabled={!!homeSettings.welcome_video_enabled}
+                    onToggle={() =>
+                      update({ welcome_video_enabled: !homeSettings.welcome_video_enabled })
+                    }
+                    onDelete={() =>
+                      update({ welcome_video_enabled: false, welcome_video_url: null })
+                    }
+                  />
+                </>
+              }
             >
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Video className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-semibold">Welcome Video</span>
-                </div>
-                <SectionMenu
-                  enabled={!!homeSettings.welcome_video_enabled}
-                  onToggle={() =>
-                    update({ welcome_video_enabled: !homeSettings.welcome_video_enabled })
-                  }
-                  onDelete={() =>
-                    update({ welcome_video_enabled: false, welcome_video_url: null })
-                  }
-                />
-              </div>
-
               <div className="flex flex-col sm:flex-row gap-4">
                 {/* LEFT: thumbnail uploader */}
-                 <div className="sm:w-[22%] space-y-2" data-tip-target="v3-home-video-thumbnail">
-                  <span className="block text-xs font-semibold">Video Thumbnail (Optional)</span>
+                 <div className="space-y-1.5 sm:w-48 sm:shrink-0" data-tip-target="v3-home-video-thumbnail">
+                  <span className="block text-sm font-medium">Thumbnail <span className="font-normal text-muted-foreground">(optional)</span></span>
                   <div className="relative group">
                     <button
                       type="button"
@@ -575,8 +589,7 @@ const V3HomeView = ({
                           ? "Replace video thumbnail"
                           : "Upload video thumbnail"
                       }
-                      className="group/thumb w-full aspect-video rounded-md thumb-placeholder overflow-hidden flex flex-col items-center justify-center gap-1 text-xs text-muted-foreground hover:text-primary transition disabled:opacity-60"
-                      style={{ backgroundImage: `url(${thumbPlaceholder.url})` }}
+                      className="group/thumb flex aspect-video w-full flex-col items-center justify-center gap-1 overflow-hidden rounded-md border border-dashed border-border bg-muted/40 text-xs text-muted-foreground transition-colors duration-150 hover:border-brand/50 hover:bg-brand-subtle hover:text-brand disabled:opacity-60"
                     >
                       {homeSettings.welcome_video_thumbnail_url ? (
                         <>
@@ -590,7 +603,7 @@ const V3HomeView = ({
                           </span>
                         </>
                       ) : (
-                        <span className="flex flex-col items-center gap-1 transition-transform duration-150 group-hover/thumb:scale-110">
+                        <span className="flex flex-col items-center gap-1">
                           <Upload className="w-5 h-5" />
                           <span>{uploadingThumbnail ? "Uploading..." : "Click to upload"}</span>
                         </span>
@@ -620,9 +633,7 @@ const V3HomeView = ({
 
                 {/* RIGHT: source toggle + input + preview */}
                 <div className="flex-1 min-w-0 space-y-2">
-                  <span className="hidden sm:block text-xs font-semibold invisible" aria-hidden="true">
-                    Source
-                  </span>
+                  <span className="block text-sm font-medium">Video source</span>
                   {(() => {
                     const source = homeSettings.welcome_video_source || "url";
                     const mode =
@@ -634,17 +645,21 @@ const V3HomeView = ({
                       { key: "custom", label: "My Videos", apply: { welcome_video_source: "custom" } },
                     ];
                     return (
-                      <div className="inline-flex flex-wrap gap-1 rounded-lg border border-border/60 bg-background/70 p-1">
+                      <div className="inline-flex max-w-full flex-wrap gap-1 rounded-md bg-muted p-1" role="group" aria-label="Video source">
                         {opts.map((o) => (
-                          <Button
+                          <button
                             key={o.key}
-                            size="sm"
-                            variant={mode === o.key ? "default" : "ghost"}
-                            className="h-8 px-3 text-xs"
+                            type="button"
+                            aria-pressed={mode === o.key}
+                            className={`min-h-9 rounded-sm px-3 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                              mode === o.key
+                                ? "bg-background text-foreground shadow-card"
+                                : "text-muted-foreground hover:text-foreground"
+                            }`}
                             onClick={() => update(o.apply)}
                           >
                             {o.label}
-                          </Button>
+                          </button>
                         ))}
                       </div>
                     );
@@ -779,24 +794,25 @@ const V3HomeView = ({
                   }}
                 />
               </div>
-            </div>
+            </HubSection>
           )}
+        </RevealItem>
 
+        <RevealItem className="space-y-4">
           {/* Daily Checklist (inline) */}
-          <div
+          <HubSection
             ref={checklistRef}
             data-tip-target="v3-home-checklist"
-            className={`rounded-lg dashed-edit-form p-4 transition ${ringClass("checklist-title")}`}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <ListChecks className="w-4 h-4 text-primary" />
-                <span className="text-sm font-semibold">Onboarding Checklist</span>
-              </div>
-              <span className="text-xs text-muted-foreground">
+            icon={<ListChecks />}
+            title="Onboarding checklist"
+            description="Steps a new client ticks off once. Each step can link to a video. Items save as you type."
+            className={ringClass("checklist-title")}
+            actions={
+              <span className="text-xs tabular-nums text-muted-foreground">
                 {checklistItems.length} item{checklistItems.length === 1 ? "" : "s"}
               </span>
-            </div>
+            }
+          >
 
             <div className="space-y-2">
               {checklistItems.map((item, idx) => (
@@ -941,44 +957,25 @@ const V3HomeView = ({
                   )}
                 </div>
               ))}
-              {checklistItems.length === 0 && (
-                <p className="text-xs text-muted-foreground italic px-2">
-                  No items yet. Click "Add checklist item" below.
-                </p>
-              )}
             </div>
 
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="w-full mt-3 dashed-edit"
-              onClick={addChecklistItem}
-            >
-              <Plus className="w-4 h-4 mr-1" /> Add checklist item
-            </Button>
-          </div>
+            <AddRowButton className={checklistItems.length ? "mt-3" : ""} onClick={addChecklistItem}>
+              Add checklist item
+            </AddRowButton>
+          </HubSection>
 
           {/* What to do next */}
-          <div className={`rounded-lg dashed-edit-form p-4 space-y-3 transition ${
-            !homeSettings.next_steps_enabled ? "bg-muted/40 opacity-60" : ""
-          }`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <ListChecks className="w-4 h-4 text-primary" />
-                <span className="text-sm font-semibold">What to do next</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">
-                  {homeSettings.next_steps_enabled ? "Enabled" : "Disabled"}
-                </span>
-                <input
-                  type="checkbox"
-                  className="sr-only"
+          <HubSection
+            icon={<Compass />}
+            title="What to do next"
+            description="A nudge on Home that points each client to their next step."
+            off={!homeSettings.next_steps_enabled}
+            actions={
+                <OnOffSwitch
                   id="next-steps-toggle-v3"
-                  checked={homeSettings.next_steps_enabled}
-                  onChange={async (e) => {
-                    const checked = e.target.checked;
+                  label="Show What to do next"
+                  checked={!!homeSettings.next_steps_enabled}
+                  onCheckedChange={async (checked) => {
                     update({ next_steps_enabled: checked });
                     if (!selectedPlanAgencyId) return;
                     const { error } = await supabase
@@ -988,25 +985,12 @@ const V3HomeView = ({
                     if (error) toast.error('Failed to save');
                   }}
                 />
-                <label
-                  htmlFor="next-steps-toggle-v3"
-                  className={`relative inline-flex h-5 w-9 items-center rounded-full cursor-pointer transition-colors ${
-                    homeSettings.next_steps_enabled ? "bg-primary" : "bg-muted-foreground/30"
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-background transition-transform ${
-                      homeSettings.next_steps_enabled ? "translate-x-5" : "translate-x-1"
-                    }`}
-                  />
-                </label>
-              </div>
-            </div>
-
+            }
+          >
             {homeSettings.next_steps_enabled && (
-              <>
-                <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">Prioritize</label>
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label>Send clients to</Label>
                   <Select
                     value={homeSettings.next_steps_priority}
                     onValueChange={async (v) => {
@@ -1020,7 +1004,7 @@ const V3HomeView = ({
                       if (error) toast.error('Failed to save');
                     }}
                   >
-                    <SelectTrigger className="h-9 text-sm">
+                    <SelectTrigger className="sm:max-w-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1071,109 +1055,96 @@ const V3HomeView = ({
                     </div>
                   </div>
                 )}
-              </>
+              </div>
             )}
-          </div>
+          </HubSection>
 
           {/* Daily Checklist (plan-specific) */}
-          <div
+          <HubSection
             ref={dailyChecklistRef}
             data-tip-target="v3-home-daily"
-            className={`rounded-lg dashed-edit-form p-4 space-y-3 transition ${
-              !dailyChecklistEnabled ? "bg-muted/40 opacity-60" : ""
-            } ${ringClass("daily-checklist")}`}
+            icon={<CalendarCheck />}
+            title="Daily checklist"
+            description="Three habits that reset every day for each client."
+            off={!dailyChecklistEnabled}
+            className={ringClass("daily-checklist")}
+            actions={
+              <OnOffSwitch
+                id="daily-toggle-v3"
+                label="Show the daily checklist"
+                checked={dailyChecklistEnabled}
+                onCheckedChange={(c) => toggleDailyChecklist(c)}
+              />
+            }
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <ListChecks className="w-4 h-4 text-primary" />
-                <Input
-                  value={dailyChecklistTitle}
-                  onChange={(e) => setDailyChecklistTitle(e.target.value)}
-                  onBlur={(e) => saveDailyChecklistTitle(e.target.value)}
-                  className="h-8 text-sm font-semibold border-0 bg-transparent focus-visible:ring-1 max-w-xs"
-                  placeholder="Daily Checklist title"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">
-                  {dailyChecklistEnabled ? "Enabled" : "Disabled"}
-                </span>
-                <input
-                  type="checkbox"
-                  className="sr-only"
-                  id="daily-toggle-v3"
-                  checked={dailyChecklistEnabled}
-                  onChange={(e) => toggleDailyChecklist(e.target.checked)}
-                />
-                <label
-                  htmlFor="daily-toggle-v3"
-                  className={`relative inline-flex h-5 w-9 items-center rounded-full cursor-pointer transition-colors ${
-                    dailyChecklistEnabled ? "bg-primary" : "bg-muted-foreground/30"
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-background transition-transform ${
-                      dailyChecklistEnabled ? "translate-x-4" : "translate-x-0.5"
-                    }`}
-                  />
-                </label>
-              </div>
+            <div className="mb-3 space-y-1.5">
+              <Label htmlFor="daily-checklist-title">Title clients see</Label>
+              <Input
+                id="daily-checklist-title"
+                value={dailyChecklistTitle}
+                onChange={(e) => setDailyChecklistTitle(e.target.value)}
+                onBlur={(e) => saveDailyChecklistTitle(e.target.value)}
+                className="sm:max-w-sm"
+                placeholder="Daily Checklist title"
+              />
             </div>
             <div className="space-y-2">
               {(["item_1", "item_2", "item_3"] as const).map((key, idx) => (
                 <div key={key} className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground w-4">{idx + 1}.</span>
+                  <span className="w-4 text-sm tabular-nums text-muted-foreground">{idx + 1}.</span>
                   <Input
                     value={dailyChecklistItems[key]}
                     onChange={(e) =>
                       setDailyChecklistItems((prev) => ({ ...prev, [key]: e.target.value }))
                     }
                     placeholder={`Daily task ${idx + 1}`}
-                    className="h-8 text-sm"
+                    aria-label={`Daily task ${idx + 1}`}
                   />
                 </div>
               ))}
             </div>
-            <div className="flex justify-end">
-              <Button size="sm" variant="outline" onClick={() => saveDailyChecklistItems()} disabled={isSaving}>
-                <Save className="w-3.5 h-3.5 mr-1" />
-                Save Daily Checklist
-              </Button>
-            </div>
-          </div>
+          </HubSection>
 
           {/* Custom Buttons & Links */}
-          <div
+          <HubSection
             ref={customLinksRef}
             data-tip-target="v3-home-custom-links"
-            className={`rounded-lg dashed-edit-form p-4 transition ${
-              !homeSettings.custom_links_enabled && hasAnyLink ? "bg-muted/40 opacity-60" : ""
-            } ${ringClass("custom-links")}`}
+            icon={<LinkIcon />}
+            title="Buttons and links"
+            description="Up to three buttons that send clients anywhere you choose."
+            off={!homeSettings.custom_links_enabled && hasAnyLink}
+            className={ringClass("custom-links")}
+            actions={
+              <>
+                {hasAnyLink ? (
+                  <OnOffSwitch
+                    checked={!!homeSettings.custom_links_enabled}
+                    onCheckedChange={() =>
+                      update({ custom_links_enabled: !homeSettings.custom_links_enabled })
+                    }
+                    label="Show buttons and links"
+                  />
+                ) : null}
+                <SectionMenu
+                  enabled={!!homeSettings.custom_links_enabled}
+                  onToggle={() =>
+                    update({ custom_links_enabled: !homeSettings.custom_links_enabled })
+                  }
+                  onDelete={() =>
+                    update({
+                      custom_links_enabled: false,
+                      custom_link_1_text: null,
+                      custom_link_1_url: null,
+                      custom_link_2_text: null,
+                      custom_link_2_url: null,
+                      custom_link_3_text: null,
+                      custom_link_3_url: null,
+                    } as any)
+                  }
+                />
+              </>
+            }
           >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <LinkIcon className="w-4 h-4 text-primary" />
-                <span className="text-sm font-semibold">Custom Buttons & Links</span>
-              </div>
-              <SectionMenu
-                enabled={!!homeSettings.custom_links_enabled}
-                onToggle={() =>
-                  update({ custom_links_enabled: !homeSettings.custom_links_enabled })
-                }
-                onDelete={() =>
-                  update({
-                    custom_links_enabled: false,
-                    custom_link_1_text: null,
-                    custom_link_1_url: null,
-                    custom_link_2_text: null,
-                    custom_link_2_url: null,
-                    custom_link_3_text: null,
-                    custom_link_3_url: null,
-                  } as any)
-                }
-              />
-            </div>
-
             <div className="space-y-3">
               {linkSlots.map(({ idx }) => {
                 const text = (homeSettings as any)[`custom_link_${idx}_text`] as string | null;
@@ -1182,15 +1153,15 @@ const V3HomeView = ({
                 const openAsPopup = !!(homeSettings as any)[`custom_link_${idx}_open_as_popup`];
                 if (!text && !url) return null;
                 return (
-                  <div key={idx} className="space-y-2 pb-2 border-b last:border-0">
-                    <div className="grid grid-cols-[1fr_1fr_56px_36px] gap-2 items-center">
+                  <div key={idx} className="space-y-2 rounded-md border border-border p-3">
+                    <div className="grid grid-cols-[1fr_44px_44px] items-center gap-2 sm:grid-cols-[1fr_1fr_44px_44px] [&>input:nth-child(2)]:order-last [&>input:nth-child(2)]:col-span-3 sm:[&>input:nth-child(2)]:order-none sm:[&>input:nth-child(2)]:col-span-1">
                     <Input
                       value={text || ""}
                       onChange={(e) =>
                         update({ [`custom_link_${idx}_text`]: e.target.value } as any)
                       }
                       placeholder="Button label"
-                      className="text-sm h-9"
+                      aria-label="Button label"
                     />
                     <Input
                       value={url || ""}
@@ -1198,21 +1169,23 @@ const V3HomeView = ({
                         update({ [`custom_link_${idx}_url`]: e.target.value } as any)
                       }
                       placeholder="https://..."
-                      className="text-sm h-9"
+                      aria-label="Button link"
                     />
                     <input
                       type="color"
+                      aria-label="Button color"
                       value={color || "#3b82f6"}
                       onChange={(e) =>
                         update({ [`custom_link_${idx}_color`]: e.target.value } as any)
                       }
-                      className="h-9 w-full rounded border cursor-pointer bg-transparent"
+                      className="h-11 w-full cursor-pointer rounded-md border border-border bg-transparent p-1"
                       title="Button color"
                     />
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-9 w-9 text-destructive"
+                      className="size-11 text-muted-foreground hover:text-destructive"
+                      aria-label="Delete button"
                       onClick={() =>
                         update({
                           [`custom_link_${idx}_text`]: null,
@@ -1247,11 +1220,7 @@ const V3HomeView = ({
                 );
                 if (!nextEmpty) return null;
                 return (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="w-full dashed-edit"
+                  <AddRowButton
                     onClick={() =>
                       update({
                         custom_links_enabled: true,
@@ -1261,21 +1230,43 @@ const V3HomeView = ({
                       } as any)
                     }
                   >
-                    <Plus className="w-4 h-4 mr-1" /> Add custom button or link
-                  </Button>
+                    Add a button or link
+                  </AddRowButton>
                 );
               })()}
             </div>
-          </div>
+          </HubSection>
 
-          {/* Save bar */}
-          <div className="flex justify-end pt-2">
-            <Button onClick={() => saveHomeSettings()} disabled={isSaving}>
-              <Save className="w-4 h-4 mr-2" />
-              {isSaving ? "Saving..." : "Save Home Settings"}
-            </Button>
-          </div>
-        </div>
+          {/* Client login: shared by every plan, so it sits apart from the page sections */}
+          <HubSection
+            icon={<LogIn />}
+            title="Client login"
+            description="How clients sign in, and which page opens first. Shared by all plans."
+            actions={
+              <Button variant="outline" onClick={onOpenLoginDialog}>
+                Customize login
+              </Button>
+            }
+          />
+        </RevealItem>
+      </Reveal>
+
+      {/* Save bar: the one primary action of the Home page */}
+      <div className="px-glass sticky bottom-3 z-10 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3 shadow-raised">
+        <p className="min-w-0 flex-1 basis-48 text-sm text-muted-foreground">
+          Saves the welcome message, announcement, video, daily checklist and buttons for this plan.
+        </p>
+        <Button
+          variant="accent"
+          onClick={async () => {
+            await saveDailyChecklistItems();
+            await saveHomeSettings();
+          }}
+          disabled={isSaving}
+        >
+          <Save className="size-4" />
+          {isSaving ? "Saving…" : "Save Home page"}
+        </Button>
       </div>
 
       {/* Announcement image dialog */}
@@ -1297,16 +1288,18 @@ const V3HomeView = ({
                   if (f) handleImageUpload(f);
                 }}
               />
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={() => fileInputRef.current?.click()}
+              <HaloDropzone
+                accept="image/*"
                 disabled={uploadingImage}
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                {uploadingImage ? "Uploading..." : "Upload from device"}
-              </Button>
+                emptyLabel={uploadingImage ? "Uploading…" : "Drop an image, or click to choose"}
+                formatHint="PNG or JPG, 16:9 looks best"
+                successLabel="Image added"
+                showSuccessThumbnails={false}
+                successResetMs={1800}
+                onFiles={(files) => {
+                  if (files[0]) handleImageUpload(files[0]);
+                }}
+              />
             </div>
             <div className="relative">
               <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>

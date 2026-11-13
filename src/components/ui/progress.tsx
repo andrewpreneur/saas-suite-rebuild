@@ -1,9 +1,25 @@
-// Picks the old or the new (design system) version of this component.
-// See src/lib/uiVersion.ts. Edit the look in ./ds/progress.tsx (new) or ./legacy/progress.tsx (old).
-import { newUi } from "@/lib/uiVersion";
-import * as ds from "./ds/progress";
-import * as legacy from "./legacy/progress";
+"use client";
 
-const ui = (newUi ? ds : legacy) as typeof ds;
+import * as React from "react";
+import * as ProgressPrimitive from "@radix-ui/react-progress";
 
-export const Progress = ui.Progress;
+import { cn } from "@/lib/utils";
+
+const Progress = React.forwardRef<
+  React.ElementRef<typeof ProgressPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root>
+>(({ className, value, ...props }, ref) => (
+  <ProgressPrimitive.Root
+    ref={ref}
+    className={cn("relative h-2 w-full overflow-hidden rounded-full bg-border", className)}
+    {...props}
+  >
+    <ProgressPrimitive.Indicator
+      className="h-full w-full flex-1 rounded-full bg-brand transition-all"
+      style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
+    />
+  </ProgressPrimitive.Root>
+));
+Progress.displayName = ProgressPrimitive.Root.displayName;
+
+export { Progress };

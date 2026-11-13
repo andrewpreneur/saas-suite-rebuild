@@ -35,10 +35,10 @@ function isExternal(href: string): boolean {
 }
 
 const primaryActionClass =
-  "inline-flex h-12 w-full items-center justify-center gap-2 rounded-md bg-purple-700 px-6 text-base font-semibold text-white shadow-sm hover:bg-purple-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-700 focus-visible:ring-offset-2 dark:bg-purple-300 dark:text-purple-950 dark:hover:bg-purple-200 dark:focus-visible:ring-purple-200 sm:w-auto";
+  "px-brand-fill inline-flex h-11 w-full items-center justify-center gap-2 rounded-md px-6 text-sm font-semibold transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:w-auto";
 
 const quietLinkClass =
-  "text-sm font-medium text-purple-800 underline decoration-purple-400 underline-offset-4 hover:text-purple-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-700 dark:text-purple-200 dark:hover:text-purple-50";
+  "text-sm font-medium text-brand underline decoration-brand/40 underline-offset-4 hover:text-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand";
 
 export type KitStage =
   | "Not started"
@@ -58,9 +58,9 @@ export function KitStagePill({ stage }: { stage: KitStage }) {
       data-kit-stage={stage}
       className={cn(
         "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold",
-        done && "bg-green-100 text-green-900 dark:bg-green-950 dark:text-green-100",
-        current && "bg-purple-100 text-purple-900 dark:bg-purple-950 dark:text-purple-100",
-        !done && !current && "bg-muted text-foreground",
+        done && "bg-success/10 text-success",
+        current && "bg-brand-subtle text-brand",
+        !done && !current && "bg-muted text-muted-foreground",
       )}
     >
       {stage}
@@ -237,26 +237,17 @@ function StepButton({
       data-kit-step-state={selected ? "current" : done ? "complete" : "upcoming"}
       onClick={() => onSelect(step.id)}
       className={cn(
-        "flex w-full min-w-0 items-start gap-2 rounded-md border px-2.5 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-700",
-        selected &&
-          "border-purple-700 bg-purple-700 text-white dark:border-purple-300 dark:bg-purple-300 dark:text-purple-950",
-        !selected &&
-          done &&
-          "border-green-600 bg-green-50 text-green-950 hover:bg-green-100 dark:border-green-400 dark:bg-green-950 dark:text-green-50",
-        !selected &&
-          !done &&
-          "border-transparent text-foreground hover:border-purple-200 hover:bg-purple-50 dark:hover:border-purple-800 dark:hover:bg-purple-950/50",
+        "flex w-full min-w-0 items-start gap-2 rounded-md border px-2.5 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
+        selected && "border-brand/30 bg-brand-subtle text-foreground",
+        !selected && "border-transparent text-foreground hover:bg-muted/60",
       )}
     >
       <span
         className={cn(
           "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold",
-          selected &&
-            "border-white/70 bg-white/15 text-white dark:border-purple-950/30 dark:text-purple-950",
-          !selected && done && "border-green-700 bg-green-600 text-white dark:border-green-200",
-          !selected &&
-            !done &&
-            "border-purple-300 text-purple-800 dark:border-purple-700 dark:text-purple-200",
+          done && "border-success bg-success text-white",
+          !done && selected && "border-brand bg-brand text-white",
+          !done && !selected && "border-border text-muted-foreground",
         )}
         aria-hidden="true"
       >
@@ -267,12 +258,8 @@ function StepButton({
         <span
           data-kit-stage={stage}
           className={cn(
-            "mt-1 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold",
-            selected && "bg-white/20 text-inherit",
-            !selected && done && "bg-green-800 text-white",
-            !selected &&
-              !done &&
-              "bg-purple-100 text-purple-900 dark:bg-purple-950 dark:text-purple-100",
+            "mt-0.5 block text-xs font-normal",
+            done ? "text-success" : selected ? "text-brand" : "text-muted-foreground",
           )}
         >
           {stage}
@@ -446,12 +433,12 @@ export function KitOnboardingGuide({
 
   return (
     <section
-      className="space-y-3 rounded-xl bg-white p-3 text-foreground dark:bg-background sm:p-4"
+      className="px-surface space-y-4 p-4 text-foreground sm:p-6"
       data-testid="kit-onboarding"
       id="kit-onboarding"
     >
       <nav aria-label="Breadcrumb" data-testid="kit-breadcrumb">
-        <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-purple-950 dark:text-purple-100">
+        <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-foreground">
           <li>
             <Link to="/app/dashboard" className={quietLinkClass}>
               Dashboard
@@ -470,17 +457,17 @@ export function KitOnboardingGuide({
         </ol>
       </nav>
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold text-purple-800 dark:text-purple-200">
+        <h2 className="text-base font-semibold text-foreground">
           One Feature Training
-        </h3>
+        </h2>
         <p className="text-sm text-muted-foreground">
           Take the steps in order. Your place is saved in this browser.
         </p>
       </div>
-      <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[16rem_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-[16rem_minmax(0,1fr)]">
         <nav aria-label="Onboarding steps" className="min-w-0 space-y-3 md:sticky md:top-4">
           <div className="space-y-2">
-            <p className="text-sm font-semibold text-purple-950 dark:text-purple-100">
+            <p className="text-sm font-semibold text-foreground">
               <span data-kit-step-position={`Step ${stepNumber} of ${steps.length}`}>
                 Step {stepNumber} of {steps.length}
               </span>
@@ -493,11 +480,11 @@ export function KitOnboardingGuide({
               {summary.label} complete
             </p>
             <div
-              className="h-2.5 w-full overflow-hidden rounded-full bg-purple-100 dark:bg-purple-950"
+              className="h-2 w-full overflow-hidden rounded-full bg-muted"
               aria-hidden="true"
             >
               <div
-                className="h-full bg-green-600 dark:bg-green-400"
+                className="px-brand-fill h-full rounded-full !shadow-none transition-[width] duration-300"
                 style={{ width: `${percent}%` }}
               />
             </div>
@@ -525,16 +512,14 @@ export function KitOnboardingGuide({
         </nav>
         <article
           className={cn(
-            "min-w-0 space-y-4 rounded-xl border-2 bg-card p-4 text-card-foreground shadow sm:p-5",
-            selectedStatus === "open"
-              ? "border-purple-600 dark:border-purple-300"
-              : "border-green-600 dark:border-green-400",
+            "min-w-0 space-y-4 rounded-lg border bg-card p-4 text-card-foreground sm:p-6",
+            selectedStatus === "open" ? "border-border" : "border-success/40",
           )}
           aria-labelledby="kit-step-title"
         >
           <div className="space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-semibold text-purple-800 dark:text-purple-200">
+              <p className="px-eyebrow">
                 Step {stepNumber} of {steps.length}
               </p>
               <div className="flex flex-wrap items-center gap-3">
@@ -556,7 +541,7 @@ export function KitOnboardingGuide({
             </div>
             <h4
               id="kit-step-title"
-              className="text-xl font-semibold text-purple-950 dark:text-purple-50"
+              className="text-h4 font-semibold tracking-tight text-foreground"
             >
               {selected.title}
             </h4>

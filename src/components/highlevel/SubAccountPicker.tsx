@@ -35,7 +35,7 @@ export default function SubAccountPicker({ agencyId, value, onChange, savedIds =
             isActive={(l) => values.includes(l.location_id)}
           />
           {values.length > 0 && (
-            <p className="text-xs text-primary animate-in fade-in duration-200">
+            <p className="text-xs text-brand animate-in fade-in duration-200">
               {values.length} sub-account{values.length > 1 ? "s" : ""} selected
             </p>
           )}
@@ -46,7 +46,7 @@ export default function SubAccountPicker({ agencyId, value, onChange, savedIds =
     return (
       <div className="space-y-2">
         <LocationList locations={locations} value={value || null} onSelect={(l) => onChange(l.location_id)} onRefresh={() => void reload(true)} refreshing={loading} />
-        {sel && <p className="text-xs text-primary animate-in fade-in duration-200">Selected: {sel.name} ({sel.location_id})</p>}
+        {sel && <p className="text-xs text-brand animate-in fade-in duration-200">Selected: {sel.name} ({sel.location_id})</p>}
       </div>
     );
   }

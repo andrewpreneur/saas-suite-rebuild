@@ -83,7 +83,7 @@ const BuildRequestsWidget = () => {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <CardTitle className="text-base flex items-center gap-2">
-            <Hammer className="w-4 h-4 text-violet-500" />
+            <Hammer className="w-4 h-4 text-brand" />
             Build requests
             {openCount > 0 && (
               <Badge variant="destructive" className="text-[10px] px-1.5 py-0">

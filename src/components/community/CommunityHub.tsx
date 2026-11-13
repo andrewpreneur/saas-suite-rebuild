@@ -1,8 +1,10 @@
 import { PageHeader } from "@/components/platform/PageHeader";
 import { LoadNotice } from "@/components/platform/LoadNotice";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import AnimatedTabs from "@/components/premium/21st/animated-tabs";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { pageEnter } from "@/lib/motion";
+import { BookOpen, Layers, Lightbulb, Loader2, MessagesSquare } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCommunityProfile } from "@/hooks/useCommunityProfile";
 import { consumeCommunityTour } from "@/utils/deepLink";
@@ -58,11 +60,11 @@ function slugFor(tab: CommunityTab, section?: CommunityAcademySection) {
   return tab;
 }
 
-const NAV: { id: CommunityTab; label: string }[] = [
-  { id: "feed", label: "Group Chat" },
-  { id: "ideas", label: "Ideas" },
-  { id: "academy", label: "Resources" },
-  { id: "snapshots", label: "Snapshots" },
+const NAV: { id: CommunityTab; label: string; icon: ReactNode }[] = [
+  { id: "feed", label: "Group Chat", icon: <MessagesSquare aria-hidden="true" /> },
+  { id: "ideas", label: "Ideas", icon: <Lightbulb aria-hidden="true" /> },
+  { id: "academy", label: "Resources", icon: <BookOpen aria-hidden="true" /> },
+  { id: "snapshots", label: "Snapshots", icon: <Layers aria-hidden="true" /> },
 ];
 
 export default function CommunityHub({
@@ -211,58 +213,45 @@ export default function CommunityHub({
   }
 
   const nav = (
-    <div className="flex w-max gap-1 rounded-lg bg-muted p-1">
-      {NAV.map((item) => {
-        const active = tab === item.id;
-        return (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => goToTab(item.id)}
-            className={
-              "rounded-md px-3 py-1.5 text-sm whitespace-nowrap " +
-              (active
-                ? "bg-background font-medium text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground")
-            }
-          >
-            {item.label}
-          </button>
-        );
-      })}
-    </div>
+    <AnimatedTabs
+      variant="pill"
+      layoutId="community-sub-nav"
+      activeTab={tab}
+      onChange={(id) => goToTab(id as CommunityTab)}
+      tabs={NAV.map((item) => ({ id: item.id, label: item.label, icon: item.icon }))}
+      className="w-max [&>button]:min-h-[44px] [&>button]:whitespace-nowrap [&>button]:px-4 sm:[&>button]:min-h-[40px] [&_svg]:size-4"
+    />
   );
 
   return (
     <div className="min-w-0 space-y-6">
       {header}
-      {canAnnounce && (
-        <div className="flex items-center justify-end gap-2">
-          <label
-            htmlFor="community-edit-mode"
-            className="text-xs font-medium text-muted-foreground"
-          >
-            Edit mode
-          </label>
-          <Switch id="community-edit-mode" checked={editMode} onCheckedChange={setEditMode} />
-        </div>
-      )}
 
-      <div
-        className="-mx-1 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        data-tip-target="community-nav"
-      >
-        {nav}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div
+          className="-mx-4 min-w-0 max-w-[calc(100%+2rem)] overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:max-w-full sm:px-0 [&::-webkit-scrollbar]:hidden"
+          data-tip-target="community-nav"
+        >
+          {nav}
+        </div>
+        {canAnnounce && (
+          <div className="flex min-h-[44px] items-center gap-2">
+            <label htmlFor="community-edit-mode" className="text-sm font-medium text-muted-foreground">
+              Edit mode
+            </label>
+            <Switch id="community-edit-mode" checked={editMode} onCheckedChange={setEditMode} />
+          </div>
+        )}
       </div>
 
       <div data-tip-target={`community-page-${tab}`}>
         <AnimatePresence mode="wait">
           <motion.div
             key={tab}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
+            variants={pageEnter}
+            initial="hidden"
+            animate="show"
+            exit="exit"
             className="space-y-4"
           >
             {tab === "feed" && (

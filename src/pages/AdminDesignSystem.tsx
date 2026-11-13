@@ -1,12 +1,18 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { CircleCheck, Plus, Settings, Trash2 } from "lucide-react";
+import { BarChart3, CircleCheck, FolderOpen, Inbox, LifeBuoy, Palette, Plus, Settings, Trash2 } from "lucide-react";
+import NumberTicker from "@/components/premium/21st/number-ticker";
+import AnimatedTabs from "@/components/premium/21st/animated-tabs";
+import { TextShimmer } from "@/components/premium/21st/text-shimmer";
+import { FolderCard } from "@/components/premium/21st/folder-card";
+import { ExpandableTabs } from "@/components/premium/21st/expandable-tabs";
+import { EmptyState } from "@/components/premium/21st/empty-state";
+import { Reveal, RevealItem } from "@/components/premium/Reveal";
 import { useUser } from "@/contexts/UserContext";
 import { isPlatformAdminEmail } from "@/lib/platformAdmins";
 import { platformMockEnabled } from "@/lib/platformMock";
 import { chartColors } from "@/lib/chart-colors";
 import { newUi } from "@/lib/uiVersion";
-import { UiVersionSwitch } from "@/components/UiVersionSwitch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -86,7 +92,6 @@ export default function AdminDesignSystem() {
   useEffect(() => {
     if (!newUi) return;
     document.body.classList.add("ds-app");
-    return () => document.body.classList.remove("ds-app");
   }, []);
 
   if (isLoading) return null;
@@ -94,12 +99,12 @@ export default function AdminDesignSystem() {
 
   return (
     <TooltipProvider delayDuration={300}>
-      <main className="min-h-screen bg-canvas text-foreground">
+      <main className="px-canvas min-h-screen text-foreground">
         <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
           <header>
             <h1 className="text-h2 sm:text-h1">SaaSSuite design system</h1>
             <p className="mt-2 max-w-prose text-muted-foreground">
-              Version 0.1. These are the live components and colors the signed-in app uses. Colors live in{" "}
+              Version 1, "SaaSSuite Premium". These are the live components and colors the signed-in app uses. Colors live in{" "}
               <code>src/index.css</code>; components live in <code>src/components/ui</code>.
             </p>
           </header>
@@ -109,9 +114,6 @@ export default function AdminDesignSystem() {
               The components below show their old look. Switch to New UI to see the design system.
             </Banner>
           ) : null}
-          <div>
-            <UiVersionSwitch />
-          </div>
 
           <Section title="Colors" note="Each swatch reads the live token, so it always matches the app.">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -312,6 +314,81 @@ export default function AdminDesignSystem() {
                 Activity panel.
               </TabsContent>
             </Tabs>
+          </Section>
+
+          <Section
+            title="Premium components"
+            note="From 21st.dev, recolored to our tokens. Source and author are credited at the top of each file in src/components/premium/21st."
+          >
+            <Reveal className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <RevealItem>
+                <div className="px-surface flex h-full flex-col gap-2 p-4">
+                  <p className="px-eyebrow">Number ticker</p>
+                  <p className="text-h2 tabular-nums">
+                    <NumberTicker from={0} target={1284} />
+                  </p>
+                  <p className="text-sm text-muted-foreground">KPI numbers count to their value.</p>
+                </div>
+              </RevealItem>
+              <RevealItem>
+                <div className="px-surface flex h-full flex-col gap-3 p-4">
+                  <p className="px-eyebrow">Animated tabs</p>
+                  <AnimatedTabs
+                    variant="segment"
+                    defaultTab="week"
+                    tabs={[
+                      { id: "day", label: "Day" },
+                      { id: "week", label: "Week" },
+                      { id: "month", label: "Month" },
+                    ]}
+                  />
+                  <p className="text-sm text-muted-foreground">Switches inside a page.</p>
+                </div>
+              </RevealItem>
+              <RevealItem>
+                <div className="px-surface flex h-full flex-col gap-3 p-4">
+                  <p className="px-eyebrow">Text shimmer</p>
+                  <TextShimmer className="text-base font-medium">Copilot is thinking…</TextShimmer>
+                  <p className="text-sm text-muted-foreground">Status text while something is working.</p>
+                </div>
+              </RevealItem>
+              <RevealItem>
+                <FolderCard
+                  className="h-full"
+                  icon={<FolderOpen className="size-6 text-[#3E27AE]" aria-hidden="true" />}
+                  title="Getting started"
+                  size="6 lessons · 24 min"
+                />
+              </RevealItem>
+              <RevealItem>
+                <div className="px-surface flex h-full flex-col gap-3 p-4">
+                  <p className="px-eyebrow">Expandable tabs</p>
+                  <ExpandableTabs
+                    activeColor="text-[#3E27AE]"
+                    tabs={[
+                      { title: "Dashboard", icon: BarChart3 },
+                      { title: "Branding", icon: Palette },
+                      { title: "Support", icon: LifeBuoy },
+                    ]}
+                  />
+                  <p className="text-sm text-muted-foreground">Compact toolbars; the phone quick nav uses it.</p>
+                </div>
+              </RevealItem>
+              <RevealItem>
+                <div className="px-surface h-full p-4">
+                  <EmptyState
+                    icon={<Inbox className="size-6" aria-hidden="true" />}
+                    title="No tickets yet"
+                    description="When a client opens a ticket it shows up here."
+                    action={<Button variant="accent">Create a ticket</Button>}
+                  />
+                </div>
+              </RevealItem>
+            </Reveal>
+            <p className="mt-4 text-sm text-muted-foreground">
+              Also in use: wizard steps (onboarding), spotlight (Dashboard), animated list rows (Support inbox), halo
+              dropzone (uploads), morphing copy and success icons, and the AI prompt box (Copilot).
+            </p>
           </Section>
 
           <Section title="Dialog">

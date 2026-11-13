@@ -1,7 +1,17 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { CheckCircle2, Circle, ClipboardCheck, Copy } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ArrowRight } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { popIn, riseItem, staggerParent } from "@/lib/motion";
+import { cn } from "@/lib/utils";
+import { CheckDot, CopyField, ProgressRing } from "@/components/premium/onboarding/pieces";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useUser } from "@/contexts/UserContext";
@@ -69,6 +79,7 @@ const InstallChecklistButton = () => {
   const copy = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success("Copied");
+    return true;
   };
 
   const { css, js } = installSnippets(agencyId);
@@ -81,49 +92,110 @@ const InstallChecklistButton = () => {
   };
 
   const steps: { key: Item; title: string; where: string; value: string }[] = [
-    { key: "menu", title: "Custom menu link", where: "Agency view → Settings → Custom Menu Link. Paste this URL:", value: hubUrl || buildHubUrl(agencyId) },
-    { key: "css", title: "Custom CSS (one line)", where: "Agency view → Settings → Company → White Label → Custom CSS:", value: css },
-    { key: "js", title: "Custom JS (one line)", where: "Agency view → Settings → Company → White Label → Custom JS:", value: js },
+    {
+      key: "menu",
+      title: "Custom menu link",
+      where: "Agency view → Settings → Custom Menu Link. Paste this URL:",
+      value: hubUrl || buildHubUrl(agencyId),
+    },
+    {
+      key: "css",
+      title: "Custom CSS (one line)",
+      where: "Agency view → Settings → Company → White Label → Custom CSS:",
+      value: css,
+    },
+    {
+      key: "js",
+      title: "Custom JS (one line)",
+      where: "Agency view → Settings → Company → White Label → Custom JS:",
+      value: js,
+    },
   ];
+  const allDone = count === steps.length;
 
   return (
     <>
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="gap-2">
-        <ClipboardCheck className="w-4 h-4" />
-        Installation Checklist
-        <span className="text-xs text-muted-foreground">{count}/3</span>
+      <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="gap-2 pl-2">
+        <ProgressRing value={count} total={3} size={22} stroke={3}>
+          {""}
+        </ProgressRing>
+        Install checklist
+        <span className="text-xs tabular-nums text-muted-foreground">{count}/3</span>
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Installation Checklist</DialogTitle>
-            <DialogDescription>Three things to add in HighLevel. Do this on a computer.</DialogDescription>
+        <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
+          <DialogHeader className="min-w-0">
+            <div className="flex items-center gap-4 text-left">
+              <ProgressRing value={count} total={3} size={56} />
+              <div className="min-w-0">
+                <DialogTitle>
+                  {allDone ? "SaaSSuite is installed" : "Install SaaSSuite in HighLevel"}
+                </DialogTitle>
+                <DialogDescription>
+                  {allDone
+                    ? "All three are in place. Changes you make here now update on their own."
+                    : "Three things to paste. Do this on a computer, it takes about 10 minutes."}
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
-          <ol className="space-y-4">
-            {steps.map((s, i) => (
-              <li key={s.key} className="rounded-lg border border-border p-3 space-y-2">
-                <button type="button" onClick={() => toggle(s.key)} className="flex items-center gap-2 text-left w-full">
-                  {done[s.key] ? (
-                    <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
-                  ) : (
-                    <Circle className="w-5 h-5 text-muted-foreground shrink-0" />
-                  )}
-                  <span className="font-medium">
-                    {i + 1}. {s.title}
+          <motion.ol
+            variants={staggerParent}
+            initial="hidden"
+            animate="show"
+            className="min-w-0 space-y-3"
+          >
+            {steps.map((s) => (
+              <motion.li
+                key={s.key}
+                variants={riseItem}
+                className={cn(
+                  "min-w-0 rounded-lg border p-3 transition-colors duration-200",
+                  done[s.key] ? "border-transparent bg-muted" : "border-border bg-card",
+                )}
+              >
+                <button
+                  type="button"
+                  role="checkbox"
+                  aria-checked={done[s.key]}
+                  onClick={() => toggle(s.key)}
+                  className="flex min-h-[2.75rem] w-full items-center gap-3 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <CheckDot checked={done[s.key]} />
+                  <span
+                    className={cn(
+                      "text-body font-medium transition-colors duration-200",
+                      done[s.key] ? "text-muted-foreground line-through" : "text-foreground",
+                    )}
+                  >
+                    {s.title}
                   </span>
                 </button>
-                <p className="text-xs text-muted-foreground">{s.where}</p>
-                <div className="flex items-center gap-2 bg-muted p-2 rounded border border-border">
-                  <code className="text-xs flex-1 break-all font-mono">{s.value}</code>
-                  <Button variant="outline" size="sm" onClick={() => copy(s.value)} aria-label={`Copy ${s.title}`}>
-                    <Copy className="w-4 h-4" />
-                  </Button>
-                </div>
-              </li>
+                <AnimatePresence initial={false}>
+                  {!done[s.key] && (
+                    <motion.div
+                      key="body"
+                      variants={popIn}
+                      initial="hidden"
+                      animate="show"
+                      exit="exit"
+                      className="min-w-0 space-y-2 pl-9 pt-1"
+                    >
+                      <p className="text-small text-muted-foreground">{s.where}</p>
+                      <CopyField
+                        value={s.value}
+                        label={`Copy ${s.title}`}
+                        onCopy={() => copy(s.value)}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.li>
             ))}
-          </ol>
+          </motion.ol>
           <Button variant="ghost" onClick={openFullGuide}>
             Open the full installation guide
+            <ArrowRight />
           </Button>
         </DialogContent>
       </Dialog>

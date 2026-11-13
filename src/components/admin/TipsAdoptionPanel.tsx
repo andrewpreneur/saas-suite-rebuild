@@ -167,7 +167,7 @@ export const TipsAdoptionPanel: React.FC = () => {
   const getCategoryBadge = (category: string) => {
     const colors: Record<string, string> = {
       navigation: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
-      customization: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
+      customization: 'bg-brand-subtle text-brand border-brand/20',
       features: 'bg-green-500/10 text-green-600 border-green-500/20',
       content: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
     };

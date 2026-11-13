@@ -6,9 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { SectionCard } from "@/components/premium/SectionCard";
+import { SettingRow } from "@/components/premium/support/SettingRow";
+import { CopyButton } from "@/components/premium/hub/CopyButton";
+import { EmptyState } from "@/components/premium/21st/empty-state";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Copy, RefreshCw, Plug, Activity } from "lucide-react";
+import { Loader2, Copy, RefreshCw, Plug, Activity, Code2 } from "lucide-react";
 import { toast } from "sonner";
 
 const INGEST_BASE = "https://backend-disconnected.invalid/functions/v1/external-platform-ingest";
@@ -209,183 +213,190 @@ ${headerScript}`,
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      <div className="px-surface space-y-4 p-4 sm:p-6" role="status" aria-label="Loading connection">
+        <div className="flex items-center gap-3">
+          <Skeleton className="size-10 rounded-md" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-48" />
+            <Skeleton className="h-3 w-72 max-w-full" />
+          </div>
+        </div>
+        <Skeleton className="h-11 w-full" />
+        <Skeleton className="h-11 w-40" />
       </div>
     );
   }
 
   if (!connection) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Plug className="w-5 h-5" />
-            Connect External Platform
-          </CardTitle>
-          <CardDescription>
-            Track logins from any software — not just HighLevel. Drop one script (or hand an AI
-            agent a prompt) into your platform and every login flows into your SaaSSuite dashboard
-            and Slack alerts.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <SectionCard
+        icon={<Plug />}
+        title="Connect External Platform"
+        description="Track logins from any software, not just HighLevel. Add one script (or hand an AI agent a prompt) and every login shows up in your SaaSSuite dashboard and Slack alerts."
+      >
+        <div className="space-y-4">
           <div className="space-y-2">
-            <Label>Platform name</Label>
+            <Label htmlFor="external-platform-name">Platform name</Label>
             <Input
+              id="external-platform-name"
               value={platformName}
               onChange={(e) => setPlatformName(e.target.value)}
               placeholder="e.g., Vendasta, Webflow, my custom app"
             />
           </div>
-          <Button onClick={createConnection} disabled={saving} className="w-full">
-            {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plug className="w-4 h-4 mr-2" />}
+          <Button variant="accent" onClick={createConnection} disabled={saving}>
+            {saving ? <Loader2 className="animate-spin" /> : <Plug />}
             Create connection
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </SectionCard>
     );
   }
 
+  const codeBox =
+    "max-h-80 overflow-auto rounded-md border border-border bg-muted p-4 font-mono text-xs leading-relaxed text-foreground";
+
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Plug className="w-5 h-5" />
-                Connect External Platform
-              </CardTitle>
-              <CardDescription>
-                Install once — logins from your platform merge into your user dashboards and ping
-                Slack.
-              </CardDescription>
-            </div>
-            <Badge variant={connection.enabled ? "default" : "secondary"}>
-              {connection.enabled ? "Active" : "Paused"}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Platform name</Label>
-            <Input
-              value={platformName}
-              onChange={(e) => setPlatformName(e.target.value)}
-              onBlur={() => update({ platform_name: platformName.trim() || "External Platform" })}
-            />
-          </div>
+      <SectionCard
+        icon={<Plug />}
+        title="Connect External Platform"
+        description="Install once. Logins from your platform merge into your user dashboards and ping Slack."
+        actions={
+          <Badge variant={connection.enabled ? "success" : "neutral"}>
+            {connection.enabled ? "Active" : "Paused"}
+          </Badge>
+        }
+      >
+        <div className="space-y-2">
+          <Label htmlFor="external-platform-name">Platform name</Label>
+          <Input
+            id="external-platform-name"
+            value={platformName}
+            onChange={(e) => setPlatformName(e.target.value)}
+            onBlur={() => update({ platform_name: platformName.trim() || "External Platform" })}
+          />
+        </div>
 
-          <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
-            <div>
-              <Label>Monitoring enabled</Label>
-              <p className="text-sm text-muted-foreground">Accept incoming login events</p>
-            </div>
-            <Switch checked={connection.enabled} onCheckedChange={(v) => update({ enabled: v })} />
-          </div>
+        <div className="mt-4 divide-y divide-border border-y border-border py-4">
+          <SettingRow
+            title="Monitoring enabled"
+            description="Accept incoming login events"
+            htmlFor="external-monitoring"
+            control={
+              <Switch
+                id="external-monitoring"
+                checked={connection.enabled}
+                onCheckedChange={(v) => update({ enabled: v })}
+              />
+            }
+          />
+          <SettingRow
+            title="Ping Slack on login"
+            description="Send a Slack alert when someone logs into this platform"
+            htmlFor="external-slack-notify"
+            control={
+              <Switch
+                id="external-slack-notify"
+                checked={connection.slack_notify}
+                onCheckedChange={(v) => update({ slack_notify: v })}
+              />
+            }
+          />
+        </div>
 
-          <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
-            <div>
-              <Label>Ping Slack on login</Label>
-              <p className="text-sm text-muted-foreground">
-                Send a Slack alert when someone logs into this platform
-              </p>
-            </div>
-            <Switch
-              checked={connection.slack_notify}
-              onCheckedChange={(v) => update({ slack_notify: v })}
-            />
+        <div className="mt-4 space-y-2">
+          <Label>Your endpoint</Label>
+          <div className="flex items-center gap-2">
+            <code className="min-w-0 flex-1 break-all rounded-md border border-border bg-muted px-3 py-2.5 font-mono text-xs text-foreground">
+              {endpoint}
+            </code>
+            <CopyButton label="Copy endpoint" onCopy={() => void copy(endpoint, "Endpoint")} />
           </div>
+          <Button variant="ghost" size="sm" onClick={rotateToken}>
+            <RefreshCw />
+            Rotate key
+          </Button>
+        </div>
+      </SectionCard>
 
-          <div className="space-y-2">
-            <Label>Your endpoint</Label>
-            <div className="flex items-center gap-2 bg-muted p-3 rounded border">
-              <code className="text-xs flex-1 break-all font-mono">{endpoint}</code>
-              <Button variant="outline" size="sm" onClick={() => copy(endpoint, "Endpoint")}>
-                <Copy className="w-4 h-4" />
-              </Button>
-            </div>
-            <Button variant="ghost" size="sm" onClick={rotateToken} className="gap-2">
-              <RefreshCw className="w-4 h-4" />
-              Rotate key
+      <SectionCard
+        icon={<Code2 />}
+        title="Install it"
+        description="Paste the script yourself, or hand the prompt to an AI agent."
+      >
+        <Tabs defaultValue="script">
+          <TabsList>
+            <TabsTrigger value="script">Header script</TabsTrigger>
+            <TabsTrigger value="prompt">AI agent prompt</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="script" className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Paste this into your platform's global header / custom code area, then swap the
+              placeholder user values for your platform's logged-in user variables.
+            </p>
+            <pre className={codeBox}>
+              <code>{headerScript}</code>
+            </pre>
+            <Button onClick={() => copy(headerScript, "Script")}>
+              <Copy />
+              Copy script
             </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </TabsContent>
 
-      <Tabs defaultValue="script">
-        <TabsList>
-          <TabsTrigger value="script">Header script</TabsTrigger>
-          <TabsTrigger value="prompt">AI agent prompt</TabsTrigger>
-        </TabsList>
+          <TabsContent value="prompt" className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Don't want to touch code? Copy this and send it to any AI agent (Lovable, Cursor,
+              ChatGPT, your platform's own builder) and it will install the monitoring for you.
+            </p>
+            <pre className={`${codeBox} whitespace-pre-wrap`}>
+              <code>{agentPrompt}</code>
+            </pre>
+            <Button onClick={() => copy(agentPrompt, "Prompt")}>
+              <Copy />
+              Copy agent prompt
+            </Button>
+          </TabsContent>
+        </Tabs>
+      </SectionCard>
 
-        <TabsContent value="script" className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Paste this into your platform's global header / custom code area, then swap the
-            placeholder user values for your platform's logged-in user variables.
-          </p>
-          <pre className="bg-gray-900 text-gray-100 rounded-lg p-4 text-xs overflow-auto max-h-80">
-            <code>{headerScript}</code>
-          </pre>
-          <Button onClick={() => copy(headerScript, "Script")} className="gap-2">
-            <Copy className="w-4 h-4" />
-            Copy script
-          </Button>
-        </TabsContent>
-
-        <TabsContent value="prompt" className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Don't want to touch code? Copy this and send it to any AI agent (Lovable, Cursor,
-            ChatGPT, your platform's own builder) and it will install the monitoring for you.
-          </p>
-          <pre className="bg-gray-900 text-gray-100 rounded-lg p-4 text-xs overflow-auto max-h-80 whitespace-pre-wrap">
-            <code>{agentPrompt}</code>
-          </pre>
-          <Button onClick={() => copy(agentPrompt, "Prompt")} className="gap-2">
-            <Copy className="w-4 h-4" />
-            Copy agent prompt
-          </Button>
-        </TabsContent>
-      </Tabs>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Activity className="w-4 h-4" />
-            Recent activity
-          </CardTitle>
-          <CardDescription>
+      <SectionCard
+        icon={<Activity />}
+        title="Recent activity"
+        description={
+          <>
             {connection.event_count} total events
             {connection.last_event_at
               ? ` · last ${new Date(connection.last_event_at).toLocaleString()}`
               : " · nothing received yet"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {events.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No events yet. Install the script and log into your platform to test it.
-            </p>
-          ) : (
-            <div className="divide-y">
-              {events.map((e) => (
-                <div key={e.id} className="flex items-center justify-between py-2 text-sm">
-                  <span className="truncate">
-                    {e.user_name || e.user_email || "Unknown user"}
-                    {e.user_name && e.user_email && (
-                      <span className="text-muted-foreground"> · {e.user_email}</span>
-                    )}
-                  </span>
-                  <span className="text-muted-foreground whitespace-nowrap ml-3">
-                    {new Date(e.created_at).toLocaleString()}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </>
+        }
+      >
+        {events.length === 0 ? (
+          <EmptyState
+            className="py-8"
+            title="No events yet"
+            description="Install the script and log into your platform to test it."
+          />
+        ) : (
+          <div className="divide-y divide-border">
+            {events.map((e) => (
+              <div key={e.id} className="flex min-h-11 items-center justify-between gap-3 py-2 text-sm">
+                <span className="min-w-0 truncate text-foreground">
+                  {e.user_name || e.user_email || "Unknown user"}
+                  {e.user_name && e.user_email && (
+                    <span className="text-muted-foreground"> · {e.user_email}</span>
+                  )}
+                </span>
+                <span className="whitespace-nowrap text-xs text-muted-foreground">
+                  {new Date(e.created_at).toLocaleString()}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </SectionCard>
     </div>
   );
 };

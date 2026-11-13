@@ -23,9 +23,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { SectionCard } from "@/components/premium/SectionCard";
+import { cn } from "@/lib/utils";
 import {
   Building2,
   Clock,
+  Kanban,
   GripVertical,
   Loader2,
   MessageSquare,
@@ -39,48 +42,25 @@ import {
 export const PROJECT_STAGES = ["Draft", "Requested", "In Progress", "In Revision", "Closed"] as const;
 export type ProjectStage = (typeof PROJECT_STAGES)[number];
 
-const STAGE_STYLES: Record<ProjectStage, { dot: string; ring: string; head: string; soft: string }> = {
-  Draft: {
-    dot: "bg-muted-foreground",
-    ring: "ring-muted-foreground/40",
-    head: "text-muted-foreground",
-    soft: "bg-muted/40",
-  },
-  Requested: {
-    dot: "bg-sky-500",
-    ring: "ring-sky-500/50",
-    head: "text-sky-600 dark:text-sky-400",
-    soft: "bg-sky-500/10",
-  },
-  "In Progress": {
-    dot: "bg-amber-500",
-    ring: "ring-amber-500/50",
-    head: "text-amber-600 dark:text-amber-400",
-    soft: "bg-amber-500/10",
-  },
-  "In Revision": {
-    dot: "bg-violet-500",
-    ring: "ring-violet-500/50",
-    head: "text-violet-600 dark:text-violet-400",
-    soft: "bg-violet-500/10",
-  },
-  Closed: {
-    dot: "bg-emerald-500",
-    ring: "ring-emerald-500/50",
-    head: "text-emerald-600 dark:text-emerald-400",
-    soft: "bg-emerald-500/10",
-  },
+const STAGE_STYLES: Record<ProjectStage, { dot: string; ring: string; drop: string; head: string }> = {
+  Draft: { dot: "bg-muted-foreground", ring: "ring-muted-foreground/40", drop: "border-muted-foreground/40", head: "text-muted-foreground" },
+  Requested: { dot: "bg-info", ring: "ring-info/50", drop: "border-info/50", head: "text-info" },
+  "In Progress": { dot: "bg-warning", ring: "ring-warning/50", drop: "border-warning/50", head: "text-warning" },
+  "In Revision": { dot: "bg-brand", ring: "ring-brand/50", drop: "border-brand/50", head: "text-brand" },
+  Closed: { dot: "bg-success", ring: "ring-success/50", drop: "border-success/50", head: "text-success" },
 };
 
 const PRIORITIES = ["low", "normal", "high", "urgent"] as const;
 type Priority = (typeof PRIORITIES)[number];
 
-const PRIORITY_STYLES: Record<Priority, string> = {
-  low: "bg-muted text-muted-foreground",
-  normal: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
-  high: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
-  urgent: "bg-destructive/15 text-destructive",
+const PRIORITY_TONES: Record<Priority, "neutral" | "info" | "warning" | "danger"> = {
+  low: "neutral",
+  normal: "info",
+  high: "warning",
+  urgent: "danger",
 };
+
+const CHIP = "h-5 px-2 py-0 text-[11px] font-medium capitalize";
 
 export interface ProjectClientOption {
   email?: string | null;
@@ -375,22 +355,28 @@ export default function AgencyProjectsBoard({
     p.client_company || p.client_name || p.client_email || null;
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h3 className="text-base font-semibold flex items-center gap-2">{title}</h3>
-          <p className="text-xs text-muted-foreground">{description}</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+    <SectionCard
+      icon={<Kanban />}
+      title={title}
+      description={description}
+      actions={
+        <>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => void load()}
+            disabled={loading}
+            aria-label="Refresh projects"
+            title="Refresh projects"
+          >
+            {loading ? <Loader2 className="animate-spin" /> : <RefreshCw />}
           </Button>
-          <Button size="sm" onClick={() => openNew()}>
-            <Plus className="w-4 h-4 mr-1" /> New request
+          <Button onClick={() => openNew()}>
+            <Plus /> New request
           </Button>
-        </div>
-      </div>
-
+        </>
+      }
+    >
       <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
         {PROJECT_STAGES.map((stage) => {
           const style = STAGE_STYLES[stage];
@@ -412,28 +398,26 @@ export default function AgencyProjectsBoard({
                 setDragId(null);
                 if (project) void moveToStage(project, stage);
               }}
-              className={`rounded-xl border transition-all duration-200 ${style.soft} ${
-                isHover ? `ring-2 ${style.ring} scale-[1.01]` : "ring-0"
-              }`}
+              className={cn(
+                "min-w-0 rounded-lg bg-muted/60 transition-shadow duration-200",
+                isHover ? `ring-2 ${style.ring}` : "ring-0",
+              )}
             >
-              <div className="flex items-center justify-between gap-2 px-3 py-2 border-b">
+              <div className="flex items-center justify-between gap-2 px-3 pb-1 pt-3">
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className={`w-2 h-2 rounded-full ${style.dot}`} />
-                  <span className={`text-xs font-semibold truncate ${style.head}`}>{stage}</span>
+                  <span className={`size-2 shrink-0 rounded-full ${style.dot}`} aria-hidden="true" />
+                  <span className="truncate text-sm font-semibold text-foreground">{stage}</span>
+                  <span className="text-xs font-medium tabular-nums text-muted-foreground">{cards.length}</span>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Badge variant="secondary" className="text-[10px] px-1.5">
-                    {cards.length}
-                  </Badge>
-                  <button
-                    type="button"
-                    onClick={() => openNew(stage)}
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                    title={`Add to ${stage}`}
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => openNew(stage)}
+                  className="grid size-8 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-card hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
+                  title={`Add to ${stage}`}
+                  aria-label={`Add to ${stage}`}
+                >
+                  <Plus className="size-4" />
+                </button>
               </div>
 
               <div className="p-2 space-y-2 min-h-[120px]">
@@ -464,32 +448,30 @@ export default function AgencyProjectsBoard({
                       }}
                       onClick={() => setOpenCard(p)}
                       whileHover={{ y: -2 }}
-                      className="group cursor-grab active:cursor-grabbing rounded-lg border bg-card p-3 shadow-sm hover:shadow-md transition-shadow"
+                      className="group cursor-grab rounded-md bg-card p-3 shadow-card transition-shadow hover:shadow-raised active:cursor-grabbing"
                     >
                       <div className="flex items-start gap-2">
                         <GripVertical className="w-3.5 h-3.5 mt-0.5 text-muted-foreground/60 shrink-0" />
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium leading-snug break-words">{p.title}</p>
+                          <p className="break-words text-sm font-medium leading-snug text-foreground">{p.title}</p>
                           {p.details && (
                             <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{p.details}</p>
                           )}
                           <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                            <span
-                              className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${PRIORITY_STYLES[p.priority]}`}
-                            >
+                            <Badge variant={PRIORITY_TONES[p.priority]} className={CHIP}>
                               {p.priority}
-                            </span>
+                            </Badge>
                             {clientLabel(p) && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground inline-flex items-center gap-1 max-w-full truncate">
-                                <Building2 className="w-3 h-3" /> {clientLabel(p)}
+                              <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                                <Building2 className="size-3 shrink-0" /> <span className="truncate">{clientLabel(p)}</span>
                               </span>
                             )}
                             {counts[p.id] ? (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary inline-flex items-center gap-1">
-                                <MessageSquare className="w-3 h-3" /> {counts[p.id]}
+                              <span className="inline-flex items-center gap-1 rounded-full bg-brand-subtle px-2 py-0.5 text-[11px] font-medium text-brand">
+                                <MessageSquare className="size-3" /> {counts[p.id]}
                               </span>
                             ) : null}
-                            <span className="text-[10px] text-muted-foreground inline-flex items-center gap-1 ml-auto">
+                            <span className="ml-auto inline-flex items-center gap-1 text-[11px] text-muted-foreground">
                               <Clock className="w-3 h-3" /> {relTime(p.updated_at)}
                             </span>
                           </div>
@@ -505,12 +487,12 @@ export default function AgencyProjectsBoard({
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 52 }}
                     exit={{ opacity: 0, height: 0 }}
-                    className={`rounded-lg border-2 border-dashed ${style.ring.replace("ring-", "border-")} bg-background/40`}
+                    className={`rounded-md border-2 border-dashed ${style.drop} bg-card/60`}
                   />
                 )}
 
                 {!cards.length && !isHover && (
-                  <p className="text-[11px] text-muted-foreground text-center py-6">Drop cards here</p>
+                  <p className="py-6 text-center text-xs text-muted-foreground">Drop cards here</p>
                 )}
               </div>
             </div>
@@ -525,9 +507,9 @@ export default function AgencyProjectsBoard({
             <DialogTitle>{editing ? "Edit request" : "New request"}</DialogTitle>
             <DialogDescription>Tell us what you need and who it's for.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div>
-              <Label className="text-xs">Title</Label>
+              <Label>Title</Label>
               <Input
                 value={form.title}
                 onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
@@ -536,7 +518,7 @@ export default function AgencyProjectsBoard({
               />
             </div>
             <div>
-              <Label className="text-xs">Details</Label>
+              <Label>Details</Label>
               <Textarea
                 value={form.details}
                 onChange={(e) => setForm((f) => ({ ...f, details: e.target.value }))}
@@ -547,7 +529,7 @@ export default function AgencyProjectsBoard({
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs">Stage</Label>
+                <Label>Stage</Label>
                 <Select
                   value={form.stage}
                   onValueChange={(v) => setForm((f) => ({ ...f, stage: v as ProjectStage }))}
@@ -565,7 +547,7 @@ export default function AgencyProjectsBoard({
                 </Select>
               </div>
               <div>
-                <Label className="text-xs">Priority</Label>
+                <Label>Priority</Label>
                 <Select
                   value={form.priority}
                   onValueChange={(v) => setForm((f) => ({ ...f, priority: v as Priority }))}
@@ -584,7 +566,7 @@ export default function AgencyProjectsBoard({
               </div>
             </div>
             <div>
-              <Label className="text-xs">Client</Label>
+              <Label>Client</Label>
               <Select value={form.client} onValueChange={(v) => setForm((f) => ({ ...f, client: v }))}>
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="No client" />
@@ -610,8 +592,8 @@ export default function AgencyProjectsBoard({
             <Button variant="outline" onClick={() => setFormOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={() => void saveProject()} disabled={saving}>
-              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+            <Button variant="accent" onClick={() => void saveProject()} disabled={saving}>
+              {saving ? <Loader2 className="animate-spin" /> : null}
               {editing ? "Save changes" : "Add request"}
             </Button>
           </DialogFooter>
@@ -625,16 +607,16 @@ export default function AgencyProjectsBoard({
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-start gap-2 pr-6">
-                  <span className={`mt-1.5 w-2 h-2 rounded-full ${STAGE_STYLES[openCard.stage].dot}`} />
+                  <span className={`mt-2 size-2 shrink-0 rounded-full ${STAGE_STYLES[openCard.stage].dot}`} aria-hidden="true" />
                   <span className="break-words">{openCard.title}</span>
                 </DialogTitle>
                 <DialogDescription className="flex flex-wrap items-center gap-2">
                   <span className={`text-xs font-medium ${STAGE_STYLES[openCard.stage].head}`}>
                     {openCard.stage}
                   </span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${PRIORITY_STYLES[openCard.priority]}`}>
+                  <Badge variant={PRIORITY_TONES[openCard.priority]} className={CHIP}>
                     {openCard.priority}
-                  </span>
+                  </Badge>
                   {clientLabel(openCard) && (
                     <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
                       <Building2 className="w-3 h-3" /> {clientLabel(openCard)}
@@ -655,7 +637,7 @@ export default function AgencyProjectsBoard({
                     setOpenCard({ ...openCard, stage: v as ProjectStage });
                   }}
                 >
-                  <SelectTrigger className="w-[170px] h-9">
+                  <SelectTrigger className="w-[170px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -672,21 +654,21 @@ export default function AgencyProjectsBoard({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-destructive"
+                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                   onClick={() => void removeProject(openCard)}
                 >
-                  <Trash2 className="w-4 h-4 mr-1" /> Delete
+                  <Trash2 /> Delete
                 </Button>
               </div>
 
-              <div className="rounded-lg border">
-                <div className="px-3 py-2 border-b text-xs font-semibold flex items-center gap-1.5">
-                  <MessageSquare className="w-3.5 h-3.5" /> Conversation
+              <div className="rounded-lg border border-border">
+                <div className="flex items-center gap-1.5 border-b border-border px-3 py-2 text-sm font-semibold text-foreground">
+                  <MessageSquare className="size-4 text-muted-foreground" /> Conversation
                 </div>
                 <div ref={threadRef} className="max-h-64 overflow-y-auto p-3 space-y-2">
                   {!messages.length && (
                     <p className="text-xs text-muted-foreground text-center py-4">
-                      No messages yet — send the first one.
+                      No messages yet. Send the first one.
                     </p>
                   )}
                   <AnimatePresence initial={false}>
@@ -702,7 +684,7 @@ export default function AgencyProjectsBoard({
                         >
                           <div
                             className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
-                              mine ? "bg-primary text-primary-foreground" : "bg-muted"
+                              mine ? "bg-brand text-brand-foreground" : "bg-muted text-foreground"
                             }`}
                           >
                             <div className="text-[10px] opacity-70 flex items-center gap-1 mb-0.5">
@@ -717,7 +699,7 @@ export default function AgencyProjectsBoard({
                     })}
                   </AnimatePresence>
                 </div>
-                <div className="p-2 border-t flex gap-2">
+                <div className="flex items-end gap-2 border-t border-border p-2">
                   <Textarea
                     value={messageDraft}
                     onChange={(e) => setMessageDraft(e.target.value)}
@@ -725,8 +707,14 @@ export default function AgencyProjectsBoard({
                     rows={2}
                     className="text-sm"
                   />
-                  <Button size="sm" onClick={() => void sendMessage()} disabled={sending || !messageDraft.trim()}>
-                    {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  <Button
+                    size="icon"
+                    variant="accent"
+                    aria-label="Send message"
+                    onClick={() => void sendMessage()}
+                    disabled={sending || !messageDraft.trim()}
+                  >
+                    {sending ? <Loader2 className="animate-spin" /> : <Send />}
                   </Button>
                 </div>
               </div>
@@ -734,6 +722,6 @@ export default function AgencyProjectsBoard({
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </SectionCard>
   );
 }

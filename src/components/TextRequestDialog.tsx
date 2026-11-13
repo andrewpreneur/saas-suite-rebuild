@@ -159,7 +159,7 @@ const TextRequestDialog = ({ open, onOpenChange, source }: TextRequestDialogProp
         {!isSuccess ? (
           <>
             <DialogHeader>
-              <DialogTitle className="text-2xl font-bold text-center">Want to Learn More?</DialogTitle>
+              <DialogTitle className="text-center text-h4">Want to Learn More?</DialogTitle>
               <DialogDescription className="text-center">
                 Enter your phone number and I'll text you with more information about SaaSSuite, 
                 including pricing, features, and how it can help your agency.
@@ -210,8 +210,10 @@ const TextRequestDialog = ({ open, onOpenChange, source }: TextRequestDialogProp
               </div>
               
               <Button 
-                type="submit" 
-                className="w-full h-12 text-lg bg-primary hover:bg-primary/90" 
+                type="submit"
+                variant="accent"
+                size="lg"
+                className="w-full"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? "Submitting..." : "Send Me More Info"}
@@ -221,12 +223,12 @@ const TextRequestDialog = ({ open, onOpenChange, source }: TextRequestDialogProp
         ) : (
           <div className="text-center py-8 space-y-4">
             <div className="flex justify-center">
-              <div className="rounded-full bg-green-500/10 p-3">
-                <Check className="w-12 h-12 text-green-500" />
+              <div className="rounded-full bg-success/10 p-3">
+                <Check className="size-10 text-success" />
               </div>
             </div>
-            <DialogTitle className="text-2xl font-bold">Thank You!</DialogTitle>
-            <DialogDescription className="text-lg">
+            <DialogTitle className="text-h4">Thank You!</DialogTitle>
+            <DialogDescription className="text-base">
               Check your texts! I'll send you more information about SaaSSuite shortly.
             </DialogDescription>
           </div>

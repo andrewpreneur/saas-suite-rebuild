@@ -18,10 +18,10 @@ export function HubSectionToggle({ page, visibility, names, disabled, onVisibili
   const isLast = pages.length === 1 && pages[0] === page;
   const shown = visibility[HUB_SECTION_FIELDS[page]];
   return (
-    <div className="flex min-w-0 items-center justify-between gap-4 border-t border-border pt-4">
+    <div className="flex min-w-0 items-center justify-between gap-4 rounded-lg border border-border bg-muted/40 px-4 py-3">
       <div className="min-w-0">
         <Label htmlFor={`hub-section-${page}`} className="cursor-pointer text-sm font-medium">Show {names[page]} to customers</Label>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           {isLast ? "At least one page must stay visible." : shown ? "Turn off to hide this page entirely." : "This page is hidden from customers."}
         </p>
       </div>

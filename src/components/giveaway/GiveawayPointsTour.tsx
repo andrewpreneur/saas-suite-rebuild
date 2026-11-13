@@ -15,7 +15,7 @@ const STEPS = [
   {
     title: "Points for real growth",
     blurb: "Every point you score comes from work you're already doing inside SaaSSuite. No forms, no screenshots.",
-    accent: "from-violet-500/20 via-fuchsia-500/10 to-transparent",
+    accent: "from-brand/20 via-brand/10 to-transparent",
     items: [
       { icon: Users, label: "Onboard a net-new end user", points: "1 pt each" },
       { icon: PlayCircle, label: "End user completes a training video", points: "1 pt each" },

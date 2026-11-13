@@ -47,12 +47,12 @@ export default function SnapshotImportActions() {
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button asChild className="gap-2 whitespace-normal h-auto min-h-10">
+      <Button asChild variant="accent" className="h-auto min-h-11 whitespace-normal sm:min-h-10">
         <a href={url} target="_blank" rel="noopener noreferrer">
           <Download className="h-4 w-4 shrink-0" />Install Standard Snapshot
         </a>
       </Button>
-      <Button type="button" variant="outline" className="gap-2" onClick={copyLink}>
+      <Button type="button" variant="outline" onClick={copyLink}>
         <Copy className="h-4 w-4 shrink-0" />Copy link
       </Button>
     </div>

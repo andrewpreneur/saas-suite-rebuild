@@ -78,7 +78,7 @@ const CustomVideoPlayer = ({ src, poster, videoId = "support-hero-video", onEnde
   };
 
   return (
-    <div className="group relative mx-auto max-w-3xl overflow-hidden rounded-2xl bg-black shadow-2xl ring-1 ring-black/10">
+    <div className="group relative mx-auto max-w-3xl overflow-hidden rounded-xl bg-black shadow-dialog">
       <video
         ref={videoRef}
         id={videoId}
@@ -97,11 +97,11 @@ const CustomVideoPlayer = ({ src, poster, videoId = "support-hero-video", onEnde
         <button
           type="button"
           onClick={start}
-          className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/25 transition-colors duration-150 hover:bg-black/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-400"
+          className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/25 transition-colors duration-150 hover:bg-black/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           aria-label="Play support video with sound"
         >
-          <span className="flex h-20 w-20 items-center justify-center rounded-full bg-white/95 shadow-xl transition-transform duration-200 group-hover:scale-105">
-            <Play className="ml-1 h-9 w-9 text-purple-700" />
+          <span className="flex h-20 w-20 items-center justify-center rounded-full px-brand-fill transition-transform duration-200 group-hover:scale-105">
+            <Play className="ml-1 h-9 w-9 fill-current" />
           </span>
           <span className="flex items-center gap-2 text-sm font-medium text-white/95">
             <Volume2 className="h-4 w-4" /> Tap to play with sound
@@ -116,10 +116,10 @@ const CustomVideoPlayer = ({ src, poster, videoId = "support-hero-video", onEnde
             onClick={seek}
             role="presentation"
           >
-            <div className="h-full rounded-full bg-purple-400" style={{ width: `${progress}%` }} />
+            <div className="h-full rounded-full bg-brand" style={{ width: `${progress}%` }} />
           </div>
           <div className="flex items-center gap-3 text-white">
-            <button type="button" onClick={toggle} aria-label={playing ? "Pause" : "Play"} className="hover:text-purple-300">
+            <button type="button" onClick={toggle} aria-label={playing ? "Pause" : "Play"} className="hover:text-white/70">
               {playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
             </button>
             <button
@@ -131,7 +131,7 @@ const CustomVideoPlayer = ({ src, poster, videoId = "support-hero-video", onEnde
                 setMuted(v.muted);
               }}
               aria-label={muted ? "Unmute" : "Mute"}
-              className="hover:text-purple-300"
+              className="hover:text-white/70"
             >
               {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
             </button>
@@ -161,7 +161,7 @@ const CustomVideoPlayer = ({ src, poster, videoId = "support-hero-video", onEnde
                 }
               }}
               aria-label="Fullscreen"
-              className="ml-auto hover:text-purple-300"
+              className="ml-auto hover:text-white/70"
             >
               <Maximize className="h-5 w-5" />
             </button>

@@ -8,7 +8,6 @@ import { Palette, CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { notifyHubThemeChanged } from "@/lib/hubUrl";
-import { PreviewHeaderHost } from "@/components/client-hub/PreviewHeaderSlot";
 
 export const THEME_NAMES: Record<number, string> = {
   1: "The Video Library",
@@ -79,12 +78,7 @@ const ThemePickerCard = ({
   return (
     <Card className="border-border">
       <CardHeader className="pb-3">
-        {showPreviewHost ? (
-          <div className="flex items-center justify-between gap-3 flex-wrap border-b shadow-sm pb-3 -mx-6 px-6">
-            <PreviewHeaderHost />
-          </div>
-        ) : null}
-        <div className={showPreviewHost ? "pt-3" : undefined}>
+        <div>
           <CardTitle className="text-base flex items-center gap-2">
             <Palette className="w-4 h-4" />
             Layouts

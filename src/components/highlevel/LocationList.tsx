@@ -42,7 +42,7 @@ export default function LocationList({ locations, value, onSelect, maxHeight = "
       </div>
       {onRefresh && <Button type="button" variant="outline" size="icon" disabled={refreshing} onClick={onRefresh} aria-label="Refresh sub-accounts" title="Refresh sub-accounts"><RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} /></Button>}
       </div>
-      <div className="rounded-lg border divide-y overflow-y-auto" style={{ maxHeight }} role="listbox" aria-label="Sub-accounts">
+      <div className="rounded-lg border border-border divide-y divide-border overflow-y-auto" style={{ maxHeight }} role="listbox" aria-label="Sub-accounts">
         {list.map((l, i) => {
           const active = isActive ? isActive(l) : value === l.location_id;
           return (
@@ -55,10 +55,10 @@ export default function LocationList({ locations, value, onSelect, maxHeight = "
               style={{ animationDelay: `${Math.min(i, 12) * 18}ms` }}
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors animate-in fade-in slide-in-from-left-1 duration-300 fill-mode-both motion-reduce:animate-none",
-                active ? "bg-primary/10" : "hover:bg-muted",
+                active ? "bg-brand-subtle" : "hover:bg-muted",
               )}
             >
-              <span className={cn("w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors", active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
+              <span className={cn("w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors", active ? "bg-brand text-brand-foreground" : "bg-muted text-muted-foreground")}>
                 {active ? <Check className="w-4 h-4" /> : <Building2 className="w-4 h-4" />}
               </span>
               <span className="min-w-0 flex-1">

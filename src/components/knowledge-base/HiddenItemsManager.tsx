@@ -5,7 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight, Eye, EyeOff, Loader2, Search } from "lucide-react";
+import { BookOpen, ChevronRight, Loader2, Search } from "lucide-react";
+import { SectionCard } from "@/components/premium/SectionCard";
+import { EmptyState } from "@/components/premium/21st/empty-state";
+import { HubEmptyIcon } from "@/components/premium/hub/HubBits";
+import { HubListSkeleton, OnOffSwitch } from "@/components/premium/hub/HubBits";
 
 interface Article {
   slug: string;
@@ -214,25 +218,30 @@ const HiddenItemsManager = ({ agencyId }: Props) => {
 
   if (!agencyId) {
     return (
-      <Card>
-        <CardContent className="py-10 text-center text-sm text-muted-foreground">
-          Save your agency settings first to manage knowledge base articles.
-        </CardContent>
-      </Card>
+      <div className="px-surface">
+        <EmptyState
+          icon={<HubEmptyIcon><BookOpen className="size-6" /></HubEmptyIcon>}
+          title="Create your hub link first"
+          description="Once your agency has a hub link, your help center articles show up here."
+        />
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
-        <div>
-          <CardTitle>Manage Articles</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">
-            Hide entire categories or individual articles from your Knowledge Base.
-          </p>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <SectionCard
+      icon={<BookOpen />}
+      title="Articles"
+      description="Switch off a whole category, or open it to hide single articles. Changes save as you go."
+      actions={
+        !loading && !errorMsg && categories.length > 0 ? (
+          <span className="text-xs tabular-nums text-muted-foreground">
+            {categories.length - hiddenCategorySlugs.size} of {categories.length} categories shown
+          </span>
+        ) : null
+      }
+    >
+      <div className="space-y-4">
         <div className="relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -244,17 +253,31 @@ const HiddenItemsManager = ({ agencyId }: Props) => {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-          </div>
+          <HubListSkeleton rows={5} />
         ) : errorMsg ? (
-          <div className="text-sm text-destructive py-6 text-center">{errorMsg}</div>
-        ) : filteredCategories.length === 0 ? (
-          <div className="text-sm text-muted-foreground py-8 text-center">
-            No categories found for this agency.
+          <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            {errorMsg}
           </div>
+        ) : filteredCategories.length === 0 ? (
+          <EmptyState
+            className="py-8"
+            icon={<HubEmptyIcon><Search className="size-6" /></HubEmptyIcon>}
+            title={search.trim() ? "Nothing matches that search" : "No articles yet"}
+            description={
+              search.trim()
+                ? "Try a shorter word, or clear the search to see every category."
+                : "Articles appear here as soon as your help center has content."
+            }
+            action={
+              search.trim() ? (
+                <Button variant="outline" onClick={() => setSearch("")}>
+                  Clear search
+                </Button>
+              ) : undefined
+            }
+          />
         ) : (
-          <div className="border rounded-lg divide-y">
+          <div className="divide-y divide-border overflow-hidden rounded-md border border-border">
             {filteredCategories.map((cat) => {
               const catHidden = hiddenCategorySlugs.has(cat.slug);
               const catKey = `cat:${cat.slug}`;
@@ -272,56 +295,42 @@ const HiddenItemsManager = ({ agencyId }: Props) => {
                   : articles;
               return (
                 <div key={cat.slug}>
-                  <div className="flex items-center gap-3 p-3">
+                  <div className="flex min-h-[60px] items-center gap-2 px-3 py-2 transition-colors hover:bg-muted/40">
                     <button
                       type="button"
                       onClick={() => toggleExpanded(cat.slug)}
-                      className="p-1 -ml-1 text-muted-foreground hover:text-foreground"
+                      className="flex size-9 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted hover:text-foreground"
                       aria-label={isExpanded ? "Collapse" : "Expand"}
+                      aria-expanded={isExpanded}
                     >
-                      {isExpanded ? (
-                        <ChevronDown className="w-4 h-4" />
-                      ) : (
-                        <ChevronRight className="w-4 h-4" />
-                      )}
+                      <ChevronRight className={`size-4 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`} />
                     </button>
-                    <div className="flex-1 min-w-0">
+                    <div className={`min-w-0 flex-1 cursor-pointer ${catHidden ? "opacity-55" : ""}`} onClick={() => toggleExpanded(cat.slug)}>
                       <div className="flex items-center gap-2">
                         <span className="font-medium truncate">{cat.name}</span>
-                        {catHidden && (
-                          <span className="text-[10px] uppercase tracking-wide bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
-                            Hidden
-                          </span>
-                        )}
+
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {cat.articleCount} article{cat.articleCount === 1 ? "" : "s"}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      {catHidden ? (
-                        <EyeOff className="w-3.5 h-3.5" />
-                      ) : (
-                        <Eye className="w-3.5 h-3.5" />
-                      )}
-                      <span className="hidden sm:inline">{catHidden ? "Hidden" : "Visible"}</span>
-                      <Switch
-                        checked={!catHidden}
-                        disabled={pending.has(catKey)}
-                        onCheckedChange={(checked) => toggleCategory(cat, checked)}
-                      />
-                    </div>
+                    <OnOffSwitch
+                      checked={!catHidden}
+                      disabled={pending.has(catKey)}
+                      onCheckedChange={(checked) => toggleCategory(cat, checked)}
+                      label={`Show the ${cat.name} category`}
+                    />
                   </div>
 
                   {isExpanded && (
                     <div className="bg-muted/30 border-t">
                       {isLoadingArts ? (
-                        <div className="px-12 py-4 flex items-center gap-2 text-xs text-muted-foreground">
+                        <div className="pl-14 pr-3 py-4 flex items-center gap-2 text-sm text-muted-foreground">
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
                           Loading articles…
                         </div>
                       ) : artErr ? (
-                        <div className="px-12 py-3 text-xs text-destructive flex items-center gap-3">
+                        <div className="pl-14 pr-3 py-3 text-sm text-destructive flex items-center gap-3">
                           <span>{artErr}</span>
                           <button
                             type="button"
@@ -332,7 +341,7 @@ const HiddenItemsManager = ({ agencyId }: Props) => {
                           </button>
                         </div>
                       ) : !articles || articles.length === 0 ? (
-                        <div className="px-12 py-3 text-xs text-muted-foreground">
+                        <div className="pl-14 pr-3 py-3 text-sm text-muted-foreground">
                           No articles in this category.
                         </div>
                       ) : (
@@ -345,28 +354,22 @@ const HiddenItemsManager = ({ agencyId }: Props) => {
                           return (
                             <div
                               key={art.slug}
-                              className="flex items-center gap-3 pl-12 pr-3 py-2 border-b last:border-b-0 border-border/50"
+                              className="flex min-h-11 items-center gap-3 border-b border-border/50 py-2 pl-14 pr-3 last:border-b-0"
                             >
-                              <div className="flex-1 min-w-0">
+                              <div className={`min-w-0 flex-1 ${effectivelyHidden ? "opacity-55" : ""}`}>
                                 <div className="text-sm truncate">{art.title}</div>
                                 {catHidden && (
-                                  <div className="text-[11px] text-muted-foreground italic">
-                                    Hidden by category
+                                  <div className="text-xs text-muted-foreground">
+                                    Hidden with its category
                                   </div>
                                 )}
                               </div>
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                {effectivelyHidden ? (
-                                  <EyeOff className="w-3.5 h-3.5" />
-                                ) : (
-                                  <Eye className="w-3.5 h-3.5" />
-                                )}
-                                <Switch
-                                  checked={!artHiddenIndividually}
-                                  disabled={pending.has(artKey) || catHidden}
-                                  onCheckedChange={(checked) => toggleArticle(cat, art, checked)}
-                                />
-                              </div>
+                              <OnOffSwitch
+                                checked={!artHiddenIndividually}
+                                disabled={pending.has(artKey) || catHidden}
+                                onCheckedChange={(checked) => toggleArticle(cat, art, checked)}
+                                label={`Show the article ${art.title}`}
+                              />
                             </div>
                           );
                         })
@@ -378,8 +381,8 @@ const HiddenItemsManager = ({ agencyId }: Props) => {
             })}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </SectionCard>
   );
 };
 

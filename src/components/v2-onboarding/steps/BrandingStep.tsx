@@ -3,12 +3,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Upload, Palette } from "lucide-react";
+import { TextField } from "@/components/ui/text-field";
+import { AnimatePresence, motion } from "framer-motion";
+import { Check, Globe } from "lucide-react";
 import { OnboardingData } from "../V2OnboardingWizard";
-import { extractColorsFromImage, isValidHexColor, normalizeHexColor } from "@/utils/colorExtraction";
+import {
+  extractColorsFromImage,
+  isValidHexColor,
+  normalizeHexColor,
+} from "@/utils/colorExtraction";
+import { toAgencySlug } from "@/utils/agencySlug";
+import { buildHubUrl } from "@/lib/hubUrl";
 import { toast } from "sonner";
+import { popIn, riseItem, staggerParent } from "@/lib/motion";
+import { cn } from "@/lib/utils";
+import AnimatedTabs from "@/components/premium/21st/animated-tabs";
+import { HaloDropzone } from "@/components/premium/21st/halo-dropzone";
+import { StepHeading } from "@/components/premium/onboarding/OnboardingShell";
+import { SettingRow } from "@/components/premium/onboarding/pieces";
 
 interface ColorPreset {
   name: string;
@@ -17,13 +29,26 @@ interface ColorPreset {
   tertiary: string;
 }
 
+/** Which part of branding to show. Omit to show all three on one page. */
+export type BrandingSection = "name" | "colors" | "welcome";
+
 interface BrandingStepProps {
   data: OnboardingData;
   updateData: (updates: Partial<OnboardingData>) => void;
   colorPresets: ColorPreset[];
+  section?: BrandingSection;
+  /** Show the "name is required" message even before the field is blurred. */
+  showErrors?: boolean;
 }
 
-const BrandingStep = ({ data, updateData, colorPresets }: BrandingStepProps) => {
+const BrandingStep = ({
+  data,
+  updateData,
+  colorPresets,
+  section,
+  showErrors = false,
+}: BrandingStepProps) => {
+  const [nameTouched, setNameTouched] = useState(false);
   const [colorMode, setColorMode] = useState<"presets" | "custom">("presets");
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [tempColors, setTempColors] = useState({
@@ -46,11 +71,8 @@ const BrandingStep = ({ data, updateData, colorPresets }: BrandingStepProps) => 
     });
   };
 
-  const handleColorInputChange = (
-    color: "primary" | "secondary" | "tertiary",
-    value: string
-  ) => {
-    setTempColors(prev => ({ ...prev, [color]: value }));
+  const handleColorInputChange = (color: "primary" | "secondary" | "tertiary", value: string) => {
+    setTempColors((prev) => ({ ...prev, [color]: value }));
     if (isValidHexColor(value)) {
       const normalized = normalizeHexColor(value);
       updateData({
@@ -59,11 +81,8 @@ const BrandingStep = ({ data, updateData, colorPresets }: BrandingStepProps) => 
     }
   };
 
-  const handleColorPickerChange = (
-    color: "primary" | "secondary" | "tertiary",
-    value: string
-  ) => {
-    setTempColors(prev => ({ ...prev, [color]: value }));
+  const handleColorPickerChange = (color: "primary" | "secondary" | "tertiary", value: string) => {
+    setTempColors((prev) => ({ ...prev, [color]: value }));
     updateData({
       [`${color}Color`]: value,
     });
@@ -85,158 +104,246 @@ const BrandingStep = ({ data, updateData, colorPresets }: BrandingStepProps) => 
         tertiaryColor: colorObj.tertiary,
       });
       setSelectedPreset(null);
-      toast.success("Colors extracted from image!");
+      toast.success("Colors pulled from your logo");
     } catch (error) {
-      toast.error("Failed to extract colors from image");
+      toast.error("Could not read colors from that image. Try a PNG or JPG.");
     }
   };
 
+  const show = (s: BrandingSection) => !section || section === s;
+  const Heading = section ? "h1" : "h2";
+  const nameError =
+    (nameTouched || showErrors) && !data.agencyName.trim()
+      ? "Enter your agency name to continue."
+      : undefined;
+  const slug = toAgencySlug(data.agencyName);
+  const videoOn = data.welcomeVideoUrl !== undefined && data.welcomeVideoUrl !== null;
+
+  const preview = (
+    <div className="px-surface self-start overflow-hidden" aria-hidden="true">
+      <div className="flex h-36">
+        <div
+          className="flex w-1/4 flex-col gap-2 p-3"
+          style={{ backgroundColor: data.primaryColor }}
+        >
+          <span className="h-2 w-3/4 rounded-full bg-white/80" />
+          <span className="h-2 w-1/2 rounded-full bg-white/40" />
+          <span className="h-2 w-2/3 rounded-full bg-white/40" />
+        </div>
+        <div className="flex flex-1 flex-col gap-3 bg-card p-4">
+          <span className="truncate text-small font-semibold text-foreground">
+            {data.agencyName.trim() || "Your agency"}
+          </span>
+          <span className="h-2 w-2/3 rounded-full bg-muted" />
+          <span className="h-2 w-1/2 rounded-full bg-muted" />
+          <span className="mt-auto flex gap-2">
+            <span
+              className="h-7 w-20 rounded-sm"
+              style={{ backgroundColor: data.secondaryColor }}
+            />
+            <span className="h-7 w-12 rounded-sm" style={{ backgroundColor: data.tertiaryColor }} />
+          </span>
+        </div>
+      </div>
+      <p className="border-t border-border px-4 py-2 text-caption text-muted-foreground">
+        Preview of your client dashboard
+      </p>
+    </div>
+  );
+
   return (
-    <div className="space-y-8">
-      <div>
-        <h2 className="text-2xl font-bold text-foreground">Brand Your SaaS Suite</h2>
-        <p className="text-muted-foreground mt-2">
-          Customize the look and feel of the dashboard your clients will see.
-        </p>
-      </div>
-
-      {/* Agency Name */}
-      <div className="space-y-2">
-        <Label htmlFor="agencyName">Agency Name</Label>
-        <p className="text-sm text-muted-foreground">
-          This name will be used to generate your unique onboarding URL.
-        </p>
-        <Input
-          id="agencyName"
-          value={data.agencyName}
-          onChange={(e) => updateData({ agencyName: e.target.value })}
-          placeholder="e.g., My Agency"
-        />
-      </div>
-
-      {/* Color Theme */}
-      <div className="space-y-4">
-        <div>
-          <Label>Color Theme</Label>
-          <p className="text-sm text-muted-foreground">
-            This will be your agency and client dashboard's theme color.
-          </p>
-        </div>
-
-        <Tabs value={colorMode} onValueChange={(v) => setColorMode(v as "presets" | "custom")}>
-          <TabsList>
-            <TabsTrigger value="presets">Presets</TabsTrigger>
-            <TabsTrigger value="custom">Choose Own</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="presets" className="mt-4">
-            <div className="grid grid-cols-7 gap-3">
-              {colorPresets.map((preset) => (
-                <button
-                  key={preset.name}
-                  onClick={() => handlePresetSelect(preset)}
-                  className={`w-10 h-10 rounded-full transition-all ${
-                    selectedPreset === preset.name
-                      ? "ring-2 ring-offset-2 ring-primary"
-                      : "hover:scale-110"
-                  }`}
-                  style={{ backgroundColor: preset.primary }}
-                  title={preset.name}
-                />
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="custom" className="mt-4 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {(["primary", "secondary", "tertiary"] as const).map((color) => (
-                <div key={color}>
-                  <Label className="capitalize">{color} Color</Label>
-                  <div className="flex gap-2 mt-1">
-                    <Input
-                      value={tempColors[color]}
-                      onChange={(e) => handleColorInputChange(color, e.target.value)}
-                      placeholder={tempColors[color]}
-                    />
-                    <input
-                      type="color"
-                      value={tempColors[color]}
-                      onChange={(e) => handleColorPickerChange(color, e.target.value)}
-                      className="w-10 h-10 rounded border-2 cursor-pointer"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="border-2 border-dashed rounded-lg p-6 text-center">
-              <Palette className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground mb-3">
-                Or upload your logo to automatically extract brand colors
-              </p>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleImageUpload(file);
-                }}
-                className="hidden"
-                id="logo-upload"
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => document.getElementById("logo-upload")?.click()}
+    <div className="space-y-12">
+      {show("name") && (
+        <section>
+          <StepHeading
+            as={Heading}
+            title="What is your agency called?"
+            subtitle="Clients see this name, and we use it to build your client portal link."
+          />
+          <TextField
+            id="agencyName"
+            label="Agency name"
+            value={data.agencyName}
+            onChange={(e) => updateData({ agencyName: e.target.value })}
+            onBlur={() => setNameTouched(true)}
+            placeholder="e.g. Bright Marketing"
+            autoComplete="organization"
+            error={nameError}
+            className="h-14 px-4 text-body-lg shadow-card sm:h-14 sm:text-body-lg"
+          />
+          <AnimatePresence initial={false}>
+            {slug ? (
+              <motion.div
+                key="url"
+                variants={popIn}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+                className="px-brand-wash mt-4 flex items-center gap-3 rounded-lg p-4"
               >
-                <Upload className="w-4 h-4 mr-2" />
-                Upload Image
-              </Button>
-            </div>
-          </TabsContent>
-        </Tabs>
+                <span className="px-icon-chip shrink-0" aria-hidden="true">
+                  <Globe className="size-5" />
+                </span>
+                <span className="min-w-0">
+                  <span className="px-eyebrow block">Your client portal</span>
+                  <span className="block truncate font-mono text-small text-foreground">
+                    {buildHubUrl(slug).replace(/^https:\/\//, "")}
+                  </span>
+                </span>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+        </section>
+      )}
 
-        {/* Color Preview */}
-        <div className="flex items-center gap-2 p-4 bg-muted rounded-lg">
-          <span className="text-sm text-muted-foreground mr-2">Preview:</span>
-          <div
-            className="w-8 h-8 rounded-full border-2 border-white shadow"
-            style={{ backgroundColor: data.primaryColor }}
+      {show("colors") && (
+        <section>
+          <StepHeading
+            as={Heading}
+            title="Pick your colors"
+            subtitle="This is the theme for your agency and client dashboards. You can change it any time."
           />
-          <div
-            className="w-8 h-8 rounded-full border-2 border-white shadow"
-            style={{ backgroundColor: data.secondaryColor }}
-          />
-          <div
-            className="w-8 h-8 rounded-full border-2 border-white shadow"
-            style={{ backgroundColor: data.tertiaryColor }}
-          />
-        </div>
-      </div>
-
-      {/* Welcome Section (conditional) */}
-      {data.features.welcomeSection && (
-        <div className="space-y-4 pt-6 border-t border-border">
-          <div>
-            <h3 className="text-lg font-semibold">Welcome Section</h3>
-            <p className="text-sm text-muted-foreground">
-              Configure how you welcome your users.
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="welcomeHeadline">Welcome Headline</Label>
-              <Input
-                id="welcomeHeadline"
-                value={data.welcomeHeadline}
-                onChange={(e) => updateData({ welcomeHeadline: e.target.value })}
-                placeholder="Welcome to your custom software solution"
+          <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_16rem]">
+            <div className="min-w-0 space-y-4">
+              <AnimatedTabs
+                variant="segment"
+                activeTab={colorMode}
+                onChange={(v) => setColorMode(v as "presets" | "custom")}
+                tabs={[
+                  { id: "presets", label: "Presets" },
+                  { id: "custom", label: "My own colors" },
+                ]}
+                className="[&_button]:whitespace-nowrap"
               />
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="welcomeSubheadline">Welcome Subheadline</Label>
+              {colorMode === "presets" ? (
+                <motion.div
+                  key="presets"
+                  variants={staggerParent}
+                  initial="hidden"
+                  animate="show"
+                  role="radiogroup"
+                  aria-label="Color presets"
+                  className="grid grid-cols-2 gap-2 sm:grid-cols-3"
+                >
+                  {colorPresets.map((preset) => {
+                    const selected = selectedPreset === preset.name;
+                    return (
+                      <motion.button
+                        key={preset.name}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        variants={riseItem}
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => handlePresetSelect(preset)}
+                        title={preset.name}
+                        className={cn(
+                          "flex min-h-[2.75rem] items-center gap-2 rounded-md border bg-card p-2 text-left shadow-card",
+                          "transition-[border-color,box-shadow] duration-150 ease-out",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                          selected
+                            ? "border-brand ring-1 ring-brand"
+                            : "border-border hover:border-brand/40",
+                        )}
+                      >
+                        <span className="flex shrink-0 overflow-hidden rounded-sm">
+                          <span className="h-7 w-3.5" style={{ backgroundColor: preset.primary }} />
+                          <span
+                            className="h-7 w-3.5"
+                            style={{ backgroundColor: preset.secondary }}
+                          />
+                          <span
+                            className="h-7 w-3.5"
+                            style={{ backgroundColor: preset.tertiary }}
+                          />
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-small font-medium text-foreground">
+                          {preset.name}
+                        </span>
+                        {selected ? (
+                          <Check className="size-4 shrink-0 text-brand" aria-hidden="true" />
+                        ) : null}
+                      </motion.button>
+                    );
+                  })}
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="custom"
+                  variants={riseItem}
+                  initial="hidden"
+                  animate="show"
+                  className="space-y-4"
+                >
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    {(["primary", "secondary", "tertiary"] as const).map((color) => (
+                      <div key={color}>
+                        <Label htmlFor={`color-${color}`} className="capitalize">
+                          {color}
+                        </Label>
+                        <div className="mt-1.5 flex gap-2">
+                          <input
+                            type="color"
+                            value={tempColors[color]}
+                            onChange={(e) => handleColorPickerChange(color, e.target.value)}
+                            aria-label={`Pick ${color} color`}
+                            className="size-11 shrink-0 cursor-pointer rounded-md border border-border bg-card p-1 sm:size-10"
+                          />
+                          <Input
+                            id={`color-${color}`}
+                            value={tempColors[color]}
+                            onChange={(e) => handleColorInputChange(color, e.target.value)}
+                            placeholder={tempColors[color]}
+                            aria-invalid={!isValidHexColor(tempColors[color]) || undefined}
+                            className="min-w-0 font-mono"
+                          />
+                        </div>
+                        {!isValidHexColor(tempColors[color]) ? (
+                          <p className="mt-1 text-caption text-destructive">
+                            Use a hex code like #6043EF.
+                          </p>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                  <HaloDropzone
+                    accept="image/*"
+                    translucent={false}
+                    emptyLabel="Drop your logo to match its colors"
+                    successLabel="Colors pulled from your logo"
+                    formatHint="PNG or JPG. We only read the colors."
+                    showSuccessThumbnails={false}
+                    onFiles={(files) => {
+                      const file = files[0];
+                      if (file) handleImageUpload(file);
+                    }}
+                  />
+                </motion.div>
+              )}
+            </div>
+            {preview}
+          </div>
+        </section>
+      )}
+
+      {show("welcome") && data.features.welcomeSection && (
+        <section>
+          <StepHeading
+            as={Heading}
+            title="How do you want to greet clients?"
+            subtitle="This sits at the top of their dashboard. We wrote a first draft for you."
+          />
+          <div className="space-y-4">
+            <TextField
+              id="welcomeHeadline"
+              label="Headline"
+              value={data.welcomeHeadline}
+              onChange={(e) => updateData({ welcomeHeadline: e.target.value })}
+              placeholder="Welcome to your custom software solution"
+            />
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="welcomeSubheadline">Subheadline</Label>
               <Textarea
                 id="welcomeSubheadline"
                 value={data.welcomeSubheadline}
@@ -246,16 +353,14 @@ const BrandingStep = ({ data, updateData, colorPresets }: BrandingStepProps) => 
               />
             </div>
 
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Welcome Video</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Add an optional welcome video
-                  </p>
-                </div>
+            <SettingRow
+              htmlFor="welcomeVideo"
+              title="Add a welcome video"
+              description="Optional. A short hello builds trust fast."
+              control={
                 <Switch
-                  checked={data.welcomeVideoUrl !== undefined && data.welcomeVideoUrl !== null}
+                  id="welcomeVideo"
+                  checked={videoOn}
                   onCheckedChange={(checked) => {
                     if (checked) {
                       updateData({ welcomeVideoUrl: "" });
@@ -264,30 +369,43 @@ const BrandingStep = ({ data, updateData, colorPresets }: BrandingStepProps) => 
                     }
                   }}
                 />
-              </div>
+              }
+            />
 
-              {data.welcomeVideoUrl !== undefined && data.welcomeVideoUrl !== null && (
-                <>
-                  <Input
-                    value={data.welcomeVideoUrl}
-                    onChange={(e) => updateData({ welcomeVideoUrl: e.target.value })}
-                    placeholder="Enter video URL or embed code"
-                  />
+            <AnimatePresence initial={false}>
+              {videoOn && (
+                <motion.div
+                  key="video"
+                  variants={popIn}
+                  initial="hidden"
+                  animate="show"
+                  exit="exit"
+                  className="space-y-3"
+                >
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="welcomeVideoUrl">Video link or embed code</Label>
+                    <Input
+                      id="welcomeVideoUrl"
+                      value={data.welcomeVideoUrl}
+                      onChange={(e) => updateData({ welcomeVideoUrl: e.target.value })}
+                      placeholder="https://..."
+                    />
+                  </div>
                   <div className="flex items-center gap-2">
                     <Switch
                       id="isEmbed"
                       checked={data.welcomeVideoIsEmbed}
                       onCheckedChange={(checked) => updateData({ welcomeVideoIsEmbed: checked })}
                     />
-                    <Label htmlFor="isEmbed" className="text-sm">
-                      This is an embed code
+                    <Label htmlFor="isEmbed" className="text-small">
+                      I pasted an embed code
                     </Label>
                   </div>
-                </>
+                </motion.div>
               )}
-            </div>
+            </AnimatePresence>
           </div>
-        </div>
+        </section>
       )}
     </div>
   );

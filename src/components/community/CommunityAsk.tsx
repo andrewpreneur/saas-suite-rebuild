@@ -205,7 +205,7 @@ export default function CommunityAsk({
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-3">
         <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-          <Inbox className="h-4 w-4 text-primary" />
+          <Inbox className="h-4 w-4 text-brand" />
           {isStaff ? "All conversations" : "My conversations"}
         </div>
         <Button size="sm" className="h-7 gap-1.5 px-2 text-xs" onClick={() => setDialogOpen(true)}>
@@ -233,7 +233,7 @@ export default function CommunityAsk({
                     onClick={() => setOpenThread(thread)}
                     className={cn(
                       "flex w-full items-center gap-3 px-3 py-3 text-left transition-colors",
-                      active ? "bg-primary/10" : "hover:bg-muted/60",
+                      active ? "bg-brand-subtle" : "hover:bg-muted/60",
                     )}
                   >
                     <MemberAvatar
@@ -326,9 +326,9 @@ export default function CommunityAsk({
                 </div>
                 <p
                   className={cn(
-                    "w-fit max-w-full whitespace-pre-wrap break-words rounded-2xl px-3 py-2 text-left text-sm",
+                    "w-fit max-w-full whitespace-pre-wrap break-words rounded-lg px-3 py-2 text-left text-sm",
                     mine
-                      ? "rounded-br-sm bg-primary text-primary-foreground"
+                      ? "rounded-br-sm bg-brand text-brand-foreground"
                       : "rounded-bl-sm bg-muted text-foreground",
                   )}
                 >

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Globe, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useUser } from "@/contexts/UserContext";
 import { useTeamAccess } from "@/hooks/useTeamAccess";
@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { LANGUAGE_OPTIONS, type SupportedLanguage } from "@/translations";
 import { saveLanguagePreferences } from "@/lib/languagePreferences";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { Field, SectionFooter, ToggleRow } from "@/components/premium/settings/Field";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -58,29 +58,31 @@ export default function LanguageSettings() {
   };
 
   return (
-    <section className="space-y-3 border-y border-border py-4" aria-label="Language preferences">
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
-        <Label htmlFor="settings-language" className="flex items-center gap-2">
-          <Globe className="h-4 w-4 text-muted-foreground" />{t.settings_language}
-        </Label>
+    <section className="space-y-4" aria-label="Language preferences">
+      <Field label={t.settings_language} htmlFor="settings-language" hint="The language you see across SaaSSuite.">
         <Select value={selected} onValueChange={(value) => setSelected(value as SupportedLanguage)} disabled={saving}>
-          <SelectTrigger id="settings-language" className="w-full sm:w-56"><SelectValue /></SelectTrigger>
+          <SelectTrigger id="settings-language" className="h-11 w-full sm:h-10 sm:w-64"><SelectValue /></SelectTrigger>
           <SelectContent>{LANGUAGE_OPTIONS.map((option) => (
             <SelectItem key={option.value} value={option.value}>{option.flag} {option.label}</SelectItem>
           ))}</SelectContent>
         </Select>
-      </div>
-      <div className="flex items-center justify-between gap-3">
-        <Label htmlFor="language-customers">Also set customer default</Label>
+      </Field>
+      <ToggleRow
+        label="Also set customer default"
+        htmlFor="language-customers"
+        description={
+          <span role="status">
+            Customer default: {LANGUAGE_OPTIONS.find((option) => option.value === customerLanguage)?.label ?? "Unavailable"}. Customer Hub activation pending.
+          </span>
+        }
+      >
         <Switch id="language-customers" checked={includeCustomers} onCheckedChange={setIncludeCustomers} disabled={saving || !canEditCustomers || !customerLanguage} />
-      </div>
-      <p className="text-xs text-muted-foreground" role="status">
-        Customer default: {LANGUAGE_OPTIONS.find((option) => option.value === customerLanguage)?.label ?? "Unavailable"}
-      </p>
-      <p className="text-xs text-muted-foreground">Customer Hub activation pending.</p>
-      <Button type="button" onClick={save} disabled={saving} className="w-full sm:w-auto">
-        {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} {t.common_save}
-      </Button>
+      </ToggleRow>
+      <SectionFooter>
+        <Button type="button" variant="accent" onClick={save} disabled={saving}>
+          {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save language
+        </Button>
+      </SectionFooter>
     </section>
   );
 }

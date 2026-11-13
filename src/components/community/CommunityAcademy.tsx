@@ -692,7 +692,7 @@ export default function CommunityAcademy({
       )}
 
       {canEdit && (
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-brand/30 bg-brand-subtle p-3">
           <p className="text-xs text-muted-foreground">
             Owner tools — add, edit, unpublish or delete anything here. Drag the grip handle (top-left of a card)
             to reorder; the new order saves when you drop.
@@ -737,7 +737,7 @@ export default function CommunityAcademy({
             const notified = notifyRequested.has(progressKey(lesson));
             return (
               <SortableCard key={lesson.id} id={lesson.id} index={i} sortable={canSort} onDrop={() => void persistOrder("lesson")}>
-                <Card className="relative flex h-full flex-col transition-colors hover:border-primary/40">
+                <Card className="relative flex h-full flex-col transition-colors hover:border-brand/40">
                   {canEdit && <EditButton onClick={() => openEditor(lesson)} />}
                   {comingSoon ? (
                     thumb ? (
@@ -781,7 +781,7 @@ export default function CommunityAcademy({
                         className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />
                       <span className="absolute inset-0 flex items-center justify-center bg-background/20 opacity-0 transition-opacity group-hover:opacity-100">
-                        <PlayCircle className="h-10 w-10 text-primary" />
+                        <PlayCircle className="h-10 w-10 text-brand" />
                       </span>
                     </button>
                   ) : lesson.video_url && /\.(mp4|webm|mov)(\?|#|$)/i.test(lesson.video_url) ? (
@@ -799,7 +799,7 @@ export default function CommunityAcademy({
                         className="pointer-events-none h-full w-full object-cover"
                       />
                       <span className="absolute inset-0 flex items-center justify-center bg-background/20">
-                        <PlayCircle className="h-10 w-10 text-primary" />
+                        <PlayCircle className="h-10 w-10 text-brand" />
                       </span>
                     </button>
                   ) : (
@@ -807,9 +807,9 @@ export default function CommunityAcademy({
                     <button
                       type="button"
                       onClick={() => setOpenLesson(lesson)}
-                      className="flex aspect-video w-full items-center justify-center rounded-t-lg bg-gradient-to-br from-primary/20 to-primary/5"
+                      className="flex aspect-video w-full items-center justify-center rounded-t-lg bg-gradient-to-br from-brand/20 to-brand/5"
                     >
-                      <PlayCircle className="h-10 w-10 text-primary" />
+                      <PlayCircle className="h-10 w-10 text-brand" />
                     </button>
                   )}
                   <CardContent className="flex flex-1 flex-col pt-4">
@@ -823,7 +823,7 @@ export default function CommunityAcademy({
                         )}
                       </div>
                       {comingSoon ? null : done ? (
-                        <CheckCircle2 className="h-4 w-4 text-primary" />
+                        <CheckCircle2 className="h-4 w-4 text-brand" />
                       ) : (
                         <Circle className="h-4 w-4 text-muted-foreground" />
                       )}
@@ -877,7 +877,7 @@ export default function CommunityAcademy({
             const expanded = openPrompt === prompt.id;
             return (
               <SortableCard key={prompt.id} id={prompt.id} index={i} sortable={canSort} onDrop={() => void persistOrder("prompt")}>
-                <Card className="relative flex h-full flex-col transition-colors hover:border-primary/40">
+                <Card className="relative flex h-full flex-col transition-colors hover:border-brand/40">
                   {canEdit && <EditButton onClick={() => openEditor(prompt)} />}
                   <CardContent className="flex flex-1 flex-col pt-5">
                     <div className="flex flex-wrap items-center gap-2 pr-8">
@@ -945,10 +945,10 @@ export default function CommunityAcademy({
                   id={skill.slug ? `skill-${skill.slug}` : undefined}
                   className={
                     highlighted
-                      ? "relative flex h-full flex-col border-primary ring-2 ring-primary shadow-lg shadow-primary/20 transition-colors"
+                      ? "relative flex h-full flex-col border-brand ring-2 ring-brand shadow-raised transition-colors"
                       : skill.is_new
-                      ? "relative flex h-full flex-col border-primary/60 ring-1 ring-primary/30 transition-colors hover:border-primary"
-                      : "relative flex h-full flex-col transition-colors hover:border-primary/40"
+                      ? "relative flex h-full flex-col border-brand/60 ring-1 ring-brand/30 transition-colors hover:border-brand"
+                      : "relative flex h-full flex-col transition-colors hover:border-brand/40"
                   }
                 >
                   {canEdit && <EditButton onClick={() => openEditor(skill)} />}
@@ -956,7 +956,7 @@ export default function CommunityAcademy({
                     <div className="flex flex-wrap items-center gap-2 pr-8">
                       <StageTag stage={skill.stage} />
                       {skill.is_new && (
-                        <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary-foreground">
+                        <span className="rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-foreground">
                           New
                         </span>
                       )}
@@ -1043,7 +1043,7 @@ export default function CommunityAcademy({
         >
           {tech.map((tool, i) => (
             <SortableCard key={tool.id} id={tool.id} index={i} sortable={canSort} onDrop={() => void persistOrder("tech")}>
-              <Card className="relative flex h-full flex-col transition-colors hover:border-primary/40">
+              <Card className="relative flex h-full flex-col transition-colors hover:border-brand/40">
                 {canEdit && <EditButton onClick={() => openEditor(tool)} />}
                 <CardContent className="flex flex-1 flex-col pt-5">
                   <h3 className="pr-8 text-sm font-semibold text-foreground">{tool.title}</h3>

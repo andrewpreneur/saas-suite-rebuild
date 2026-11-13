@@ -243,7 +243,8 @@ describe("Design page copy", () => {
       "utf8",
     );
     const style =
-      view.split('TabsContent value="style"')[1]?.split('TabsContent value="layout"')[0] ?? "";
+      // The steps are now plain conditionals, not Radix tab panels.
+      view.split('{tab === "style" ? (')[1]?.split('{tab === "layout" ? (')[0] ?? "";
     expect(view).not.toContain("Dark Purple");
     expect(view).not.toContain("Example Co");
     expect(view).toContain("Save as preset");

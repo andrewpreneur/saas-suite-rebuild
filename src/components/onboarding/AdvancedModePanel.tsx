@@ -351,7 +351,7 @@ const AdvancedModePanel = ({ selectedPlan, agencyVersions }: AdvancedModePanelPr
                         <span
                           key={mod.id}
                           className={`w-2 h-2 rounded-full transition-colors ${
-                            isModuleVisible(category.id, mod.id) ? "bg-green-500" : "bg-transparent"
+                            isModuleVisible(category.id, mod.id) ? "bg-success" : "bg-transparent"
                           }`}
                         />
                       ))}

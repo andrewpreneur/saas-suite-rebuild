@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Copy, Loader2, MessageCircle, RefreshCw } from "lucide-react";
+import { ArrowLeft, ArrowRight, Copy, Loader2, MessageCircle, RefreshCw, Workflow } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,8 @@ import SnapshotImportActions from "@/components/highlevel/SnapshotImportActions"
 
 import { buildAiPermissionCode, buildBuyerResolverCode } from "@/lib/menuRemovalWorkflowCode";
 import { useUser } from "@/contexts/UserContext";
+import { CopilotCard } from "@/components/premium/copilot/CopilotBits";
+import { cn } from "@/lib/utils";
 
 const shots = import.meta.glob("@/assets/menu-removal-guide/*.asset.json", { eager: true, import: "default" }) as Record<string, { url: string }>;
 export function screenshotUrl(key: string): string | null {
@@ -24,7 +26,7 @@ export function GuideScreenshot({ k }: { k: string }) {
   const url = screenshotUrl(k);
   if (!url) return null;
   return (
-    <figure className="mt-2 overflow-hidden rounded-lg border border-border bg-card">
+    <figure className="px-surface mt-2 overflow-hidden border border-border/60">
       <a href={url} target="_blank" rel="noopener noreferrer"><img src={url} alt={GUIDE_SCREENSHOTS[k] || "Setup screenshot"} loading="lazy" className="w-full max-h-96 object-contain bg-muted" /></a>
       {GUIDE_SCREENSHOTS[k] && <figcaption className="px-3 py-2 text-xs text-muted-foreground">{GUIDE_SCREENSHOTS[k]}</figcaption>}
     </figure>
@@ -38,12 +40,12 @@ const copyText = async (t: string, label: string) => {
 
 function CopyCard({ title, value, displayValue, mono = true }: { title: string; value: string; displayValue?: string; mono?: boolean }) {
   return (
-    <div className="rounded-lg border border-border p-3 space-y-2">
+    <div className="space-y-2 rounded-md border border-border bg-card p-3">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-medium">{title}</p>
-        <Button size="sm" variant="outline" className="h-7 gap-1" onClick={() => copyText(value, title)}><Copy className="h-3.5 w-3.5" />Copy</Button>
+        <p className="min-w-0 text-sm font-medium">{title}</p>
+        <Button size="sm" variant="outline" className="shrink-0" aria-label={`Copy ${title}`} onClick={() => copyText(value, title)}><Copy className="h-3.5 w-3.5" />Copy</Button>
       </div>
-      <pre className={`max-h-48 overflow-auto rounded-md bg-muted p-2 text-xs whitespace-pre-wrap break-all ${mono ? "font-mono" : ""}`}>{displayValue ?? value}</pre>
+      <pre className={`max-h-48 overflow-auto rounded-sm bg-muted p-2 text-xs whitespace-pre-wrap break-all ${mono ? "font-mono" : ""}`}>{displayValue ?? value}</pre>
     </div>
   );
 }
@@ -119,9 +121,9 @@ export function MenuRemovalSetupCard({ agencyId, onHelp, onConnect, onUpgrade }:
   }, [agencyId, plan]);
 
   if (!agencyId) return null;
-  if (loading) return <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Loading your workflow details…</div>;
-  if (error) return <div className="mt-3 space-y-2" role="alert"><p className="text-sm text-destructive">{error}</p><Button variant="outline" size="sm" onClick={() => void load()}><RefreshCw className="h-4 w-4" />Retry loading setup</Button><Button size="sm" variant="ghost" onClick={onHelp}>Text us</Button></div>;
-  if (!/^(BASIC|ADVANCED|PREMIUM|ENHANCED)$/i.test(plan || "")) return <div className="mt-3 space-y-2"><p className="text-sm">Menu link removal requires Basic ($27/month) or higher. You can continue your free Client Hub setup.</p><Button size="sm" variant="outline" onClick={onUpgrade}>Review plans</Button></div>;
+  if (loading) return <CopilotCard icon={<Workflow />} title="Remove Menu Links" description="Loading your workflow details…"><div className="space-y-2" aria-hidden="true"><div className="px-skeleton h-4 w-2/3 rounded-sm" /><div className="px-skeleton h-16 w-full rounded-md" /></div></CopilotCard>;
+  if (error) return <CopilotCard icon={<Workflow />} title="Remove Menu Links" description="We couldn't load your setup details."><div className="space-y-3" role="alert"><p className="text-sm text-destructive">{error}</p><div className="flex flex-wrap gap-2"><Button variant="accent" size="sm" onClick={() => void load()}><RefreshCw className="h-4 w-4" />Retry loading setup</Button><Button size="sm" variant="ghost" onClick={onHelp}>Text us</Button></div></div></CopilotCard>;
+  if (!/^(BASIC|ADVANCED|PREMIUM|ENHANCED)$/i.test(plan || "")) return <CopilotCard icon={<Workflow />} title="Remove Menu Links" description="Menu link removal requires Basic ($27/month) or higher. You can continue your free Client Hub setup." actions={<Button size="sm" variant="accent" onClick={onUpgrade}>Review plans</Button>} />;
 
   const createSecret = async () => {
     if (auto?.has_secret && !confirm("Create a new secret? Workflows using your old secret will stop working until you paste the new one.")) return;
@@ -149,8 +151,10 @@ export function MenuRemovalSetupCard({ agencyId, onHelp, onConnect, onUpgrade }:
   const install = menuRemovalInstallCodes(agencyId);
 
   return (
-    <div className="mt-3 min-w-0 space-y-3 text-sm">
-      <p className="font-medium">Remove Menu Links · Step {step + 1} of {MENU_REMOVAL_STEPS.length}</p>
+    <CopilotCard icon={<Workflow />} title="Remove Menu Links" description={`Step ${step + 1} of ${MENU_REMOVAL_STEPS.length}`}>
+      <div className="flex gap-1" role="progressbar" aria-label="Setup progress" aria-valuemin={1} aria-valuemax={MENU_REMOVAL_STEPS.length} aria-valuenow={step + 1}>
+        {MENU_REMOVAL_STEPS.map((_, index) => <span key={index} className={cn("h-1 flex-1 rounded-full transition-colors", index <= step ? "bg-brand" : "bg-muted")} />)}
+      </div>
       {step === 0 && <>
       <p className="font-medium">Install the snapshot and open “Remove Menu Links”</p>
       <SnapshotImportActions />
@@ -174,7 +178,7 @@ export function MenuRemovalSetupCard({ agencyId, onHelp, onConnect, onUpgrade }:
       <GuideScreenshot k="configurefirstcodeaction2" />
       </>}
       {step === 3 && <>
-      <div className="rounded-lg border border-border p-3 space-y-2">
+      <div className="space-y-2 rounded-md border border-border bg-card p-3">
         <p className="text-sm font-medium">SaaSSuite webhook secret (actions #2 and #3)</p>
         {secret ? <>
           <div className="flex gap-2"><Input readOnly value={secret} className="font-mono text-xs" /><Button size="icon" variant="outline" aria-label="Copy secret" onClick={() => copyText(secret, "Secret")}><Copy className="h-4 w-4" /></Button></div>
@@ -189,11 +193,11 @@ export function MenuRemovalSetupCard({ agencyId, onHelp, onConnect, onUpgrade }:
         <Button size="sm" variant="outline" disabled={busy} onClick={createSecret}>{auto?.has_secret ? "Rotate secret" : "Create secret"}</Button>
       </div>
 
-      <div className="rounded-lg border border-border p-3 space-y-2">
+      <div className="space-y-2 rounded-md border border-border bg-card p-3">
         <p className="text-sm font-medium">Preset</p>
-        {presets.length ? <div className="flex flex-wrap gap-2">{presets.map((p) => <Button key={p} size="sm" variant={p === preset ? "default" : "outline"} onClick={() => setPreset(p)}>{p}</Button>)}</div>
+        {presets.length ? <div className="flex flex-wrap gap-2">{presets.map((p) => <Button key={p} size="sm" variant={p === preset ? "secondary" : "outline"} aria-pressed={p === preset} className={p === preset ? "ring-1 ring-brand/40 text-brand" : undefined} onClick={() => setPreset(p)}>{p}</Button>)}</div>
           : <><p className="text-xs text-muted-foreground">No preset yet. The Standard preset hides everything except Media.</p>
-            <Button size="sm" disabled={busy} onClick={createStandard}>Create Standard preset</Button></>}
+            <Button size="sm" variant="outline" disabled={busy} onClick={createStandard}>Create Standard preset</Button></>}
       </div>
       <CopyCard title="Action #2 URL (POST)" value={WEBHOOK_URL} />
       <p className="text-xs text-muted-foreground">Actions #2 and #3: Content-Type: application/json. Header X-SaaSSuite-Webhook-Secret: paste the secret above.</p>
@@ -203,7 +207,7 @@ export function MenuRemovalSetupCard({ agencyId, onHelp, onConnect, onUpgrade }:
       {step === 4 && <>
       <p className="font-medium">Assign your Client Hub menu link</p>
       {menuId && <CopyCard title="Menu link ID" value={menuId} />}
-      {menuOptions.length > 0 && <div className="space-y-2"><p className="font-medium">Menu link to assign</p><div className="flex flex-wrap gap-2">{menuOptions.map(m => <Button key={m.id} size="sm" variant={m.id === menuId ? "default" : "outline"} onClick={() => setMenuId(m.id)}>{m.title}</Button>)}</div></div>}
+      {menuOptions.length > 0 && <div className="space-y-2"><p className="font-medium">Menu link to assign</p><div className="flex flex-wrap gap-2">{menuOptions.map(m => <Button key={m.id} size="sm" variant={m.id === menuId ? "secondary" : "outline"} aria-pressed={m.id === menuId} className={m.id === menuId ? "ring-1 ring-brand/40 text-brand" : undefined} onClick={() => setMenuId(m.id)}>{m.title}</Button>)}</div></div>}
       <CopyCard title="Action #3 URL (POST)" value={ASSIGN_WEBHOOK_URL} />
       {!menuId && <p className="text-muted-foreground">Choose your installed menu link above, or refresh if it was just installed. We won’t guess if more than one matches.</p>}
       <p className="text-xs text-muted-foreground">Use the same X-SaaSSuite-Webhook-Secret from action #2 and Content-Type: application/json.</p>
@@ -211,10 +215,10 @@ export function MenuRemovalSetupCard({ agencyId, onHelp, onConnect, onUpgrade }:
       </>}
       {step === 5 && <>
 
-      <div className="rounded-lg border border-border p-3 space-y-2">
+      <div className="space-y-2 rounded-md border border-border bg-card p-3">
         <p className="text-sm font-medium">Action #4 AI features</p>
         <div className="grid gap-2 sm:grid-cols-2">{AI_FEATURE_SCOPES.map((f) => (
-          <label key={f.key} className="flex items-center gap-2 rounded-md border border-border p-2 cursor-pointer">
+          <label key={f.key} className="flex min-h-11 cursor-pointer items-center gap-2 rounded-sm border border-border p-2 transition-colors hover:bg-muted">
             <Checkbox checked={ai.includes(f.key)} onCheckedChange={(v) => setAi((c) => v ? [...c, f.key] : c.filter((k) => k !== f.key))} /><span>{f.label}</span>
           </label>))}</div>
       </div>
@@ -228,11 +232,13 @@ export function MenuRemovalSetupCard({ agencyId, onHelp, onConnect, onUpgrade }:
       <GuideScreenshot k="howtotestatendofsetup" />
       <p className="text-xs text-muted-foreground">Use HighLevel's variable picker for action #1 outputs location_id and user_id if its reference differs. Save all actions, publish, run a real buyer through the trigger, then refresh their sub-account. Confirm the chosen links disappear, the right Hub link appears, and selected AI features open.</p>
       </>}
-      <div className="flex flex-wrap gap-2 border-t border-border pt-3">
-        <Button size="sm" variant="outline" disabled={step === 0} onClick={() => advance(-1)}>Back</Button>
-        {step < MENU_REMOVAL_STEPS.length - 1 && <Button size="sm" disabled={step === 4 && !menuId} onClick={() => advance(1)}>Done — next step</Button>}
+      <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+        <Button size="sm" variant="ghost" disabled={step === 0} onClick={() => advance(-1)}><ArrowLeft className="h-4 w-4" />Back</Button>
+        {step < MENU_REMOVAL_STEPS.length - 1 && <Button size="sm" variant="accent" disabled={step === 4 && !menuId} onClick={() => advance(1)}>Done, next step<ArrowRight className="h-4 w-4" /></Button>}
+        <span className="flex-1" />
+        <Button size="sm" variant="ghost" onClick={() => void load()}><RefreshCw className="h-4 w-4" />Refresh details</Button>
+        <Button size="sm" variant="ghost" onClick={onHelp}><MessageCircle className="h-4 w-4" />Text us</Button>
       </div>
-      <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => void load()}><RefreshCw className="h-4 w-4" />Refresh account details</Button><Button size="sm" variant="outline" onClick={onHelp}><MessageCircle className="h-4 w-4" />Text us</Button></div>
-    </div>
+    </CopilotCard>
   );
 }

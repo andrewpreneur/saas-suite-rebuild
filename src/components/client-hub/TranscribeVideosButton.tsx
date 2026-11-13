@@ -370,7 +370,7 @@ const TranscribeVideosButton = ({ planAgencyId, tier, additionalContent }: Trans
           <div className="space-y-4 mt-2">
             <div>
               <div className="flex items-center gap-2 text-sm font-medium">
-                <CheckCircle2 className="w-4 h-4 text-primary" />
+                <CheckCircle2 className="w-4 h-4 text-brand" />
                 Can transcribe ({preflightValid.length})
               </div>
               <div className="max-h-[24vh] overflow-y-auto space-y-2 mt-2">

@@ -278,7 +278,7 @@ const TopNavWidgetCard = ({ email, colors, controlled, hideToggle = false }: Pro
               className={cn(
                 "flex flex-col items-center gap-1 p-2 rounded-md border text-[11px] transition-colors",
                 modes[target] === s.mode
-                  ? "border-primary bg-primary/5"
+                  ? "border-brand bg-brand-subtle"
                   : "border-border hover:bg-muted",
               )}
             >
@@ -419,7 +419,7 @@ const TopNavWidgetCard = ({ email, colors, controlled, hideToggle = false }: Pro
                 )}
               </div>
             </div>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Open in a new tab leaves HighLevel. Open embed opens the same bottom-right chat popup,
               on that option's topic when the popup supports it.
             </p>
@@ -494,7 +494,7 @@ const TopNavWidgetCard = ({ email, colors, controlled, hideToggle = false }: Pro
           <div className="space-y-3">
             <div>
               <Label className="text-xs">Menu options</Label>
-              <p className="text-[11px] text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Rename each option, pick an icon, choose where it goes, show or hide it, and change
                 the order.
               </p>
@@ -606,9 +606,9 @@ const TopNavWidgetCard = ({ email, colors, controlled, hideToggle = false }: Pro
                       onChange={(e) => patchOption(option.id, { target: e.target.value })}
                     />
                     {linkError ? (
-                      <p className="text-[11px] text-destructive">{linkError}</p>
+                      <p className="text-xs text-destructive">{linkError}</p>
                     ) : (
-                      <p className="text-[11px] text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         A path like /support-chat opens your Client Hub in a new tab. Open embed
                         opens the {EMBED_TAB_LABELS[EMBED_TAB_BY_ID[option.id]]} tab in the chat
                         popup.
@@ -622,7 +622,7 @@ const TopNavWidgetCard = ({ email, colors, controlled, hideToggle = false }: Pro
                       className={cn(
                         "rounded-md border px-2 py-2 text-xs font-medium",
                         option.openMode === "tab"
-                          ? "border-primary bg-primary/5"
+                          ? "border-brand bg-brand-subtle"
                           : "border-border hover:bg-muted",
                       )}
                     >
@@ -634,7 +634,7 @@ const TopNavWidgetCard = ({ email, colors, controlled, hideToggle = false }: Pro
                       className={cn(
                         "rounded-md border px-2 py-2 text-xs font-medium",
                         option.openMode === "embed"
-                          ? "border-primary bg-primary/5"
+                          ? "border-brand bg-brand-subtle"
                           : "border-border hover:bg-muted",
                       )}
                     >

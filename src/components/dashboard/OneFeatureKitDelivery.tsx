@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/premium/21st/empty-state";
 import { supabase } from "@/integrations/supabase/client";
 import { useUser } from "@/contexts/UserContext";
 import { KitAdTemplateLibrary } from "@/components/dashboard/KitAdTemplateLibrary";
@@ -23,26 +23,20 @@ import {
   type KitTrackerSignals,
 } from "@/lib/kitTracker";
 import { cn } from "@/lib/utils";
-import { Users } from "lucide-react";
+import { GraduationCap, Users } from "lucide-react";
 
 function AddonSection({ item }: { item: ReturnType<typeof kitAddonViews>[number] }) {
   const stage = item.unlocked ? item.statusLabel : "Locked";
   return (
-    <Card
+    <article
       data-kit-line={item.id}
       data-kit-unlocked={item.unlocked ? "yes" : "no"}
-      className={cn(
-        "border-2",
-        stage === "Confirmed" || stage === "Purchased" || stage === "Marked done"
-          ? "border-green-600 dark:border-green-400"
-          : stage === "In progress"
-            ? "border-purple-600 dark:border-purple-300"
-            : "border-purple-200 dark:border-purple-800",
-      )}
+      className={cn("px-surface", !item.unlocked && "bg-muted/40 shadow-none ring-1 ring-inset ring-border")}
     >
-      <CardContent className="flex flex-col gap-3 p-4 sm:p-5">
+      {/* Add-on actions are secondary on this page; the training step holds the accent button. */}
+      <div className="flex h-full flex-col gap-3 p-4 sm:p-5 [&_[data-testid=kit-primary-action]]:border [&_[data-testid=kit-primary-action]]:border-border [&_[data-testid=kit-primary-action]]:bg-card [&_[data-testid=kit-primary-action]]:bg-none [&_[data-testid=kit-primary-action]]:text-foreground [&_[data-testid=kit-primary-action]]:shadow-none hover:[&_[data-testid=kit-primary-action]]:bg-muted">
         <div className="flex flex-wrap items-start justify-between gap-2">
-          <h3 className="min-w-0 text-base font-semibold text-purple-800 dark:text-purple-200">
+          <h3 className="min-w-0 text-base font-semibold text-foreground">
             {item.title}
           </h3>
           <KitStagePill stage={stage} />
@@ -50,13 +44,13 @@ function AddonSection({ item }: { item: ReturnType<typeof kitAddonViews>[number]
         {item.unlocked ? (
           <>
             <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <p className="px-eyebrow">
                 Status
               </p>
               <p className="text-sm text-foreground">{item.status}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <p className="px-eyebrow">
                 What's next
               </p>
               <p className="text-sm text-muted-foreground">{item.next}</p>
@@ -73,8 +67,8 @@ function AddonSection({ item }: { item: ReturnType<typeof kitAddonViews>[number]
             <KitResourceLink href={item.buyHref} label={`Buy · ${item.priceLabel}`} />
           </>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </article>
   );
 }
 
@@ -102,25 +96,25 @@ export function KitDeliveryList({
 
   return (
     <div className="min-w-0 space-y-6" data-testid="kit-delivery">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-1">
-          <h2 className="text-xl font-bold text-foreground sm:text-2xl">One Feature Kit</h2>
-          <p className="text-sm text-muted-foreground sm:text-base">
-            Finish the training steps, then open the add-ons included with your account.
+      <div className="flex flex-col gap-3 rounded-lg border border-border bg-card/60 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="px-icon-chip shrink-0" aria-hidden="true">
+            <Users className="size-5" />
+          </span>
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">Stuck on a step?</span> Other agency owners are
+            working through the same kit.
           </p>
         </div>
-        <Link
-          to="/app/community"
-          data-testid="kit-join-community"
-          className="inline-flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-md bg-purple-700 px-6 text-base font-semibold text-white hover:bg-purple-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-700 focus-visible:ring-offset-2 dark:bg-purple-300 dark:text-purple-950 dark:hover:bg-purple-200 sm:w-auto"
-        >
-          <Users className="h-4 w-4" aria-hidden="true" />
-          Join the Community
-        </Link>
-      </header>
+        <Button asChild variant="outline" className="h-11 w-full shrink-0 sm:h-10 sm:w-auto">
+          <Link to="/app/community" data-testid="kit-join-community">
+            Join the Community
+          </Link>
+        </Button>
+      </div>
 
       {loadError ? (
-        <p className="text-sm text-destructive">
+        <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
           We couldn't load your kit purchases. The steps stay on this page. Refresh to try again.
         </p>
       ) : null}
@@ -134,27 +128,29 @@ export function KitDeliveryList({
           onLandingPageSaved={onLandingPageSaved}
         />
       ) : (
-        <section
-          className="space-y-3 rounded-xl border border-border bg-card p-4 text-card-foreground shadow sm:p-5"
-          data-testid="kit-onboarding"
-        >
-          <h3 className="text-lg font-semibold text-foreground">One Feature Training</h3>
-          <p className="text-sm text-muted-foreground">
-            Buy the kit and the training steps unlock on this page.
-          </p>
-          <Button asChild className="w-full sm:w-auto">
-            <Link to="/one-feature-kit">Buy the kit · $27</Link>
-          </Button>
+        <section className="px-surface" data-testid="kit-onboarding">
+          <EmptyState
+            icon={
+              <span className="px-icon-chip">
+                <GraduationCap className="size-5" />
+              </span>
+            }
+            title="One Feature Training"
+            description="Buy the kit and the training steps unlock on this page."
+            action={
+              <Button asChild variant="accent" className="w-full sm:w-auto">
+                <Link to="/one-feature-kit">Buy the kit · $27</Link>
+              </Button>
+            }
+          />
         </section>
       )}
 
       {lineIds ? (
         <>
           <section className="space-y-3">
-            <h3 className="text-lg font-semibold text-purple-800 dark:text-purple-200">
-              Your add-ons
-            </h3>
-            <div className="grid grid-cols-1 gap-3">
+            <h2 className="text-base font-semibold text-foreground">Your add-ons</h2>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {addons.map((item) => (
                 <AddonSection key={item.id} item={item} />
               ))}

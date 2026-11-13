@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/platform/PageHeader";
+import { Reveal, RevealItem } from "@/components/premium/Reveal";
+import { SectionCard } from "@/components/premium/SectionCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Gift } from "lucide-react";
+import { CalendarDays, Gift, Star } from "lucide-react";
 import GiveawayLeaderboard from "@/components/giveaway/GiveawayLeaderboard";
 import GiveawayOptInModal from "@/components/giveaway/GiveawayOptInModal";
 import ChallengePodium from "@/components/giveaway/ChallengePodium";
@@ -34,94 +36,113 @@ const ChallengeTool = () => {
   const me = stats?.me ?? null;
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <h1 className="truncate text-lg font-bold text-foreground sm:text-xl">{GIVEAWAY_NAME}</h1>
-          <Badge variant="secondary" className="shrink-0 gap-1.5">
-            <span className="relative flex h-1.5 w-1.5" aria-hidden>
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            </span>
-            {ended ? "Ended" : "Live"}
-          </Badge>
-        </div>
-        {!ended && !isLoading && !isEntered && (
-          <Button size="sm" onClick={() => setOptInOpen(true)}>
-            <Gift className="mr-1.5 h-4 w-4" />
-            Enter the challenge
-          </Button>
-        )}
-      </div>
-      <p className="text-xs text-muted-foreground">{GIVEAWAY_RANGE_SHORT}</p>
-      <ChallengeFinale leaders={leaders} me={me} refresh={refresh} />
-      <ChallengePointReview />
-
-      {isLoading ? (
-        <Card>
-          <CardContent className="py-8 text-center text-sm text-muted-foreground">
-            Loading live standings…
-          </CardContent>
-        </Card>
-      ) : (
-        <GiveawayLeaderboard leaders={leaders} myName={me?.display_name} limit={50} />
-      )}
-
-      {!isLoading && <ChallengePodium leaders={leaders} me={me} />}
-
-      <p className="text-xs text-muted-foreground">{GIVEAWAY_TICKET_NOTE}</p>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">How to earn points</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {me && (
-              <p className="text-xs font-semibold text-foreground">
-                You have {me.points.toLocaleString()} pts
-                {me.rank ? ` · ${ordinal(Number(me.rank))} place` : ""}
-              </p>
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow={GIVEAWAY_RANGE_SHORT}
+        title={GIVEAWAY_NAME}
+        subtitle={
+          ended
+            ? "The challenge has ended. Here are the final standings."
+            : "Earn points as your clients onboard. The top three agencies win."
+        }
+        actions={
+          <>
+            <Badge variant={ended ? "neutral" : "success"} className="shrink-0 gap-1.5">
+              <span className="relative flex size-1.5" aria-hidden>
+                {!ended && (
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75 motion-reduce:hidden" />
+                )}
+                <span className={"relative inline-flex size-1.5 rounded-full " + (ended ? "bg-muted-foreground" : "bg-success")} />
+              </span>
+              {ended ? "Ended" : "Live"}
+            </Badge>
+            {!ended && !isLoading && !isEntered && (
+              <Button variant="accent" className="h-11 sm:h-10" onClick={() => setOptInOpen(true)}>
+                <Gift className="mr-1.5 h-4 w-4" />
+                Enter the challenge
+              </Button>
             )}
-            {GIVEAWAY_POINT_RULES.map((rule) => {
-              const earned = me ? pointsForRule(rule.key, me.breakdown) : null;
-              return (
-                <div key={rule.key} className="rounded-lg border border-border px-3 py-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-semibold text-foreground">{rule.label}</p>
-                    <p className="shrink-0 text-xs font-semibold text-primary">
-                      {earned != null && earned > 0 ? `+${earned.toLocaleString()} · ` : ""}
-                      {rule.points}
-                    </p>
-                  </div>
-                  <p className="mt-0.5 text-xs text-muted-foreground">{rule.detail}</p>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
+          </>
+        }
+      />
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Dates and rules</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>
-              <strong className="text-foreground">Starts:</strong> {GIVEAWAY_START_LABEL}
-            </p>
-            <p>
-              <strong className="text-foreground">Ends:</strong> {GIVEAWAY_END_LABEL}
-            </p>
-            <p>
-              <strong className="text-foreground">Winners announced:</strong>{" "}
-              {GIVEAWAY_WINNERS_LABEL}
-            </p>
-            <Button asChild variant="outline" size="sm" className="mt-2">
-              <Link to={GIVEAWAY_RULES_PATH}>Read the official rules</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <Reveal className="space-y-4 sm:space-y-6">
+        <RevealItem className="space-y-4 empty:hidden sm:space-y-6">
+          <ChallengeFinale leaders={leaders} me={me} refresh={refresh} />
+          <ChallengePointReview />
+        </RevealItem>
+
+        <RevealItem>
+          {isLoading ? (
+            <div className="px-surface space-y-3 p-4 sm:p-6" aria-busy="true">
+              <span className="sr-only">Loading live standings…</span>
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="px-skeleton h-12" />
+              ))}
+            </div>
+          ) : (
+            <GiveawayLeaderboard leaders={leaders} myName={me?.display_name} limit={50} />
+          )}
+        </RevealItem>
+
+        {/* Once the challenge ends the winners card above already shows the podium. */}
+        {!isLoading && !ended && (
+          <RevealItem>
+            <ChallengePodium leaders={leaders} me={me} />
+          </RevealItem>
+        )}
+
+        <RevealItem>
+          <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+            <SectionCard
+              icon={<Star />}
+              title="How to earn points"
+              description={
+                me
+                  ? `You have ${me.points.toLocaleString()} pts${me.rank ? ` · ${ordinal(Number(me.rank))} place` : ""}`
+                  : "Every action below adds to your score"
+              }
+            >
+              <ul className="divide-y divide-border">
+                {GIVEAWAY_POINT_RULES.map((rule) => {
+                  const earned = me ? pointsForRule(rule.key, me.breakdown) : null;
+                  return (
+                    <li key={rule.key} className="py-3 first:pt-0 last:pb-0">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-sm font-medium text-foreground">{rule.label}</p>
+                        <p className="shrink-0 text-xs font-semibold tabular-nums text-brand">
+                          {earned != null && earned > 0 ? `+${earned.toLocaleString()} · ` : ""}
+                          {rule.points}
+                        </p>
+                      </div>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{rule.detail}</p>
+                    </li>
+                  );
+                })}
+              </ul>
+            </SectionCard>
+
+            <SectionCard icon={<CalendarDays />} title="Dates and rules" description="All times are Central Time">
+              <dl className="divide-y divide-border text-sm">
+                {[
+                  ["Starts", GIVEAWAY_START_LABEL],
+                  ["Ends", GIVEAWAY_END_LABEL],
+                  ["Winners announced", GIVEAWAY_WINNERS_LABEL],
+                ].map(([term, value]) => (
+                  <div key={term} className="flex flex-col gap-0.5 py-3 first:pt-0 sm:flex-row sm:justify-between sm:gap-4">
+                    <dt className="text-muted-foreground">{term}</dt>
+                    <dd className="font-medium text-foreground sm:text-right">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="mt-4 text-xs text-muted-foreground">{GIVEAWAY_TICKET_NOTE}</p>
+              <Button asChild variant="outline" size="sm" className="mt-4 h-11 sm:h-9">
+                <Link to={GIVEAWAY_RULES_PATH}>Read the official rules</Link>
+              </Button>
+            </SectionCard>
+          </div>
+        </RevealItem>
+      </Reveal>
 
       <GiveawayOptInModal
         open={optInOpen}

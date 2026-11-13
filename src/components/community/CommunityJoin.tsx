@@ -172,7 +172,7 @@ export default function CommunityJoin({
           <BorderBeam duration={8} size={120} delay={4} reverse />
           <CardHeader className="px-4 pt-4 pb-3 space-y-2">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
+              <Sparkles className="h-4 w-4 text-brand" />
               <CardTitle className="text-base">Join the SaaSSuite Community</CardTitle>
             </div>
             <div className="flex items-center gap-1.5">
@@ -181,7 +181,7 @@ export default function CommunityJoin({
                   key={i}
                   className={
                     "h-1 flex-1 rounded-full transition-colors " +
-                    (i <= step ? "bg-primary" : "bg-muted")
+                    (i <= step ? "bg-brand" : "bg-muted")
                   }
                 />
               ))}
@@ -252,7 +252,7 @@ export default function CommunityJoin({
                   />
                 </div>
                 {handleState === "checking" && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                {handleState === "ok" && <Check className="h-4 w-4 text-primary" />}
+                {handleState === "ok" && <Check className="h-4 w-4 text-brand" />}
                 {handleState === "taken" && <X className="h-4 w-4 text-destructive" />}
               </div>
               <p className="text-xs text-muted-foreground">

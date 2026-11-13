@@ -7,10 +7,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { normalizeKitLandingPageUrl } from "@/lib/kitTracker";
 
 const saveActionClass =
-  "inline-flex h-12 w-full items-center justify-center rounded-md bg-green-700 px-6 text-base font-semibold text-white shadow-sm hover:bg-green-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2 disabled:opacity-60 dark:bg-green-400 dark:text-green-950 dark:hover:bg-green-300 dark:focus-visible:ring-green-200 sm:w-auto";
+  "inline-flex h-12 w-full items-center justify-center rounded-md bg-success px-6 text-base font-semibold text-white shadow-sm hover:bg-success focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success focus-visible:ring-offset-2 disabled:opacity-60 sm:w-auto";
 
 const quietLinkClass =
-  "text-sm font-medium text-purple-800 underline decoration-purple-400 underline-offset-4 hover:text-purple-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-700 dark:text-purple-200 dark:hover:text-purple-50";
+  "text-sm font-medium text-brand underline decoration-brand/40 underline-offset-4 hover:text-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand";
 
 export function KitLandingPageField({
   savedUrl,
@@ -110,7 +110,7 @@ export function KitLandingPageField({
     }
   };
 
-  const labelClass = "text-sm font-medium text-purple-950 dark:text-purple-100";
+  const labelClass = "text-sm font-medium text-foreground";
 
   return (
     <div className="space-y-2 border-t border-border pt-4" data-testid="kit-landing-page">

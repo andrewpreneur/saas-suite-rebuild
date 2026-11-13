@@ -4,7 +4,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Upload, Link, X, LogIn, Loader2 } from "lucide-react";
+import { Upload, Link, X, LogIn, Loader2, Check } from "lucide-react";
+import AnimatedTabs from "@/components/premium/21st/animated-tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -102,68 +103,66 @@ const LoginCustomizationPanel = ({
         )}
 
         {enabled && (
-          <div className="space-y-5 pt-2 border-t border-border">
+          <div className={hideHeader ? "flex flex-col gap-5" : "space-y-5 border-t border-border pt-4"}>
             {/* Background Color Selection */}
-            <div className="space-y-2 pt-3">
-              <Label className="text-sm font-medium">Login Background</Label>
-              <div className="grid grid-cols-4 gap-2">
-                {BACKGROUND_COLORS.map((bg) => (
-                  <button
-                    key={bg.value}
-                    onClick={() => onBackgroundChange(selectedBackground === bg.value ? null : bg.value)}
-                    className={`relative rounded-lg p-2 text-xs font-medium transition-all border-2 ${
-                      selectedBackground === bg.value
-                        ? "border-primary ring-2 ring-primary/20 scale-105"
-                        : "border-border hover:border-primary/40"
-                    }`}
-                    style={{ backgroundColor: bg.hex, color: bg.textColor }}
-                  >
-                    {bg.name}
-                    {selectedBackground === bg.value && (
-                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
-                        <span className="text-[8px] text-primary-foreground">✓</span>
-                      </div>
-                    )}
-                  </button>
-                ))}
+            <div className="flex flex-col gap-2">
+              <Label className="text-sm font-medium">Login background</Label>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4" role="group" aria-label="Login background">
+                {BACKGROUND_COLORS.map((bg) => {
+                  const active = selectedBackground === bg.value;
+                  return (
+                    <button
+                      key={bg.value}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => onBackgroundChange(active ? null : bg.value)}
+                      className={`flex min-h-[44px] items-center gap-2 rounded-md border bg-card px-2.5 py-2 text-left text-xs font-medium transition-[border-color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-0 ${
+                        active
+                          ? "border-brand ring-2 ring-brand/20"
+                          : "border-border hover:border-brand/40"
+                      }`}
+                    >
+                      <span
+                        className="grid size-5 shrink-0 place-items-center rounded-full border border-border"
+                        style={{ backgroundColor: bg.hex, color: bg.textColor }}
+                      >
+                        {active ? <Check className="size-3" strokeWidth={3} aria-hidden /> : null}
+                      </span>
+                      <span className="truncate">{bg.name}</span>
+                    </button>
+                  );
+                })}
                 {/* None option */}
                 <button
+                  type="button"
+                  aria-pressed={selectedBackground === null}
                   onClick={() => onBackgroundChange(null)}
-                  className={`rounded-lg p-2 text-xs font-medium transition-all border-2 bg-muted text-muted-foreground ${
+                  className={`flex min-h-[44px] items-center gap-2 rounded-md border bg-card px-2.5 py-2 text-left text-xs font-medium transition-[border-color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-0 ${
                     selectedBackground === null
-                      ? "border-primary ring-2 ring-primary/20 scale-105"
-                      : "border-border hover:border-primary/40"
+                      ? "border-brand ring-2 ring-brand/20"
+                      : "border-border hover:border-brand/40"
                   }`}
                 >
+                  <span className="grid size-5 shrink-0 place-items-center rounded-full border border-dashed border-muted-foreground/50 text-muted-foreground">
+                    {selectedBackground === null ? <Check className="size-3" strokeWidth={3} aria-hidden /> : null}
+                  </span>
                   None
                 </button>
               </div>
             </div>
-
             {/* Logo Input */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Login Page Logo</Label>
-              <div className="flex gap-2 mb-2">
-                <Button
-                  variant={logoInputMode === "url" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setLogoInputMode("url")}
-                  className="gap-1"
-                >
-                  <Link className="w-3 h-3" />
-                  Paste URL
-                </Button>
-                <Button
-                  variant={logoInputMode === "upload" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setLogoInputMode("upload")}
-                  className="gap-1"
-                >
-                  <Upload className="w-3 h-3" />
-                  Upload
-                </Button>
-              </div>
-
+            <div className="flex flex-col gap-2">
+              <Label className="text-sm font-medium">Login page logo</Label>
+              <AnimatedTabs
+                variant="segment"
+                activeTab={logoInputMode}
+                onChange={(mode) => setLogoInputMode(mode === "upload" ? "upload" : "url")}
+                tabs={[
+                  { id: "url", label: "Paste URL", icon: <Link className="size-3.5" aria-hidden /> },
+                  { id: "upload", label: "Upload", icon: <Upload className="size-3.5" aria-hidden /> },
+                ]}
+                className="self-start [&_button]:px-3 [&_button]:py-1.5 [&_button]:text-xs"
+              />
               {logoInputMode === "url" ? (
                 <Input
                   placeholder="https://example.com/logo.png"
@@ -188,10 +187,10 @@ const LoginCustomizationPanel = ({
                     {uploading ? (
                       <><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</>
                     ) : (
-                      <><Upload className="w-4 h-4" /> Choose Logo Image</>
+                      <><Upload className="w-4 h-4" /> Choose logo image</>
                     )}
                   </Button>
-                  <p className="text-xs text-muted-foreground text-center">PNG, JPG or SVG — max 5MB</p>
+                  <p className="text-xs text-muted-foreground">PNG, JPG or SVG, up to 5 MB</p>
                 </div>
               )}
 
@@ -210,7 +209,8 @@ const LoginCustomizationPanel = ({
                     variant="ghost"
                     size="sm"
                     onClick={() => onLogoUrlChange("")}
-                    className="h-6 w-6 p-0"
+                    className="h-8 w-8 p-0"
+                    aria-label="Remove logo"
                   >
                     <X className="w-3 h-3" />
                   </Button>

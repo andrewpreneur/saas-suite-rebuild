@@ -75,9 +75,9 @@ export const ExistingAgencyDialog = () => {
     <Dialog open={open} onOpenChange={() => { /* require a choice */ }}>
       <DialogContent className="sm:max-w-md [&>button]:hidden">
         <DialogHeader>
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            <Building2 className="h-6 w-6 text-primary" />
-          </div>
+          <span className="px-icon-chip mx-auto mb-2 [&_svg]:size-5" aria-hidden="true">
+            <Building2 />
+          </span>
           <DialogTitle className="text-center">Existing agency detected</DialogTitle>
           <DialogDescription className="text-center">
             We detected an existing agency on this domain of <strong>{match.domain}</strong>
@@ -89,12 +89,12 @@ export const ExistingAgencyDialog = () => {
             <p className="text-sm text-center text-muted-foreground">
               Your request has been sent. Once the owner approves it, you'll get access to {name}.
             </p>
-            <Button className="w-full" onClick={checkApproved}>I've been approved — take me in</Button>
+            <Button variant="accent" className="w-full" onClick={checkApproved}>I've been approved — take me in</Button>
             <Button variant="outline" className="w-full" onClick={finish}>Start your own account instead</Button>
           </div>
         ) : (
           <div className="space-y-3">
-            <Button className="w-full" disabled={busy} onClick={requestJoin}>Request to join that agency</Button>
+            <Button variant="accent" className="w-full" disabled={busy} onClick={requestJoin}>Request to join that agency</Button>
             <Button variant="outline" className="w-full" onClick={finish}>Start your own account</Button>
           </div>
         )}

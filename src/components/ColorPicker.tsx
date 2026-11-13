@@ -1,7 +1,5 @@
-
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 interface ColorPickerProps {
@@ -12,10 +10,18 @@ interface ColorPickerProps {
   autoFocus?: boolean;
 }
 
+const HEX = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+
+/**
+ * One tidy color field: the label on top, then a swatch that opens the system
+ * color picker and a hex box you can type or paste into.
+ */
 const ColorPicker = ({ label, color, onChange, className, autoFocus }: ColorPickerProps) => {
+  // Kept as `color-<label>` because browser tests find the field by this id.
+  const id = `color-${label}`;
   const [inputColor, setInputColor] = useState(color);
   const [hexInput, setHexInput] = useState(color);
-  
+
   useEffect(() => {
     setInputColor(color);
     setHexInput(color);
@@ -30,55 +36,68 @@ const ColorPicker = ({ label, color, onChange, className, autoFocus }: ColorPick
 
   const handleHexInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value;
-    
+
     // Auto-add # if not present
-    if (value && !value.startsWith('#')) {
-      value = '#' + value;
+    if (value && !value.startsWith("#")) {
+      value = "#" + value;
     }
-    
+
     setHexInput(value);
-    
+
     // Validate hex color (3 or 6 digits)
-    const hexRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
-    if (hexRegex.test(value)) {
+    if (HEX.test(value)) {
       setInputColor(value);
       onChange(value);
     }
   };
 
-  const handleColorSquareClick = () => {
-    const colorInput = document.getElementById(`color-${label}`) as HTMLInputElement;
-    colorInput?.click();
-  };
-  
+  const invalid = Boolean(hexInput) && !HEX.test(hexInput);
+  // The native picker only accepts six-digit hex.
+  const pickerValue = /^#[A-Fa-f0-9]{6}$/.test(inputColor || "") ? inputColor : "#000000";
+
   return (
-    <div className={cn("space-y-2", className)}>
-      <div className="flex justify-between items-center">
-        <Label htmlFor={`color-${label}`}>{label}</Label>
-        <div className="flex items-center space-x-2">
-          <div 
-            className="w-6 h-6 rounded border border-gray-300 cursor-pointer hover:border-gray-400 transition-colors" 
-            style={{ backgroundColor: inputColor }}
-            onClick={handleColorSquareClick}
-            title="Click to open color picker"
+    <div className={cn("flex min-w-0 flex-col gap-2", className)}>
+      <Label htmlFor={id}>{label}</Label>
+      <div
+        className={cn(
+          "flex h-11 items-center gap-2 rounded-md border bg-card p-1 pr-3 shadow-card transition-[border-color,box-shadow] sm:h-10",
+          "focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20",
+          invalid ? "border-destructive" : "border-input",
+        )}
+      >
+        <span
+          className="relative h-full w-10 shrink-0 overflow-hidden rounded-sm border border-border"
+          style={{ backgroundColor: inputColor }}
+          title="Open the color picker"
+        >
+          <input
+            type="color"
+            value={pickerValue}
+            onChange={handleColorChange}
+            aria-label={`Pick ${label}`}
+            className="absolute inset-0 size-full cursor-pointer opacity-0"
           />
-          <Input
-            type="text"
-            value={hexInput}
-            onChange={handleHexInputChange}
-            placeholder="#000000"
-            className="h-8 w-24 text-sm"
-            autoFocus={autoFocus}
-          />
-        </div>
+        </span>
+        <input
+          id={id}
+          type="text"
+          value={hexInput}
+          onChange={handleHexInputChange}
+          placeholder="#000000"
+          spellCheck={false}
+          autoComplete="off"
+          maxLength={7}
+          autoFocus={autoFocus}
+          aria-invalid={invalid || undefined}
+          aria-describedby={invalid ? `${id}-error` : undefined}
+          className="min-w-0 flex-1 bg-transparent font-mono text-sm uppercase text-foreground outline-none placeholder:text-muted-foreground"
+        />
       </div>
-      <Input
-        id={`color-${label}`}
-        type="color"
-        value={inputColor}
-        onChange={handleColorChange}
-        className="h-10 w-full p-1"
-      />
+      {invalid ? (
+        <p id={`${id}-error`} className="text-xs text-destructive">
+          Use a hex color like #6043EF.
+        </p>
+      ) : null}
     </div>
   );
 };

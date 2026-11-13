@@ -92,10 +92,10 @@ const MobileBrandingCard = ({ email, controlled, hideChrome = false }: Props) =>
   };
 
   return (
-    <div className={hideChrome ? "flex flex-col gap-3" : "rounded-xl border border-border bg-card p-5 space-y-3"}>
+    <div className={hideChrome ? "flex flex-col gap-3" : "px-surface space-y-3 p-4 sm:p-6"}>
       {hideChrome ? null : (
       <div className="flex items-center gap-2">
-        <Smartphone className="w-5 h-5 text-primary" />
+        <Smartphone className="w-5 h-5 text-brand" />
         <h3 className="font-semibold">Mobile Branding</h3>
         <Badge variant="secondary">Beta</Badge>
         {enabled && <Badge>On</Badge>}

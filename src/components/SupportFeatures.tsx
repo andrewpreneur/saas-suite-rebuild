@@ -10,9 +10,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Bot, Sparkles, Check, Info, Code, Ticket, AlertCircle, CheckCircle2, Clock, HelpCircle, Webhook, ExternalLink, Mail } from "lucide-react";
+import { ChevronDown, Bot, Sparkles, Check, Info, Code, Ticket, AlertCircle, CheckCircle2, Clock, HelpCircle, Webhook, ExternalLink, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { LoadNotice } from "@/components/platform/LoadNotice";
+import { PageHeader } from "@/components/platform/PageHeader";
+import { SectionCard } from "@/components/premium/SectionCard";
+import { SettingRow } from "@/components/premium/support/SettingRow";
+import { Tag } from "@/components/ui/tag";
+import { Banner } from "@/components/ui/banner";
+import { TicketsTable } from "@/components/SupportDashboard";
 import { LOAD_TIMEOUT_MESSAGE, armLoadDeadline, loadErrorText } from "@/lib/loadSettle";
 import { supabase } from "@/integrations/supabase/client";
 import { useUser } from "@/contexts/UserContext";
@@ -299,7 +305,7 @@ const SupportFeatures = () => {
         body: { ticket_id: selectedTicket.id, response_text: ticketResponse.trim(), attachment_url },
       });
       if (error) throw error;
-      toast.success("Response sent — customer will receive an email shortly.");
+      toast.success("Response sent. The client gets an email shortly.");
       setTickets(prev => prev.map(ticket =>
         ticket.id === selectedTicket.id
           ? { ...ticket, status: "responded", admin_response: ticketResponse.trim(), responded_at: new Date().toISOString(), admin_response_attachment_url: attachment_url }
@@ -355,280 +361,180 @@ const SupportFeatures = () => {
   return (
     <TooltipProvider>
       <div className="space-y-6">
-        {/* Feature Toggles Card */}
-        <Card className="border-border">
-          <CardHeader>
-            <CardTitle className="text-lg">Support Feature Settings</CardTitle>
-            <CardDescription>
-              Configure support features for your customers
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Support Ticketing Toggle */}
-            <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-3">
-                <Ticket className="w-5 h-5 text-muted-foreground" />
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="ticketing-toggle" className="font-medium">
-                    Support Ticketing
-                  </Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <HelpCircle className="w-4 h-4 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p>Enable a support ticket system where your customers can submit requests. You'll be able to track and manage all tickets from the table below.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-              </div>
+        <PageHeader
+          title="Customize Support"
+          subtitle="Choose how clients reach you, then answer their tickets below."
+        />
+
+        <SectionCard
+          icon={<Ticket />}
+          title="Tickets"
+          description="Let clients send a request you can track, assign and answer by email."
+          bodyClassName="divide-y divide-border"
+        >
+          <SettingRow
+            htmlFor="ticketing-toggle"
+            title="Support ticketing"
+            description={
+              ticketingEnabled
+                ? "On. Clients can open a ticket from their hub, and every ticket shows in the list below."
+                : "Off. Clients can't open tickets. Turn it on to add a request form to their hub."
+            }
+            control={
               <Switch
                 id="ticketing-toggle"
                 checked={ticketingEnabled}
                 onCheckedChange={toggleTicketing}
                 disabled={isSaving}
               />
-            </div>
-
-            {/* Inbound Webhook URL */}
-            {ticketingEnabled && (
-              <div className="p-4 rounded-lg bg-muted/50 space-y-3">
-                <div className="flex items-center gap-2">
-                  <Webhook className="w-5 h-5 text-muted-foreground" />
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor="webhook-url" className="font-medium">
-                      Inbound Webhook URL
-                    </Label>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <HelpCircle className="w-4 h-4 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p>Enter a webhook URL to receive notifications when tickets are created or status changes. Useful for automations in GoHighLevel or Zapier.</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    id="webhook-url"
-                    type="url"
-                    placeholder="https://hooks.example.com/webhook..."
-                    value={tempWebhookUrl}
-                    onChange={(e) => setTempWebhookUrl(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button 
-                    onClick={saveWebhookUrl}
-                    disabled={isSavingWebhook || tempWebhookUrl === webhookUrl}
-                    size="sm"
-                  >
-                    {isSavingWebhook ? "Saving..." : "Save"}
-                  </Button>
-                </div>
-                {webhookUrl && (
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3 text-green-500" />
-                    Webhook configured - notifications will be sent for ticket events
-                  </p>
-                )}
+            }
+          />
+          {ticketingEnabled && (
+            <SettingRow
+              htmlFor="webhook-url"
+              title="Send ticket events to a webhook"
+              description="We post to this URL when a ticket is created or its status changes. Useful for HighLevel or Zapier automations."
+            >
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Input
+                  id="webhook-url"
+                  type="url"
+                  placeholder="https://hooks.example.com/webhook..."
+                  value={tempWebhookUrl}
+                  onChange={(e) => setTempWebhookUrl(e.target.value)}
+                  className="flex-1"
+                />
+                <Button
+                  onClick={saveWebhookUrl}
+                  disabled={isSavingWebhook || tempWebhookUrl === webhookUrl}
+                >
+                  {isSavingWebhook ? "Saving…" : "Save webhook"}
+                </Button>
               </div>
-            )}
-            {ticketingEnabled && (
-              <div className="p-4 rounded-lg bg-muted/50">
+              {webhookUrl && (
+                <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <CheckCircle2 className="size-3.5 text-success" aria-hidden="true" />
+                  Webhook saved. Ticket events are being sent.
+                </p>
+              )}
+            </SettingRow>
+          )}
+          {ticketingEnabled && (
+            <details className="group py-4 last:pb-0">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 rounded-sm text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+                <span>
+                  Advanced: reply webhooks and email setup
+                  <span className="mt-0.5 block font-normal text-muted-foreground">
+                    Send ticket updates from your own CRM and bring client email replies back in.
+                  </span>
+                </span>
+                <ChevronDown
+                  className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
+                  aria-hidden="true"
+                />
+              </summary>
+              <div className="mt-4 space-y-4">
                 <SupportUpdatesWebhookPanel compact />
-                <div className="mt-4"><CustomerRepliesWebhookPanel compact /></div>
+                <CustomerRepliesWebhookPanel compact />
               </div>
-            )}
+            </details>
+          )}
+        </SectionCard>
 
-            <div className="flex items-center justify-between p-4 rounded-lg border">
-              <div>
-                <Label htmlFor="chat-widget-toggle" className="font-medium">AI Chat Support</Label>
-                <p className="text-xs text-muted-foreground">Turn the AI chat widget on or off for your clients.</p>
-              </div>
-              <Switch id="chat-widget-toggle" checked={showChatWidget} onCheckedChange={toggleChatWidget} />
-            </div>
-
+        <SectionCard
+          icon={<Bot />}
+          title="AI chat"
+          description="An assistant in your clients' accounts that answers questions around the clock."
+          bodyClassName="divide-y divide-border"
+        >
+          <SettingRow
+            htmlFor="chat-widget-toggle"
+            title="AI chat support"
+            description={
+              showChatWidget
+                ? "On. Clients see the chat bubble and can ask the assistant anything."
+                : "Off. The chat bubble is hidden from your clients."
+            }
+            control={
+              <Switch
+                id="chat-widget-toggle"
+                checked={showChatWidget}
+                onCheckedChange={toggleChatWidget}
+              />
+            }
+          />
+          <div className="py-4 last:pb-0">
             <ChatModeSettings />
-
-            {/* Branded AI Support Section */}
-            <div className="flex items-center justify-between p-4 rounded-lg border border-primary/20 bg-gradient-to-r from-primary/5 to-purple-500/5">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Sparkles className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">Branded AI Support</span>
-                    {hasBrandedSupport && (
-                      <Badge className="bg-green-600 text-white">Active</Badge>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Fully customized AI chat with your branding
-                  </p>
-                </div>
-              </div>
-              {hasBrandedSupport ? (
-                <Button 
+          </div>
+          <SettingRow
+            title={
+              <span className="flex flex-wrap items-center gap-2">
+                Branded AI support
+                {hasBrandedSupport && (
+                  <Tag tone="success">
+                    <Check aria-hidden="true" /> Active
+                  </Tag>
+                )}
+              </span>
+            }
+            description="A fully customized chat with your colors, your prompts and human handover."
+            control={
+              hasBrandedSupport ? (
+                <Button
                   variant="outline"
-                  size="sm"
                   onClick={() => {
                     setTempEmbedCode(embedCode);
                     setShowEmbedCodePopup(true);
                   }}
                 >
-                  <Code className="w-4 h-4 mr-2" />
-                  View Embed Code
+                  <Code aria-hidden="true" />
+                  View embed code
                 </Button>
               ) : (
-                <Button 
-                  size="sm"
-                  className="bg-gradient-to-r from-primary to-purple-500 text-white border-0 hover:opacity-90"
-                  onClick={() => setShowUpgradePopup(true)}
-                >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Upgrade
+                <Button variant="outline" onClick={() => setShowUpgradePopup(true)}>
+                  <Sparkles aria-hidden="true" />
+                  See the upgrade
                 </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+              )
+            }
+          />
+        </SectionCard>
 
-        {/* Support Tickets Table */}
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Ticket className="w-5 h-5" />
-              Support Tickets
-            </CardTitle>
-            <CardDescription>
-              View and manage support tickets from your customers
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {tickets.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <Ticket className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>No support tickets yet</p>
-                <p className="text-sm mt-1">Tickets will appear here when customers submit them</p>
-              </div>
-            ) : (
-              <div className="rounded-md border border-border overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead className="w-24">Ticket #</TableHead>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead className="max-w-xs">Request</TableHead>
-                      <TableHead>Assigned</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Date</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {tickets.map((ticket) => (
-                      <TableRow
-                        key={ticket.id}
-                        className="cursor-pointer hover:bg-muted/40"
-                       onClick={() => { setSelectedTicket(ticket); setTicketResponse(""); setTicketAttachment(null); }}
-                      >
-                        <TableCell className="font-mono font-medium">
-                          #{ticket.ticket_number}
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{ticket.customer_name}</p>
-                            <p className="text-sm text-muted-foreground">{ticket.customer_email}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{ticket.issue_category}</Badge>
-                        </TableCell>
-                        <TableCell className="max-w-xs min-w-0">
-                          <TicketListPreview ticket={ticket} />
-                          {ticket.attachment_url && (
-                            <img
-                              src={ticket.attachment_url}
-                              alt="Customer attachment"
-                              className="mt-2 max-h-24 rounded border"
-                            />
-                          )}
-                          {ticket.admin_response ? (
-                            <div className="mt-2 rounded-md border border-primary/30 bg-primary/5 p-2">
-                              <p className="text-[10px] font-semibold uppercase tracking-wide text-primary mb-1">
-                                Support Response{ticket.responded_at ? ` · ${formatDate(ticket.responded_at)}` : ""}
-                              </p>
-                              <p className="text-xs whitespace-pre-wrap">{ticket.admin_response}</p>
-                              {ticket.admin_response_attachment_url && (
-                                <img
-                                  src={ticket.admin_response_attachment_url}
-                                  alt="Response attachment"
-                                  className="mt-1 max-h-24 rounded border border-primary/20"
-                                />
-                              )}
-                            </div>
-                          ) : null}
-                        </TableCell>
-                        <TableCell onClick={(e) => e.stopPropagation()}>
-                          <AssignUserButton team={access.team} assignedEmail={ticket.assigned_to} onAssign={(e) => handleAssign(ticket.id, e)} disabled={!canEditTickets} />
-                        </TableCell>
-                        <TableCell onClick={(e) => e.stopPropagation()}>
-                          <Select
-                            value={ticket.status}
-                            onValueChange={(value) => handleStatusChange(ticket.id, value)}
-                          >
-                            <SelectTrigger className="w-[130px] h-8 p-0 border-0 bg-transparent">
-                              <SelectValue>{getStatusBadge(ticket.status)}</SelectValue>
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="open">
-                                <div className="flex items-center gap-1">
-                                  <AlertCircle className="w-3 h-3 text-destructive" /> Open
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="in_progress">
-                                <div className="flex items-center gap-1">
-                                  <Clock className="w-3 h-3 text-amber-500" /> In Progress
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="responded">
-                                <div className="flex items-center gap-1">
-                                  <Mail className="w-3 h-3 text-primary" /> Responded
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="completed">
-                                <div className="flex items-center gap-1">
-                                  <CheckCircle2 className="w-3 h-3 text-green-600" /> Completed
-                                </div>
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {formatDate(ticket.created_at)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <section className="space-y-3">
+          <div>
+            <h2 className="text-base font-semibold text-foreground">Tickets from your clients</h2>
+            <p className="text-sm text-muted-foreground">
+              Select a ticket to read it and send a response.
+            </p>
+          </div>
+          <TicketsTable
+            team={access.team}
+            onAssign={handleAssign}
+            canEdit={canEditTickets}
+            tickets={tickets}
+            onSelect={(ticket) => {
+              setSelectedTicket(ticket as SupportTicket);
+              setTicketResponse("");
+              setTicketAttachment(null);
+            }}
+            onStatusChange={handleStatusChange}
+            emptyLabel={
+              ticketingEnabled
+                ? "No tickets yet. They appear here when a client sends one."
+                : "No tickets yet. Turn on support ticketing above to start receiving them."
+            }
+          />
+        </section>
 
         {/* Upgrade Popup */}
         <Dialog open={showUpgradePopup} onOpenChange={setShowUpgradePopup}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Sparkles className="w-6 h-6 text-primary" />
-                </div>
-                <Badge className="bg-gradient-to-r from-primary to-purple-500 text-white border-0">
-                  Premium
-                </Badge>
+              <div className="mb-2 flex items-center gap-3">
+                <span className="px-icon-chip [&_svg]:size-5" aria-hidden="true">
+                  <Sparkles />
+                </span>
+                <Tag tone="brand">Premium</Tag>
               </div>
               <DialogTitle className="text-xl">Branded AI Support Agent</DialogTitle>
               <DialogDescription>
@@ -638,23 +544,23 @@ const SupportFeatures = () => {
             <div className="space-y-4 py-4">
               <ul className="space-y-2">
                 <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                  <Check className="mt-0.5 size-5 shrink-0 text-brand" aria-hidden="true" />
                   <span className="text-sm text-muted-foreground">Custom brand colors and styling</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                  <Check className="mt-0.5 size-5 shrink-0 text-brand" aria-hidden="true" />
                   <span className="text-sm text-muted-foreground">15-minute setup/implementation call included</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                  <Check className="mt-0.5 size-5 shrink-0 text-brand" aria-hidden="true" />
                   <span className="text-sm text-muted-foreground">Custom prompting for your business</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                  <Check className="mt-0.5 size-5 shrink-0 text-brand" aria-hidden="true" />
                   <span className="text-sm text-muted-foreground">Human handover capability</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                  <Check className="mt-0.5 size-5 shrink-0 text-brand" aria-hidden="true" />
                   <span className="text-sm text-muted-foreground">Custom actions (SMS, email, internal notifications)</span>
                 </li>
               </ul>
@@ -663,12 +569,13 @@ const SupportFeatures = () => {
                   <span className="text-2xl font-bold text-foreground">$20</span>
                   <span className="text-sm text-muted-foreground">/month per customer</span>
                 </div>
-                <Button 
-                  className="w-full bg-gradient-to-r from-primary to-purple-500 hover:opacity-90 text-white"
+                <Button
+                  variant="accent"
+                  className="w-full"
                   onClick={() => window.open(brandedPaymentLink, "_blank")}
                 >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Upgrade to Branded Agent
+                  <Sparkles aria-hidden="true" />
+                  Upgrade to branded AI support
                 </Button>
               </div>
             </div>
@@ -699,7 +606,7 @@ const SupportFeatures = () => {
                   </div>
                   {selectedTicket.admin_response && (
                     <div className="rounded-lg border bg-muted/40 p-3 text-sm">
-                      <div className="text-xs font-medium text-primary mb-1">
+                      <div className="mb-1 text-xs font-medium text-brand">
                         Previous response{selectedTicket.responded_at ? ` · ${formatDate(selectedTicket.responded_at)}` : ""}
                       </div>
                       <div className="whitespace-pre-wrap">{selectedTicket.admin_response}</div>
@@ -721,7 +628,7 @@ const SupportFeatures = () => {
                   </div>
                   <TicketAttachmentField value={ticketAttachment} onChange={setTicketAttachment} disabled={isSendingTicketResponse} />
                   <div className="flex items-start gap-2 rounded-md bg-muted/40 border p-3 text-xs text-muted-foreground">
-                    <Sparkles className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" />
+                    <Sparkles className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden="true" />
                     <span>
                       Our AI will email <span className="font-medium">{selectedTicket.customer_email}</span> with their ticket update — including any attached image. The ticket will be marked as responded.
                     </span>
@@ -731,8 +638,8 @@ const SupportFeatures = () => {
                   <Button variant="outline" onClick={() => { setSelectedTicket(null); setTicketResponse(""); setTicketAttachment(null); }} disabled={isSendingTicketResponse}>
                     Cancel
                   </Button>
-                  <Button onClick={handleSendTicketResponse} disabled={isSendingTicketResponse || !ticketResponse.trim()}>
-                    <Mail className="w-4 h-4 mr-1" />
+                  <Button variant="accent" onClick={handleSendTicketResponse} disabled={isSendingTicketResponse || !ticketResponse.trim()}>
+                    <Mail aria-hidden="true" />
                     {isSendingTicketResponse ? "Sending…" : "Send response"}
                   </Button>
                 </DialogFooter>
@@ -757,18 +664,15 @@ const SupportFeatures = () => {
                 placeholder="Paste your embed code here..."
                 className="min-h-[200px] font-mono text-sm"
               />
-              <div className="flex items-start gap-3 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                <Info className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
-                <p className="text-sm text-blue-500">
-                  To install, paste this code at the agency level → Company → White Label → Custom CSS
-                </p>
-              </div>
+              <Banner tone="info" title="To install:">
+                paste this code at the agency level under Company, White Label, Custom CSS.
+              </Banner>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setShowEmbedCodePopup(false)}>
                   Cancel
                 </Button>
-                <Button onClick={saveEmbedCode} disabled={isSaving}>
-                  {isSaving ? "Saving..." : "Save"}
+                <Button variant="accent" onClick={saveEmbedCode} disabled={isSaving}>
+                  {isSaving ? "Saving…" : "Save embed code"}
                 </Button>
               </div>
             </div>

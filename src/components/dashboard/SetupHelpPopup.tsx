@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, X } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { DURATION, EASE_OUT } from "@/lib/motion";
+import { cn } from "@/lib/utils";
 import { useUser } from "@/contexts/UserContext";
-import { claimPopup } from "@/lib/popupGate";
 import { useTipsBot } from "@/components/tips-bot";
 import { shouldAutoStart } from "@/lib/tourSchedule";
 import { SUPPORT_SMS_NUMBER, supportSmsUrl } from "@/lib/supportContact";
@@ -11,10 +13,11 @@ import { SUPPORT_SMS_NUMBER, supportSmsUrl } from "@/lib/supportContact";
 const STORAGE_KEY = "setup_help_popup_seen";
 const SMS_MESSAGE = "I just got SaaSSuite- can you help me get it all setup?";
 
-// One-time popup on first dashboard visit inviting the user to text us
-// for hands-on installation help. Opens the native SMS app via sms: link.
-export default function SetupHelpPopup() {
-  const [open, setOpen] = useState(false);
+// Quiet inline card on the dashboard inviting the user to text us for hands-on
+// installation help. It used to be a popup on the first visit; now it waits in the
+// page until it is dismissed, and never covers the screen.
+export default function SetupHelpPopup({ className }: { className?: string }) {
+  const [show, setShow] = useState(false);
   const { actualEmail, effectiveEmail } = useUser();
   // Team admins (and impersonation) viewing someone else's account skip this.
   const isTeamView =
@@ -23,22 +26,86 @@ export default function SetupHelpPopup() {
   const { isWalkthroughMode } = useTipsBot();
   useEffect(() => {
     if (!actualEmail || isTeamView) return;
-    // Never stack on top of the walkthrough; it waits for a later visit.
+    // Stay out of the way while the walkthrough runs; it shows on a later visit.
     if (isWalkthroughMode || shouldAutoStart("nav", actualEmail)) return;
     try {
       if (localStorage.getItem(STORAGE_KEY)) return;
-      const timer = window.setTimeout(() => {
-        if (!claimPopup("setup-help")) return;
-        localStorage.setItem(STORAGE_KEY, "1");
-        setOpen(true);
-      }, 1200);
-      return () => window.clearTimeout(timer);
+      setShow(true);
     } catch {
-      // localStorage unavailable — don't nag every load
+      // localStorage unavailable: don't nag every load
     }
   }, [actualEmail, isTeamView, isWalkthroughMode]);
 
-  return <TextUsDialog open={open} onOpenChange={setOpen} />;
+  const dismiss = () => {
+    setShow(false);
+    try {
+      localStorage.setItem(STORAGE_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const smsUrl = supportSmsUrl(SMS_MESSAGE, SUPPORT_SMS_NUMBER);
+
+  return (
+    <AnimatePresence initial={false}>
+      {show ? (
+        <motion.aside
+          key="setup-help"
+          aria-label="Setup help"
+          data-testid="setup-help-card"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, height: 0, marginTop: 0 }}
+          transition={{ duration: DURATION.slow, ease: EASE_OUT }}
+          className={cn("overflow-hidden", className)}
+        >
+          <div className="px-surface flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-4">
+            <div className="flex min-w-0 flex-1 items-start gap-3">
+              <span className="px-icon-chip shrink-0 [&_svg]:size-5" aria-hidden="true">
+                <MessageCircle />
+              </span>
+              <div className="min-w-0">
+                <p className="text-small font-semibold text-foreground">Want a hand getting set up?</p>
+                <p className="text-small text-muted-foreground">
+                  Text us and we'll guide you through installation and answer your questions.
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={dismiss}
+                aria-label="Dismiss setup help"
+                className="-mr-1 -mt-1 size-11 shrink-0 text-muted-foreground sm:hidden"
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              <Button asChild size="sm" className="h-11 flex-1 sm:h-9 sm:flex-none">
+                <a href={smsUrl} aria-label="Text us">
+                  <MessageCircle className="mr-2 size-4" aria-hidden="true" />
+                  Text us
+                </a>
+              </Button>
+              <Button asChild variant="outline" size="sm" className="h-11 flex-1 sm:h-9 sm:flex-none">
+                <a href="https://saassuite.ai/book">Book a time</a>
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={dismiss}
+                aria-label="Dismiss setup help"
+                className="hidden size-9 text-muted-foreground sm:inline-flex"
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
+          </div>
+        </motion.aside>
+      ) : null}
+    </AnimatePresence>
+  );
 }
 
 /** The "text us" support modal — opens the phone's messaging app with a ready message. */
@@ -50,16 +117,16 @@ export function TextUsDialog({ open, onOpenChange, message = SMS_MESSAGE, title 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md text-center">
-        <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-          <MessageCircle className="h-7 w-7 text-primary" />
-        </div>
-        <DialogTitle className="text-xl font-bold text-foreground">{title}</DialogTitle>
+        <span className="px-icon-chip mx-auto mb-3 [&_svg]:size-5" aria-hidden="true">
+          <MessageCircle />
+        </span>
+        <DialogTitle className="text-h4 text-foreground">{title}</DialogTitle>
         <DialogDescription>{description}</DialogDescription>
         <div className="mt-4 flex flex-col gap-2">
-          <Button asChild size="lg" className="w-full">
+          <Button asChild variant="accent" size="lg" className="w-full">
             <a href={smsUrl} aria-label="Text us">
               <MessageCircle className="mr-2 h-4 w-4" />
-              Text Us Now
+              Text us now
             </a>
           </Button>
           <Button asChild variant="outline" className="w-full">
@@ -70,7 +137,7 @@ export function TextUsDialog({ open, onOpenChange, message = SMS_MESSAGE, title 
             className="w-full"
             onClick={() => setOpen(false)}
           >
-            Maybe Later
+            Maybe later
           </Button>
         </div>
       </DialogContent>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionCard } from "@/components/premium/SectionCard";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -72,19 +72,18 @@ export default function OnboardingAutopayCard({ ownerEmail }: { ownerEmail: stri
   };
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <CreditCard className="w-4 h-4" /> Payment for Booked Calls
-          {!loading && <Badge variant={autopay ? "default" : "secondary"}>{autopay ? "Auto-Pay" : "Manual"}</Badge>}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="inline-flex rounded-lg border p-1 gap-1">
-          <Button size="sm" variant={mode === "manual" ? "default" : "ghost"} onClick={() => (autopay ? void disable() : setMode("manual"))} disabled={busy || loading}>
+    <SectionCard
+      icon={<CreditCard />}
+      title="Payment for Booked Calls"
+      description="Choose how each booked call is paid for."
+      actions={!loading ? <Badge variant={autopay ? "brand" : "neutral"}>{autopay ? "Auto-Pay" : "Manual"}</Badge> : null}
+      bodyClassName="space-y-4"
+    >
+        <div className="inline-flex max-w-full flex-wrap gap-1 rounded-md bg-muted p-1">
+          <Button size="sm" aria-pressed={mode === "manual"} variant="ghost" className={mode === "manual" ? "bg-card text-foreground shadow-card hover:bg-card" : "text-muted-foreground hover:bg-transparent hover:text-foreground"} onClick={() => (autopay ? void disable() : setMode("manual"))} disabled={busy || loading}>
             Pay Manually
           </Button>
-          <Button size="sm" variant={mode === "auto" ? "default" : "ghost"} onClick={() => setMode("auto")} disabled={busy || loading}>
+          <Button size="sm" aria-pressed={mode === "auto"} variant="ghost" className={mode === "auto" ? "bg-card text-foreground shadow-card hover:bg-card" : "text-muted-foreground hover:bg-transparent hover:text-foreground"} onClick={() => setMode("auto")} disabled={busy || loading}>
             Auto-Pay Upon Booking
           </Button>
         </div>
@@ -95,16 +94,16 @@ export default function OnboardingAutopayCard({ ownerEmail }: { ownerEmail: stri
 
         {mode === "auto" && !autopay && (
           <div className="space-y-3">
-            <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
-              <AlertTriangle className="w-4 h-4 mt-0.5 text-destructive flex-shrink-0" />
+            <div className="flex items-start gap-2 rounded-md border border-warning bg-amber-50 p-3 text-sm text-foreground">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" />
               <span>Any onboarding call booked for your agency will automatically charge your card on file $60.</span>
             </div>
-            <label className="flex items-start gap-2 text-sm cursor-pointer">
+            <label className="flex min-h-11 cursor-pointer items-start gap-2 text-sm text-foreground">
               <Checkbox checked={consent} onCheckedChange={(v) => setConsent(v === true)} className="mt-0.5" />
               <span>I understand and want my card charged $60 automatically for every onboarding call booked for my agency.</span>
             </label>
             <Button variant="accent" onClick={() => void enable()} disabled={!consent || busy}>
-              {busy ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+              {busy ? <Loader2 className="animate-spin" /> : null}
               Save card and turn on Auto-Pay
             </Button>
           </div>
@@ -116,7 +115,6 @@ export default function OnboardingAutopayCard({ ownerEmail }: { ownerEmail: stri
             fails, one call is used from your balance instead.
           </p>
         )}
-      </CardContent>
-    </Card>
+    </SectionCard>
   );
 }

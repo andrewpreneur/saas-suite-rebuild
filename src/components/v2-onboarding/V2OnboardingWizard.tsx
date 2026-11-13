@@ -3,8 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { useUser } from "@/contexts/UserContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Check, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Code2, Link2, Palette, Play, Users } from "lucide-react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import BrandingStep from "./steps/BrandingStep";
 import MenuLinksStep from "./steps/MenuLinksStep";
@@ -16,6 +18,16 @@ import { SAME_DAY_WL_SUPPORT } from "@/constants/pricingPlans";
 import { toAgencySlug } from "@/utils/agencySlug";
 import { navigateWithParams } from "@/utils/preserveParams";
 import { readNextPath } from "@/utils/deepLink";
+import { pageEnter, riseItem, staggerParent } from "@/lib/motion";
+import { useWizard } from "@/components/premium/21st/wizard-steps";
+import { TextShimmer } from "@/components/premium/21st/text-shimmer";
+import {
+  OnboardingShell,
+  StepHeading,
+  StepRail,
+  StepSlide,
+} from "@/components/premium/onboarding/OnboardingShell";
+import { SuccessMark } from "@/components/premium/onboarding/pieces";
 
 export interface OnboardingData {
   // Step 1: Feature selection
@@ -50,15 +62,18 @@ const randomAgencyId = () =>
     .slice(0, 32)
     .toLowerCase();
 
+// One decision per screen. Branding is three short screens that save together.
 const STEPS = [
-  { id: 0, name: "Walkthrough" },
-  { id: 1, name: "Brand Your SaaS Suite" },
-  { id: 2, name: "Add Your Menu Links" },
-  { id: 3, name: "Add Your Code" },
-  { id: 4, name: "Final Touches" },
-];
+  { id: 0, key: "welcome", name: "Welcome" },
+  { id: 1, key: "name", name: "Agency name" },
+  { id: 2, key: "colors", name: "Colors" },
+  { id: 3, key: "greeting", name: "Client welcome" },
+  { id: 4, key: "menu", name: "Menu link" },
+  { id: 5, key: "install", name: "Install" },
+  { id: 6, key: "final", name: "Final touches" },
+] as const;
 
-const LAST_STEP = 4;
+const LAST_STEP = STEPS.length - 1;
 
 const COLOR_PRESETS = [
   { name: "Midnight", primary: "#000000", secondary: "#1a1a2e", tertiary: "#16213e" },
@@ -85,10 +100,18 @@ const V2OnboardingWizard = ({ isReonboard = false }: V2OnboardingWizardProps) =>
   const navigate = useNavigate();
   const { email, plan } = useUser();
   const [currentStep, setCurrentStep] = useState(0);
-  const [showCongrats, setShowCongrats] = useState(false);
+  // Preview only: /v2-onboarding?preview=done opens on the finish screen without saving anything.
+  const [showCongrats, setShowCongrats] = useState(
+    () => new URLSearchParams(window.location.search).get("preview") === "done",
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [agencyId, setAgencyId] = useState<string | null>(null);
+  // Presentation only: inline "name is required" after a blocked Continue, and the video overlay.
+  const [showErrors, setShowErrors] = useState(false);
+  const [videoStarted, setVideoStarted] = useState(false);
+  const stepKey = STEPS[currentStep].key;
+  const wizard = useWizard({ total: STEPS.length, index: currentStep });
 
   const [data, setData] = useState<OnboardingData>({
     features: {
@@ -179,12 +202,12 @@ const V2OnboardingWizard = ({ isReonboard = false }: V2OnboardingWizardProps) =>
   };
 
   const handleNext = async () => {
-    if (currentStep === 1) {
-      // Save branding data
+    if (stepKey === "greeting") {
+      // Save branding data (name, colors and welcome) as the branding screens end
       await saveBrandingData();
     }
 
-    if (currentStep === 3) {
+    if (stepKey === "install") {
       // Auto-push menu config to GHL when leaving the install code step
       await saveMenuConfig();
     }
@@ -264,10 +287,10 @@ const V2OnboardingWizard = ({ isReonboard = false }: V2OnboardingWizardProps) =>
         );
       }
 
-      toast.success("Settings saved!");
+      // No success toast: moving to the next step is the confirmation, and a toast would cover the action bar on phones.
     } catch (error) {
       console.error("Error saving data:", error);
-      toast.error("Failed to save settings");
+      toast.error("Could not save your branding. Try again.");
     } finally {
       setIsSaving(false);
     }
@@ -289,7 +312,7 @@ const V2OnboardingWizard = ({ isReonboard = false }: V2OnboardingWizardProps) =>
       if (error) throw error;
     } catch (err) {
       console.error("Error auto-saving menu config:", err);
-      toast.error("Failed to save menu config");
+      toast.error("Could not save your install options. Try again.");
     } finally {
       setIsSaving(false);
     }
@@ -311,7 +334,7 @@ const V2OnboardingWizard = ({ isReonboard = false }: V2OnboardingWizardProps) =>
     }
 
     if (isReonboard) {
-      toast.success("Re-onboarding complete!");
+      toast.success("Setup updated");
       window.location.href = "/app";
     } else {
       setShowCongrats(true);
@@ -326,47 +349,55 @@ const V2OnboardingWizard = ({ isReonboard = false }: V2OnboardingWizardProps) =>
 
   if (showCongrats) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="text-center space-y-4 animate-fade-in">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-            <Check className="w-8 h-8 text-primary" />
-          </div>
-          <h2 className="text-2xl font-bold text-foreground">You're all set! 🎉</h2>
-          <p className="text-muted-foreground max-w-md">
-            Your SaaS Suite is configured. Let's connect you with your AI CoPilot to finish up.
+      <OnboardingShell>
+        <motion.div
+          variants={pageEnter}
+          initial="hidden"
+          animate="show"
+          role="status"
+          className="flex flex-1 flex-col items-center justify-center pb-16 text-center"
+        >
+          <SuccessMark />
+          <h1 className="mt-8 text-h2 text-foreground sm:text-h1">You are all set</h1>
+          <p className="mt-3 max-w-md text-body-lg text-muted-foreground">
+            Your SaaSSuite is configured. Copilot will help you finish the last details.
           </p>
-        </div>
-      </div>
+          <TextShimmer className="mt-6 text-small">Opening Copilot</TextShimmer>
+        </motion.div>
+      </OnboardingShell>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
+      <OnboardingShell width="lg">
+        <div className="space-y-6 pt-16" aria-busy="true" aria-label="Loading your setup">
+          <div className="px-skeleton h-2 w-full" />
+          <div className="px-skeleton h-10 w-2/3" />
+          <div className="px-skeleton h-5 w-1/2" />
+          <div className="px-skeleton h-56 w-full" />
+        </div>
+      </OnboardingShell>
     );
   }
 
   const renderStepContent = () => {
-    switch (currentStep) {
-      case 0:
+    switch (stepKey) {
+      case "welcome":
         return (
-          <div className="space-y-6">
-            <div className="text-center space-y-2">
-              <h2 className="text-2xl font-bold text-foreground">Welcome to SaaS Suite</h2>
-              <p className="text-muted-foreground">
-                Watch this quick walkthrough to see what's possible.
-              </p>
-            </div>
-            <div className="relative w-full rounded-lg overflow-hidden shadow-elevated bg-muted/20">
-              <div className="aspect-video relative group">
+          <div>
+            <StepHeading
+              title={isReonboard ? "Let's set things up again" : "Welcome to SaaSSuite"}
+              subtitle="Setup takes about 10 minutes. Watch the 2 minute walkthrough first, or jump straight in."
+            />
+            <div className="px-surface overflow-hidden rounded-xl">
+              <div className="group relative aspect-video bg-muted">
                 <video
                   id="onboarding-walkthrough-video"
                   key="walkthrough-video"
-                  controls
-                  preload="metadata"
-                  className="w-full h-full object-cover"
+                  controls={videoStarted}
+                  preload="none"
+                  className="h-full w-full object-cover"
                   poster="/lovable-uploads/onboardingthumbnail.png"
                 >
                   <source
@@ -374,75 +405,91 @@ const V2OnboardingWizard = ({ isReonboard = false }: V2OnboardingWizardProps) =>
                     type="video/mp4"
                   />
                 </video>
-                {/* Play overlay */}
-                <div
-                  id="video-play-overlay"
-                  className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer"
-                  onClick={() => {
-                    const video = document.getElementById(
-                      "onboarding-walkthrough-video",
-                    ) as HTMLVideoElement;
-                    const overlay = document.getElementById("video-play-overlay");
-                    if (video && overlay) {
-                      overlay.style.display = "none";
-                      video.play();
-                    }
-                  }}
-                >
-                  <div className="w-[57.6px] h-[57.6px] rounded-full bg-purple-600 flex items-center justify-center shadow-lg transition-transform hover:scale-105">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="white"
-                      className="w-7 h-7 ml-1"
-                    >
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  </div>
-                </div>
+                {!videoStarted && (
+                  <button
+                    type="button"
+                    id="video-play-overlay"
+                    aria-label="Play the walkthrough video"
+                    className="absolute inset-0 flex cursor-pointer items-end justify-start p-4 focus-visible:outline-none sm:p-6"
+                    onClick={() => {
+                      const video = document.getElementById(
+                        "onboarding-walkthrough-video",
+                      ) as HTMLVideoElement;
+                      setVideoStarted(true);
+                      video?.play();
+                    }}
+                  >
+                    <span className="px-brand-fill inline-flex h-12 items-center gap-2 rounded-full pl-4 pr-5 text-body font-semibold transition-transform duration-200 ease-out group-hover:scale-[1.03] group-focus-within:ring-2 group-focus-within:ring-ring group-focus-within:ring-offset-2">
+                      <Play className="size-4 fill-current" aria-hidden="true" />
+                      Play walkthrough
+                    </span>
+                  </button>
+                )}
               </div>
             </div>
-            <Button
-              onClick={handleNext}
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+            <motion.ul
+              variants={staggerParent}
+              initial="hidden"
+              animate="show"
+              className="mt-6 grid gap-3 sm:grid-cols-3"
             >
-              Next: Brand Your SaaS Suite
-            </Button>
-            <div className="bg-muted/30 border border-border rounded-lg p-5 space-y-3">
-              <h3 className="text-base font-semibold text-foreground">
-                SaaSSuite Onboarding Basics:
-              </h3>
-              <ul className="space-y-2 text-sm">
-                <li className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0" />
-                  <span className="text-muted-foreground">Configure your SaaSSuite features</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0" />
-                  <span className="text-muted-foreground">Install your custom menu links</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0" />
-                  <span className="text-muted-foreground">
-                    Install one JS, and one CSS script in HighLevel
+              {[
+                { icon: Palette, title: "Brand it", body: "Your name, colors and welcome." },
+                { icon: Link2, title: "Add a menu link", body: "One link inside HighLevel." },
+                { icon: Code2, title: "Paste two lines", body: "One JS and one CSS line, once." },
+              ].map(({ icon: Icon, title, body }) => (
+                <motion.li
+                  key={title}
+                  variants={riseItem}
+                  className="flex items-start gap-3 rounded-lg bg-card/70 p-3"
+                >
+                  <span className="px-icon-chip shrink-0" aria-hidden="true">
+                    <Icon className="size-5" />
                   </span>
-                </li>
-              </ul>
-              <p className="text-sm text-purple-400 font-medium pt-1">
-                Customize, manage, and grow your SaaS all from your SaaSSuite app, right here.
-              </p>
-            </div>
+                  <span className="min-w-0">
+                    <span className="block text-small font-semibold text-foreground">{title}</span>
+                    <span className="block text-small text-muted-foreground">{body}</span>
+                  </span>
+                </motion.li>
+              ))}
+            </motion.ul>
           </div>
         );
-      case 1:
-        return <BrandingStep data={data} updateData={updateData} colorPresets={COLOR_PRESETS} />;
-      case 2:
+      case "name":
+        return (
+          <BrandingStep
+            section="name"
+            showErrors={showErrors}
+            data={data}
+            updateData={updateData}
+            colorPresets={COLOR_PRESETS}
+          />
+        );
+      case "colors":
+        return (
+          <BrandingStep
+            section="colors"
+            data={data}
+            updateData={updateData}
+            colorPresets={COLOR_PRESETS}
+          />
+        );
+      case "greeting":
+        return (
+          <BrandingStep
+            section="welcome"
+            data={data}
+            updateData={updateData}
+            colorPresets={COLOR_PRESETS}
+          />
+        );
+      case "menu":
         return <MenuLinksStep agencyId={agencyId} />;
-      case 3:
+      case "install":
         return (
           <InstallCodeStep data={data} updateData={updateData} agencyId={agencyId} plan={plan} />
         );
-      case 4:
+      case "final":
         if ((plan || "").toUpperCase() === "STARTER") {
           return <PricingUpgradeStep email={email || undefined} />;
         }
@@ -453,171 +500,89 @@ const V2OnboardingWizard = ({ isReonboard = false }: V2OnboardingWizardProps) =>
   };
 
   const canProceed = () => {
-    switch (currentStep) {
-      case 1:
+    switch (stepKey) {
+      case "name":
         return data.agencyName.trim().length > 0;
       default:
         return true;
     }
   };
 
+  // Continue stays enabled; if the name is missing we say so next to the field.
+  const attemptNext = () => {
+    if (isSaving) return;
+    if (!canProceed()) {
+      setShowErrors(true);
+      return;
+    }
+    setShowErrors(false);
+    void handleNext();
+  };
+
+  const nextLabel = isSaving
+    ? "Saving"
+    : stepKey === "welcome"
+      ? "Start setup"
+      : stepKey === "greeting"
+        ? "Save and continue"
+        : "Continue";
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Desktop Layout */}
-      <div className="hidden md:flex min-h-screen">
-        {/* Left Sidebar - Steps */}
-        <div className="w-80 border-r border-border bg-card p-8 flex flex-col">
-          <div className="space-y-2 flex-1">
-            {STEPS.map((step) => {
-              const isComplete = currentStep > step.id;
-              const isCurrent = currentStep === step.id;
-
-              return (
-                <div
-                  key={step.id}
-                  className={cn(
-                    "flex items-center gap-3 py-3 px-4 rounded-lg transition-colors",
-                    isCurrent && "bg-muted",
-                    !isCurrent && !isComplete && "opacity-60",
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors",
-                      isComplete && "bg-primary text-primary-foreground",
-                      isCurrent && "bg-primary text-primary-foreground",
-                      !isCurrent && !isComplete && "bg-muted-foreground/20 text-muted-foreground",
-                    )}
-                  >
-                    {isComplete ? <Check className="w-4 h-4" /> : step.id}
-                  </div>
-                  <span
-                    className={cn(
-                      "text-sm font-medium",
-                      (isCurrent || isComplete) && "text-foreground",
-                      !isCurrent && !isComplete && "text-muted-foreground",
-                    )}
-                  >
-                    {step.name}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-
-          <Button
-            variant="ghost"
-            onClick={handleSkipSetup}
-            className="mt-auto text-muted-foreground"
-          >
-            Skip Setup
-          </Button>
-        </div>
-
-        {/* Right Content */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-3xl mx-auto p-8 lg:p-12">
-            {renderStepContent()}
-            {/* Navigation Buttons */}
-            {currentStep > 0 && (
-              <div className="flex items-center justify-between mt-8 pt-6 border-t border-border">
-                <Button variant="outline" onClick={handleBack}>
-                  Back
-                </Button>
-
-                {currentStep < LAST_STEP ? (
-                  <Button
-                    onClick={handleNext}
-                    disabled={!canProceed() || isSaving}
-                    className="bg-purple-600 hover:bg-purple-700 text-white"
-                  >
-                    {isSaving
-                      ? "Saving..."
-                      : currentStep === 1
-                        ? "Begin Platform Setup"
-                        : "Continue"}
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={handleComplete}
-                    className="bg-purple-600 hover:bg-purple-700 text-white"
-                  >
-                    Continue to App
-                  </Button>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Layout */}
-      <div className="md:hidden flex flex-col min-h-screen">
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 pb-48">
-          <div className="max-w-lg mx-auto">{renderStepContent()}</div>
-        </div>
-
-        {/* Bottom Navigation */}
-        <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4">
-          {/* Step indicators */}
-          <div className="flex justify-center gap-2 mb-3">
-            {STEPS.map((step) => {
-              const isComplete = currentStep > step.id;
-              const isCurrent = currentStep === step.id;
-
-              return (
-                <div
-                  key={step.id}
-                  className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-colors",
-                    isComplete && "bg-primary text-primary-foreground",
-                    isCurrent && "bg-primary text-primary-foreground",
-                    !isCurrent && !isComplete && "bg-muted text-muted-foreground",
-                  )}
-                >
-                  {isComplete ? <Check className="w-4 h-4" /> : step.id}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Buttons */}
-          {currentStep > 0 && (
-            <div className="flex items-center gap-3 mb-2">
-              <Button variant="outline" onClick={handleBack} className="flex-1">
-                Back
-              </Button>
-
-              {currentStep < LAST_STEP ? (
-                <Button
-                  onClick={handleNext}
-                  disabled={!canProceed() || isSaving}
-                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
-                >
-                  {isSaving ? "Saving..." : currentStep === 1 ? "Begin Platform Setup" : "Continue"}
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleComplete}
-                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
-                >
-                  Continue to App
-                </Button>
-              )}
-            </div>
+    <OnboardingShell
+      width="lg"
+      topRight={
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleSkipSetup}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          Skip setup
+        </Button>
+      }
+      rail={
+        <StepRail
+          index={currentStep}
+          labels={STEPS.map((s) => s.name)}
+          onStepClick={(i) => setCurrentStep(i)}
+        />
+      }
+      footer={
+        <>
+          {currentStep > 0 ? (
+            <Button variant="ghost" onClick={handleBack}>
+              <ArrowLeft />
+              Back
+            </Button>
+          ) : null}
+          {currentStep < LAST_STEP ? (
+            <Button
+              variant="accent"
+              size="lg"
+              onClick={attemptNext}
+              className="ml-auto min-w-[9rem]"
+            >
+              {nextLabel}
+              {!isSaving && <ArrowRight />}
+            </Button>
+          ) : (
+            <Button
+              variant="accent"
+              size="lg"
+              onClick={handleComplete}
+              className="ml-auto min-w-[9rem]"
+            >
+              {isReonboard ? "Finish and open app" : "Finish setup"}
+              <Check />
+            </Button>
           )}
-
-          <Button
-            variant="ghost"
-            onClick={handleSkipSetup}
-            className="w-full text-muted-foreground"
-          >
-            Skip Setup
-          </Button>
-        </div>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <StepSlide stepKey={stepKey} direction={wizard.direction}>
+        {renderStepContent()}
+      </StepSlide>
+    </OnboardingShell>
   );
 };
 
@@ -646,82 +611,78 @@ const PricingUpgradeStep = ({ email }: { email?: string }) => {
     "Unlimited Users",
   ];
 
+  const plans = [
+    {
+      id: "basic" as const,
+      name: "Basic",
+      price: "$27",
+      tag: "Best for new agencies",
+      users: "Up to 5 users",
+      features: basicFeatures,
+      featured: false,
+    },
+    {
+      id: "advanced" as const,
+      name: "Advanced",
+      price: "$97",
+      tag: "Best for growing agencies",
+      users: "Unlimited users",
+      features: advancedFeatures,
+      featured: true,
+    },
+  ];
+
   return (
-    <div className="space-y-6">
-      <div className="text-center space-y-2">
-        <h2 className="text-2xl font-bold text-foreground">Choose your plan</h2>
-        <p className="text-muted-foreground">
-          Unlock more users and advanced tools to grow your SaaS.
-        </p>
-      </div>
+    <div>
+      <StepHeading
+        title="Want more room to grow?"
+        subtitle="You are on Starter. Upgrade now for more users and tools, or finish setup and decide later."
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Basic */}
-        <div className="relative">
-          <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
-            <span className="inline-block bg-white text-gray-700 text-xs font-semibold px-3 py-1 rounded-full border border-gray-200 shadow-sm">
-              Best for New Agencies
-            </span>
-          </div>
-          <div className="bg-white rounded-2xl p-6 border border-gray-200 flex flex-col shadow-sm h-full">
-            <h3 className="text-xl font-semibold text-gray-900 mb-1">Basic</h3>
-            <div className="flex items-baseline gap-1 mb-4">
-              <span className="text-4xl font-bold text-gray-900">$27</span>
-              <span className="text-gray-500">/ month</span>
+      <motion.div
+        variants={staggerParent}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 gap-4 md:grid-cols-2"
+      >
+        {plans.map((p) => (
+          <motion.div
+            key={p.id}
+            variants={riseItem}
+            className={cn(
+              "px-surface flex h-full flex-col p-6",
+              p.featured && "shadow-raised ring-2 ring-brand",
+            )}
+          >
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h3 className="text-h4 text-foreground">{p.name}</h3>
+              <Badge variant={p.featured ? "brand" : "neutral"}>{p.tag}</Badge>
             </div>
-            <div className="inline-flex items-center gap-2 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-full px-3 py-1 mb-4 self-start">
-              <Users className="w-4 h-4" /> Up to 5 users
+            <div className="mb-4 flex items-baseline gap-1">
+              <span className="text-h1 text-foreground">{p.price}</span>
+              <span className="text-body text-muted-foreground">/ month</span>
             </div>
+            <p className="mb-4 inline-flex items-center gap-2 self-start rounded-full bg-brand-subtle px-3 py-1 text-small font-medium text-brand">
+              <Users className="size-4" aria-hidden="true" /> {p.users}
+            </p>
             <Button
-              className="w-full bg-[#8125D3] hover:bg-[#6f1fb5] text-white rounded-xl mb-4"
-              onClick={() => setSelectedProduct("basic")}
+              variant={p.featured ? "accent" : "outline"}
+              className="mb-4 w-full"
+              onClick={() => setSelectedProduct(p.id)}
             >
-              Subscribe
+              Choose {p.name}
             </Button>
-            <div className="space-y-2">
-              {basicFeatures.map((f, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-[#8125D3] mt-0.5 flex-shrink-0" />
-                  <PlanFeatureLabel feature={f} className="text-gray-700 text-sm" />
-                </div>
+            <ul className="space-y-2">
+              {p.features.map((f, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <Check className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden="true" />
+                  <PlanFeatureLabel feature={f} className="text-small text-foreground" />
+                </li>
               ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Advanced */}
-        <div className="relative md:scale-[1.03]">
-          <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
-            <span className="inline-block bg-purple-600 text-white text-xs font-semibold px-3 py-1 rounded-full border border-purple-700 shadow-sm">
-              Best for Growing Agencies
-            </span>
-          </div>
-          <div className="bg-white rounded-2xl p-6 border-2 border-purple-500 flex flex-col shadow-md h-full">
-            <h3 className="text-xl font-semibold text-gray-900 mb-1">Advanced</h3>
-            <div className="flex items-baseline gap-1 mb-4">
-              <span className="text-4xl font-bold text-gray-900">$97</span>
-              <span className="text-gray-500">/ month</span>
-            </div>
-            <div className="inline-flex items-center gap-2 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-full px-3 py-1 mb-4 self-start">
-              <Users className="w-4 h-4" /> Unlimited users
-            </div>
-            <Button
-              className="w-full bg-[#8125D3] hover:bg-[#6f1fb5] text-white rounded-xl mb-4"
-              onClick={() => setSelectedProduct("advanced")}
-            >
-              Subscribe
-            </Button>
-            <div className="space-y-2">
-              {advancedFeatures.map((f, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-[#8125D3] mt-0.5 flex-shrink-0" />
-                  <PlanFeatureLabel feature={f} className="text-gray-700 text-sm" />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+            </ul>
+          </motion.div>
+        ))}
+      </motion.div>
 
       <StripeEmbeddedCheckout
         plan={selectedProduct || "basic"}

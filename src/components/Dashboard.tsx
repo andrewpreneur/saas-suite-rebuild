@@ -1,19 +1,20 @@
-import { newUi } from "@/lib/uiVersion";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/components/platform/PageHeader";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import AffiliateDashboard from "@/components/AffiliateDashboard";
 import DashboardOverview from "@/components/dashboard/DashboardOverview";
-import OneFeatureKitDelivery from "@/components/dashboard/OneFeatureKitDelivery";
 import HubUrlCard from "@/components/dashboard/HubUrlCard";
+import OneFeatureKitDelivery from "@/components/dashboard/OneFeatureKitDelivery";
 import GiveawayOptInModal from "@/components/giveaway/GiveawayOptInModal";
 import SetupHelpPopup from "@/components/dashboard/SetupHelpPopup";
+import { useUser } from "@/contexts/UserContext";
 import { useGiveaway } from "@/hooks/useGiveaway";
 import { consumeKitHomeReturn } from "@/lib/kitReturn";
 
 export default function Dashboard() {
   const { isEntered, isOptingIn, optIn } = useGiveaway();
+  const { user } = useUser();
   const [optInOpen, setOptInOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const view = searchParams.get("view");
@@ -40,16 +41,38 @@ export default function Dashboard() {
     setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams, isEntered]);
 
+  const firstName =
+    (user?.user_metadata?.full_name as string | undefined)?.trim().split(/\s+/)[0] ?? "";
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const today = new Date().toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+
   return (
     <div className="space-y-6">
-      {!kitView && <SetupHelpPopup />}
-      {overview && <HubUrlCard />}
-
-      {/* New UI: Affiliate and One Feature Kit are their own sidebar pages, so they carry their own title. */}
-      {!kitView && !(newUi && view === "affiliate") && (
+      {/* Affiliate and One Feature Kit are their own sidebar pages, so each carries its own h1. */}
+      {overview && (
         <PageHeader
-          title="Dashboard"
-          subtitle="SaaS health, activity insights, and your users — all in one place."
+          eyebrow={today}
+          title={firstName ? `${greeting}, ${firstName}` : greeting}
+          subtitle="How your SaaS is doing, and the one thing worth doing next."
+        />
+      )}
+      {view === "affiliate" && (
+        <PageHeader
+          eyebrow="Grow"
+          title="Affiliate"
+          subtitle="Share your link, track referrals and get paid recurring commission."
+        />
+      )}
+      {kitView && (
+        <PageHeader
+          eyebrow="Grow"
+          title="One Feature Kit"
+          subtitle="Finish the training steps, then open the add-ons included with your account."
         />
       )}
 
@@ -75,21 +98,16 @@ export default function Dashboard() {
           setSearchParams(next, { replace: true });
         }}
       >
-        <TabsList
-          className={newUi ? "hidden" : "flex h-auto min-h-9 w-full flex-wrap justify-start"}
-        >
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="kit">One Feature Kit</TabsTrigger>
-          <TabsTrigger value="affiliate">Affiliate</TabsTrigger>
-        </TabsList>
-        <TabsContent value="overview" className="mt-4">
-          <DashboardOverview />
+        {/* No tab strip: Affiliate and One Feature Kit are reached from the sidebar. */}
+        <TabsContent value="overview" className="mt-0">
+          <DashboardOverview hubCard={overview && <HubUrlCard />} />
         </TabsContent>
-        <TabsContent value="kit" className="mt-4">
+        <TabsContent value="kit" className="mt-0">
           <OneFeatureKitDelivery />
         </TabsContent>
-        <TabsContent value="affiliate" className="mt-4">
+        <TabsContent value="affiliate" className="mt-0 space-y-6">
           <AffiliateDashboard />
+          <SetupHelpPopup />
         </TabsContent>
       </Tabs>
 

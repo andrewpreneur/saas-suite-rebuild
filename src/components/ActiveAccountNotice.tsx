@@ -5,7 +5,7 @@ import { useUser } from "@/contexts/UserContext";
 import { useViewerIdentity } from "@/hooks/useViewerIdentity";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Building2 } from "lucide-react";
+import { Building2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
 interface JoinRequest { id: string; requester_email: string }
@@ -70,13 +70,13 @@ export const ActiveAccountNotice = () => {
   return (
     <>
       <Dialog open={open} onOpenChange={(o) => !o && dismiss()}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-              <Building2 className="h-6 w-6 text-primary" />
-            </div>
-            <DialogTitle className="text-center">You're logged into {label}</DialogTitle>
-            <DialogDescription className="text-center">
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md">
+          <DialogHeader className="items-center text-center sm:text-center">
+            <span className="px-icon-chip mb-2">
+              <Building2 className="size-5" aria-hidden="true" />
+            </span>
+            <DialogTitle className="text-center text-h4 text-balance">You're logged into {label}</DialogTitle>
+            <DialogDescription className="text-center text-pretty">
               {viewer.showsAccountAdmin
                 ? `You're signed in as ${viewer.displayName} (${viewer.displayEmail}). You're an admin on this account.`
                 : isOwn
@@ -86,8 +86,8 @@ export const ActiveAccountNotice = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            <Button className="w-full" onClick={dismiss}>Continue</Button>
-            <Button variant="outline" className="w-full" onClick={() => { dismiss(); navigate("/account-selector"); }}>
+            <Button variant="accent" className="h-11 w-full" onClick={dismiss}>Continue</Button>
+            <Button variant="outline" className="h-11 w-full" onClick={() => { dismiss(); navigate("/account-selector"); }}>
               Switch account
             </Button>
           </div>
@@ -95,22 +95,25 @@ export const ActiveAccountNotice = () => {
       </Dialog>
 
       <Dialog open={!open && requests.length > 0} onOpenChange={(o) => !o && setRequests([])}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Requests to join your agency</DialogTitle>
+            <DialogTitle className="text-h4">Requests to join your agency</DialogTitle>
             <DialogDescription>Approving adds them as an admin on your account.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-2">
+          <ul className="space-y-2">
             {requests.map((r) => (
-              <div key={r.id} className="flex items-center justify-between gap-2 rounded-md border p-2">
-                <span className="truncate text-sm">{r.requester_email}</span>
-                <div className="flex gap-1 shrink-0">
-                  <Button size="sm" onClick={() => respond(r.id, true)}>Approve</Button>
+              <li key={r.id} className="flex flex-col gap-2 rounded-lg border border-border p-3 sm:flex-row sm:items-center sm:justify-between">
+                <span className="flex min-w-0 items-center gap-2 text-small font-medium">
+                  <UserPlus className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <span className="truncate">{r.requester_email}</span>
+                </span>
+                <div className="flex shrink-0 gap-2">
+                  <Button size="sm" variant="accent" onClick={() => respond(r.id, true)}>Approve</Button>
                   <Button size="sm" variant="outline" onClick={() => respond(r.id, false)}>Decline</Button>
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </DialogContent>
       </Dialog>
     </>

@@ -69,7 +69,7 @@ export function AccountPanel({
           <SheetTitle>Account</SheetTitle>
           <SheetDescription>Settings for this agency. Log out is at the bottom.</SheetDescription>
         </SheetHeader>
-        <div className="mt-4 rounded-2xl bg-card p-4">
+        <div className="mt-4 rounded-lg bg-card p-4">
           <p className="font-semibold text-foreground">{name || "Your account"}</p>
           <p className="truncate text-sm text-muted-foreground">{email}</p>
           <p className="mt-1 text-xs text-muted-foreground">{plan}</p>
@@ -80,7 +80,7 @@ export function AccountPanel({
               <h3 className="mb-2 px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {group.label}
               </h3>
-              <div className="overflow-hidden rounded-2xl bg-card">
+              <div className="overflow-hidden rounded-lg bg-card">
                 {group.rows.map((row, index) => (
                   <button
                     key={row.id}
@@ -105,7 +105,7 @@ export function AccountPanel({
             <h3 className="mb-2 px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Session
             </h3>
-            <div className="overflow-hidden rounded-2xl bg-card">
+            <div className="overflow-hidden rounded-lg bg-card">
               <button
                 type="button"
                 onClick={onLogout}

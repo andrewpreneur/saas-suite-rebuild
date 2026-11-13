@@ -2439,7 +2439,7 @@ body {
       <Dialog open={showUpgradePrompt} onOpenChange={setShowUpgradePrompt}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-center">Upgrade Today</DialogTitle>
+            <DialogTitle className="text-center">Upgrade to unlock Advanced Mode</DialogTitle>
             <DialogDescription className="text-center">
               Advanced Mode is available on our premium plan.
             </DialogDescription>
@@ -2450,12 +2450,13 @@ body {
                 setShowUpgradePrompt(false);
                 setCheckoutOpen(true);
               }}
+              variant="accent"
               className="w-full"
             >
-              Upgrade Now
+              Upgrade now
             </Button>
             <Button onClick={() => setShowUpgradePrompt(false)} variant="outline" className="w-full">
-              Maybe Later
+              Maybe later
             </Button>
           </div>
         </DialogContent>

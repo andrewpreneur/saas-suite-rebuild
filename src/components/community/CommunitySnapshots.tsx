@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Download, Loader2, Mail, Mic, Video, Workflow, Users, Rocket } from "lucide-react";
+import { EmptyState, EmptyStateIllustration } from "@/components/premium/21st/empty-state";
 import { UpgradePrompt } from "./shared";
 
 // Seeded install baselines that drip upward each day.
@@ -25,31 +26,31 @@ const GRAPHICS: {
   {
     match: /email/i,
     icon: Mail,
-    gradient: "from-sky-500/25 via-sky-500/10 to-transparent",
+    gradient: "from-info/25 via-info/10 to-transparent",
     blurb: "Email campaigns & nurture automations",
   },
   {
     match: /webinar/i,
     icon: Video,
-    gradient: "from-violet-500/25 via-violet-500/10 to-transparent",
+    gradient: "from-brand/25 via-brand/10 to-transparent",
     blurb: "Webinar funnel, reminders & replays",
   },
   {
     match: /voice/i,
     icon: Mic,
-    gradient: "from-emerald-500/25 via-emerald-500/10 to-transparent",
+    gradient: "from-success/25 via-success/10 to-transparent",
     blurb: "Voice AI onboarding call flow",
   },
   {
     match: /onboard/i,
     icon: Rocket,
-    gradient: "from-amber-500/25 via-amber-500/10 to-transparent",
+    gradient: "from-warning/25 via-warning/10 to-transparent",
     blurb: "Client onboarding sequence",
   },
   {
     match: /lead|crm|pipeline/i,
     icon: Users,
-    gradient: "from-rose-500/25 via-rose-500/10 to-transparent",
+    gradient: "from-destructive/25 via-destructive/10 to-transparent",
     blurb: "Lead capture & pipeline automation",
   },
 ];
@@ -58,7 +59,7 @@ const graphicFor = (title: string) =>
   GRAPHICS.find((g) => g.match.test(title)) ?? {
     match: /./,
     icon: Workflow,
-    gradient: "from-primary/25 via-primary/10 to-transparent",
+    gradient: "from-brand/25 via-brand/10 to-transparent",
     blurb: "Ready-to-import GoHighLevel workflow",
   };
 
@@ -139,11 +140,17 @@ export default function CommunitySnapshots({ isPaid }: { isPaid: boolean }) {
       </div>
 
       {visible.length === 0 ? (
-        <Card>
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            No snapshots in this category yet.
-          </CardContent>
-        </Card>
+        <div className="px-surface">
+          <EmptyState
+            icon={
+              <EmptyStateIllustration className="rounded-lg border-border bg-muted text-muted-foreground">
+                <Download className="size-7" aria-hidden="true" />
+              </EmptyStateIllustration>
+            }
+            title="No snapshots in this category yet"
+            description="New import-ready snapshots are added here as agencies share them."
+          />
+        </div>
       ) : (
         <motion.div
           layout
@@ -163,7 +170,7 @@ export default function CommunitySnapshots({ isPaid }: { isPaid: boolean }) {
                 whileHover={{ y: -4 }}
                 className="h-full"
               >
-              <Card className="overflow-hidden flex h-full flex-col transition-colors hover:border-primary/40">
+              <Card className="overflow-hidden flex h-full flex-col transition-colors hover:border-brand/40">
                 <div className="relative h-36 bg-muted">
                   {snapshot.thumbnail_url ? (
                     <motion.img
@@ -179,7 +186,7 @@ export default function CommunitySnapshots({ isPaid }: { isPaid: boolean }) {
                       className={`flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br px-4 text-center ${graphic.gradient} ${locked ? "blur-sm" : ""}`}
                     >
                       <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-background/70 shadow-sm ring-1 ring-border">
-                        <GraphicIcon className="h-5 w-5 text-primary" />
+                        <GraphicIcon className="h-5 w-5 text-brand" />
                       </span>
                       <span className="text-[11px] font-medium leading-snug text-muted-foreground">
                         {graphic.blurb}

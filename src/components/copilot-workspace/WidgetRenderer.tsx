@@ -48,7 +48,7 @@ export function WidgetRenderer({
           <ConnectApps agencyId={agencyId} email={email} slackConnected={slackConnected} ghlConnected={ghlConnected}
             onSlackDone={async () => { await onRefreshSlack(); }}
             onGhlAuthorize={() => (ghlConnected ? onSay("HighLevel is already connected.") : onSay(GHL_INSTRUCTIONS))} />
-          {ghlConnected && <Button variant="outline" size="sm" className="rounded-full" onClick={() => onSend("Continue setup")}>Continue setup</Button>}
+          {ghlConnected && <Button variant="outline" size="sm" onClick={() => onSend("Continue setup")}>Continue setup</Button>}
           <Button variant="ghost" size="sm" onClick={onSkip}>Skip for now</Button>
         </div>
       );
@@ -63,7 +63,7 @@ export function WidgetRenderer({
     case "upgrade":
       return <UpgradeButtons disabled={!live} onUpgrade={onStartUpgrade} />;
     case "human_help":
-      return <Button variant="outline" size="sm" className="rounded-full" onClick={onHelp}><MessageCircle className="h-4 w-4" />Text us for human help</Button>;
+      return <Button variant="outline" size="sm" onClick={onHelp}><MessageCircle className="h-4 w-4" />Text us for human help</Button>;
     case "menu_link":
       return (
         <div className="space-y-2">

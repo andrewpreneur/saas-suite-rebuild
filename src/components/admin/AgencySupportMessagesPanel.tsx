@@ -162,10 +162,10 @@ const AgencySupportMessagesPanel = () => {
   };
 
   return (
-    <Card className={needsReplyCount > 0 ? "border-fuchsia-500/40" : undefined}>
+    <Card className={needsReplyCount > 0 ? "border-brand/40" : undefined}>
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
-          <Headset className="w-4 h-4 text-fuchsia-500" />
+          <Headset className="w-4 h-4 text-brand" />
           Agency support messages
           {needsReplyCount > 0 && (
             <Badge variant="destructive" className="text-[10px] px-1.5 py-0">{needsReplyCount}</Badge>
