@@ -179,6 +179,10 @@ html.ds-ui[data-skin="glass"] body.ds-app :is([role="dialog"], [role="menu"], [r
   -webkit-backdrop-filter: blur(28px) saturate(180%);
   backdrop-filter: blur(28px) saturate(180%);
 }
+/* Side panels and dialogs hold forms, so they are nearly solid: frosted at the edge, never grey. */
+html.ds-ui[data-skin="glass"] body.ds-app [role="dialog"] {
+  background: rgba(255, 255, 255, 0.95);
+}
 html.ds-ui[data-skin="glass"] body.ds-app :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea, select, [role="combobox"]):not(.bg-transparent) {
   background-color: rgba(255, 255, 255, 0.72);
 }
@@ -203,9 +207,16 @@ html.ds-ui[data-skin="glass"] body.ds-app .px-brand-fill {
 }
 /* The floating Copilot button steps aside while a panel or dialog is open, so it never covers a Save button. */
 body:has([role="dialog"][data-state="open"]) .copilot-launcher {
-  opacity: 0;
+  /* !important: the button animates its own inline opacity. */
+  opacity: 0 !important;
+  visibility: hidden;
   pointer-events: none;
-  transition: opacity var(--dur-fast, 120ms) ease-out;
+}
+/* The dim layer behind panels and dialogs: a light violet veil, so the page stays visible behind the panel. */
+html.ds-ui body.ds-app .bg-black\/80 {
+  background-color: rgba(23, 18, 64, 0.3);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
 }
 @keyframes px-shimmer {
   to { background-position: -135% 0; }
