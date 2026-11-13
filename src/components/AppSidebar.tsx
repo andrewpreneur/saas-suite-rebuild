@@ -291,7 +291,10 @@ export function AppSidebar({ selectedTool, onSelectTool }: AppSidebarProps) {
 
   const location = useLocation();
   const dashboardView = new URLSearchParams(location.search).get("view");
+  // Copilot is its own surface with no sidebar row, so nothing is lit while it is open.
+  const onCopilotPage = location.pathname.startsWith("/app/copilot");
   const isActive = (toolId: string) => {
+    if (onCopilotPage) return false;
     // New UI: Affiliate is its own link, so Dashboard is not also lit while it is open.
     if (newUi && toolId === "affiliate-dashboard")
       return selectedTool === "dashboard" && dashboardView === "affiliate";

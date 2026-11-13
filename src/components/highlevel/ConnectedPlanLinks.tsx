@@ -29,13 +29,13 @@ export default function ConnectedPlanLinks({ agencyId }: { agencyId: string }) {
     {error && <p role="alert" className="break-words text-sm text-destructive">{error}</p>}
     {result && <details className="group">
       <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-md text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
-        {!!result.links.length && <Check className="h-4 w-4 shrink-0 text-primary" />}
-        <span className="min-w-0 flex-1 text-muted-foreground">{result.links.length} {result.links.length === 1 ? "link" : "links"} connected{result.unresolved.length ? ` · ${result.unresolved.length} need attention` : ""}</span>
+        {!!(result.links ?? []).length && <Check className="h-4 w-4 shrink-0 text-primary" />}
+        <span className="min-w-0 flex-1 text-muted-foreground">{(result.links ?? []).length} {(result.links ?? []).length === 1 ? "link" : "links"} connected{(result.unresolved ?? []).length ? ` · ${(result.unresolved ?? []).length} need attention` : ""}</span>
         <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-150 group-open:rotate-180 motion-reduce:transition-none" />
       </summary>
       <div className="space-y-3 pb-2 pt-2">
-        {result.links.map(link => <div key={link.agencyId} className="min-w-0 text-sm"><p className="break-words font-medium">{link.agencyId}</p><p className="break-all text-muted-foreground">{link.url}</p></div>)}
-        {!!result.unresolved.length && <p className="break-words text-sm text-muted-foreground">No unique matching HighLevel menu link for: {result.unresolved.join(", ")}. Save each plan’s exact Hub URL in HighLevel, then refresh.</p>}
+        {(result.links ?? []).map(link => <div key={link.agencyId} className="min-w-0 text-sm"><p className="break-words font-medium">{link.agencyId}</p><p className="break-all text-muted-foreground">{link.url}</p></div>)}
+        {!!(result.unresolved ?? []).length && <p className="break-words text-sm text-muted-foreground">No unique matching HighLevel menu link for: {(result.unresolved ?? []).join(", ")}. Save each plan’s exact Hub URL in HighLevel, then refresh.</p>}
       </div>
     </details>}
   </section>;

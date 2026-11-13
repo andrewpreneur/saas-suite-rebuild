@@ -139,7 +139,12 @@ const InstallChecklistButton = () => {
               </div>
             </div>
           </DialogHeader>
-          <motion.ol variants={staggerParent} initial="hidden" animate="show" className="min-w-0 space-y-3">
+          <motion.ol
+            variants={staggerParent}
+            initial="hidden"
+            animate="show"
+            className="min-w-0 space-y-3"
+          >
             {steps.map((s) => (
               <motion.li
                 key={s.key}

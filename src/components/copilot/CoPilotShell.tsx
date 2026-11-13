@@ -119,13 +119,8 @@ function CoPilotShellInner({
     wasCopilotRoute.current = onCopilotRoute;
   }, [inline, onCopilotRoute, email, location.pathname, mode, open, setMode]);
 
-  // Auto-open the side panel on the onboarding wizard so users see the helper.
-  useEffect(() => {
-    if (isOnboardingRoute && email) {
-      open({ mode: "dock" });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOnboardingRoute, email]);
+  // Onboarding is a focused flow: Copilot no longer opens itself on top of it.
+  // The launcher is still there for anyone who wants help.
 
   // Docked panel sizing. The user drags the left edge; the page and its fixed
   // bars read --copilot-dock-offset so nothing sits hidden underneath the panel.
@@ -221,7 +216,7 @@ function CoPilotShellInner({
             className={cn(
               "px-brand-fill group fixed z-[60] inline-grid h-14 w-14 place-items-center rounded-full ring-1 ring-inset ring-white/20",
               "transition-[filter] duration-200 hover:brightness-110 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/30",
-              isMobile ? "bottom-24 right-4" : "bottom-6 right-6",
+              isMobile ? "bottom-[calc(7.5rem+env(safe-area-inset-bottom))] right-3 scale-90" : "bottom-6 right-6",
             )}
           >
             <Sparkles

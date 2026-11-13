@@ -819,9 +819,9 @@ const RIM_BLOB_GRADIENTS: Record<
   { primaryBg: string; secondaryBg: string; tertiaryBg: string }
 > = {
   default: {
-    primaryBg: "linear-gradient(90deg, #ff0080, #7928ca, #00d4ff, #0070f3)",
-    secondaryBg: "linear-gradient(90deg, #ff4d4d, #f9cb28, #ff0080)",
-    tertiaryBg: "linear-gradient(90deg, #0070f3, #00d4ff, #7928ca)",
+    primaryBg: "linear-gradient(90deg, #B1A2F7, #6043EF, #00d4ff, #7559F1)",
+    secondaryBg: "linear-gradient(90deg, #ff4d4d, #f9cb28, #B1A2F7)",
+    tertiaryBg: "linear-gradient(90deg, #7559F1, #00d4ff, #6043EF)",
   },
   success: {
     primaryBg:
@@ -1775,7 +1775,7 @@ export function DropzoneUploadFileRow({
               "h-full rounded-full transition-[width] duration-300 ease-out",
               complete
                 ? "bg-emerald-500/90 dark:bg-emerald-400/90"
-                : "bg-linear-to-r from-[#ff0080] via-[#7928ca] to-[#0070f3] dark:opacity-95",
+                : "bg-linear-to-r from-[#B1A2F7] via-[#6043EF] to-[#7559F1] dark:opacity-95",
               reduceMotion && "duration-75",
             )}
             style={{ width: `${widthPct}%` }}

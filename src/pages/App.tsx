@@ -310,7 +310,6 @@ const AppPage = () => {
   useEffect(() => {
     if (!newUi) return;
     document.body.classList.add("ds-app");
-    return () => document.body.classList.remove("ds-app");
   }, []);
   const isConfirmed = searchParams.get("confirmed") === "true";
   // Dashboard, Affiliate and One Feature Kit share a tool id; the view makes each its own page.

@@ -1297,8 +1297,19 @@ export function DesignPageView({
                   </span>
                 </motion.label>
               ) : null}
-            <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex min-w-0 items-start gap-2.5 pr-14 sm:items-center md:pr-0">
+            <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:gap-3">
+              {/* First on phones, where toasts sit over the bottom edge of the bar. */}
+              <Button
+                type="button"
+                variant="ghost"
+                className="-ml-2 self-start text-muted-foreground sm:order-2 sm:ml-0 sm:self-auto"
+                onClick={onBack}
+                data-testid="design-back"
+              >
+                <ArrowLeft aria-hidden />
+                Back
+              </Button>
+              <div className="flex min-w-0 items-start gap-2.5 pr-14 sm:order-1 sm:flex-1 sm:items-center md:pr-0">
                 <span
                   className="mt-1.5 size-2 shrink-0 rounded-full bg-warning sm:mt-0"
                   aria-hidden
@@ -1313,20 +1324,11 @@ export function DesignPageView({
                   ) : null}
                 </p>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="mr-auto text-muted-foreground sm:mr-0"
-                  onClick={onBack}
-                  data-testid="design-back"
-                >
-                  <ArrowLeft aria-hidden />
-                  Back
-                </Button>
+              <div className="flex shrink-0 items-center gap-2 sm:order-3">
                 <Button
                   type="button"
                   variant="outline"
+                  className="flex-1 sm:flex-none"
                   onClick={onDiscard}
                   disabled={saving}
                   data-testid="design-discard"
@@ -1336,6 +1338,7 @@ export function DesignPageView({
                 <Button
                   type="button"
                   variant="accent"
+                  className="flex-1 sm:flex-none"
                   onClick={handleSave}
                   disabled={saving}
                   aria-describedby={saveBlocked ? "design-save-blocked" : undefined}

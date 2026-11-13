@@ -341,7 +341,10 @@ const InitialQuestions = () => {
     "aria-[invalid=true]:border-destructive",
   );
 
-  if (isSubmitting) {
+  // Preview only: /initial-questions?preview=done shows the finish screen without saving anything.
+  const previewDone = new URLSearchParams(window.location.search).get("preview") === "done";
+
+  if (isSubmitting || previewDone) {
     return (
       <OnboardingShell>
         <ExistingAgencyDialog />

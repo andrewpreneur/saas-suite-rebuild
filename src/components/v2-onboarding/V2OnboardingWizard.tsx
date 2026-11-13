@@ -100,7 +100,10 @@ const V2OnboardingWizard = ({ isReonboard = false }: V2OnboardingWizardProps) =>
   const navigate = useNavigate();
   const { email, plan } = useUser();
   const [currentStep, setCurrentStep] = useState(0);
-  const [showCongrats, setShowCongrats] = useState(false);
+  // Preview only: /v2-onboarding?preview=done opens on the finish screen without saving anything.
+  const [showCongrats, setShowCongrats] = useState(
+    () => new URLSearchParams(window.location.search).get("preview") === "done",
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [agencyId, setAgencyId] = useState<string | null>(null);

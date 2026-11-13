@@ -85,7 +85,6 @@ export default function AdminDesignSystem() {
   useEffect(() => {
     if (!newUi) return;
     document.body.classList.add("ds-app");
-    return () => document.body.classList.remove("ds-app");
   }, []);
 
   if (isLoading) return null;

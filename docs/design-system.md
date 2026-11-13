@@ -53,7 +53,7 @@ Import from `framer-motion`. Reduced motion is handled once in the shell with `<
 | `empty-state.tsx` | `EmptyState`, `EmptyStateIllustration` | Every empty list or first-run screen |
 | `animated-list.tsx` | `AnimatedList` | Feeds where items arrive: activity, notifications |
 | `text-shimmer.tsx` | `TextShimmer` | "Thinking…", "Saving…" and streaming status text |
-| `ai-prompt-box.tsx` | `PromptInputBox` | Copilot and any AI chat composer |
+| `ai-prompt-box.tsx` | `PromptInputBox` | Reference only (dark, fixed colors). Use `premium/copilot/CopilotPromptBox`, the brand-token version, for any AI composer |
 | `animated-state-icons.tsx` | `SuccessIcon`, `CopiedIcon`, `SendIcon`, `PlayPauseIcon`, `LockUnlockIcon`, `EyeToggleIcon`, … | Icons that morph to confirm an action (copy, send, save) |
 | `animated-icon.tsx` | `AnimatedIcon`, `StateChevron` | Replayable icon micro-interactions |
 | `halo-dropzone.tsx` | `HaloDropzone` | File and image upload |
