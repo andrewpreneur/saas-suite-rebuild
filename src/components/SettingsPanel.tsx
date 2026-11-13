@@ -1,7 +1,7 @@
 import HighLevelIntegrationPanel from "@/components/highlevel/HighLevelIntegrationPanel";
 import { TextUsLink } from "@/components/TextUsLink";
 import { supportSmsUrl } from "@/lib/supportContact";
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { PageHeader } from "@/components/platform/PageHeader";
 import { useUser } from "@/contexts/UserContext";
 import { useViewerIdentity } from "@/hooks/useViewerIdentity";
@@ -10,13 +10,14 @@ import { LANGUAGE_OPTIONS } from "@/translations";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { newUi } from "@/lib/uiVersion";
+import { Tag } from "@/components/ui/tag";
+import { Banner } from "@/components/ui/banner";
+import { SectionCard } from "@/components/premium/SectionCard";
+import AnimatedTabs from "@/components/premium/21st/animated-tabs";
+import { EmptyState, EmptyStateIllustration } from "@/components/premium/21st/empty-state";
+import { Field, SectionFooter, ToggleRow } from "@/components/premium/settings/Field";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -27,14 +28,15 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import {
   Loader2,
-  Phone,
   ExternalLink,
   Sparkles,
   UserPlus,
   Trash2,
   Users,
-  AlertTriangle,
-  Check,
+  CreditCard,
+  Link2,
+  Plug,
+  SlidersHorizontal,
   User as UserIcon,
   ArrowLeft,
   Crown,
@@ -359,25 +361,37 @@ export function SettingsPanel({ onBack, initialTab = "profile", onTabChange }: S
   const languageLabel =
     LANGUAGE_OPTIONS.find((option) => option.value === language)?.label || language;
 
+  type SettingsTab = NonNullable<SettingsPanelProps["initialTab"]>;
+  const navItem =
+    "h-11 shrink-0 justify-start gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground data-[state=active]:bg-brand-subtle data-[state=active]:font-semibold data-[state=active]:text-brand xl:h-10 xl:w-full [&_svg]:size-4 [&_svg]:shrink-0";
+  const planLabel =
+    userPlan === "STARTER" ? t.common_starter : userPlan === "BASIC" ? t.common_basic : t.common_advanced;
+
   return (
-    <div className="max-w-6xl mx-auto rounded-2xl bg-muted px-4 py-6">
-      <div className="mb-6 flex items-start gap-3">
-        <Button variant="ghost" size="icon" onClick={onBack} aria-label="Go back">
+    <div className="mx-auto w-full min-w-0 max-w-6xl space-y-6">
+      <div className="flex items-start gap-2">
+        <Button variant="ghost" size="icon" onClick={onBack} aria-label="Go back" className="-ml-2 mt-0.5 shrink-0">
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <PageHeader
-          title={t.settings_title}
-          subtitle="Account, preferences, and support for this agency."
-        />
-      </div>
-      <div className="mb-4 grid gap-3 sm:grid-cols-2">
-        <div className="flex min-w-0 items-center justify-between gap-3 rounded-2xl bg-card px-4 py-3">
-          <span className="text-sm text-muted-foreground">Plan</span>
-          <span className="min-w-0 truncate text-sm font-medium">{userPlan}</span>
-        </div>
-        <div className="flex min-w-0 items-center justify-between gap-3 rounded-2xl bg-card px-4 py-3">
-          <span className="text-sm text-muted-foreground">{t.settings_language}</span>
-          <span className="min-w-0 truncate text-sm font-medium">{languageLabel}</span>
+        <div className="min-w-0 flex-1">
+          <PageHeader
+            title={t.settings_title}
+            subtitle="Account, preferences, and support for this agency."
+            actions={
+              <>
+                <Tag tone="brand">
+                  <Crown aria-hidden="true" />
+                  <span className="sr-only">Plan: </span>
+                  {userPlan}
+                </Tag>
+                <Tag tone="neutral" className="border-border bg-card text-muted-foreground">
+                  <Globe aria-hidden="true" />
+                  <span className="sr-only">{t.settings_language}: </span>
+                  {languageLabel}
+                </Tag>
+              </>
+            }
+          />
         </div>
       </div>
 
@@ -386,474 +400,455 @@ export function SettingsPanel({ onBack, initialTab = "profile", onTabChange }: S
         orientation="vertical"
         onValueChange={(v) => {
           if (v === "domain" && !customDomainAccess) return;
-          onTabChange?.(
-            v as "profile" | "admins" | "billing" | "domain" | "slack" | "highlevel" | "external",
-          );
+          onTabChange?.(v as SettingsTab);
         }}
-        className="flex w-full min-w-0 flex-col gap-6 xl:flex-row"
+        className="flex w-full min-w-0 flex-col gap-4 xl:flex-row xl:gap-8"
       >
-        <nav className="shrink-0 xl:w-56">
-          <TabsList className={newUi ? "flex h-auto w-full flex-col items-stretch justify-start gap-1 rounded-xl border bg-card bg-none p-2 [&>button]:h-11 [&>button]:rounded-md [&>button]:px-3 [&>button]:text-gray-700 [&_.tabs-indicator]:hidden md:[&>button]:h-9 [&>button[data-state=active]]:bg-brand-subtle [&>button[data-state=active]]:text-[#3E27AE] xl:sticky xl:top-4" : "flex h-auto w-full flex-col items-stretch justify-start gap-1 bg-muted/40 p-2 xl:sticky xl:top-4"}>
-            <TabsTrigger value="profile" className="justify-start">
+        <nav aria-label="Settings sections" className="min-w-0 shrink-0 xl:w-60">
+          <TabsList className="-mx-4 flex h-auto max-w-none flex-row items-stretch justify-start gap-1 overflow-x-auto bg-none px-4 pb-1 [scrollbar-width:none] xl:sticky xl:top-20 xl:mx-0 xl:flex-col xl:overflow-visible xl:px-0 xl:pb-0 [&::-webkit-scrollbar]:hidden [&_.tabs-indicator]:hidden">
+            <p className="px-eyebrow hidden px-3 pb-1 xl:block">Account</p>
+            <TabsTrigger value="profile" className={navItem}>
+              <UserIcon aria-hidden="true" />
               {t.settings_profile}
             </TabsTrigger>
-            <TabsTrigger
-              value="admins"
-              data-tip-target="settings-tab-admins"
-              className="justify-start"
-            >
+            <TabsTrigger value="admins" data-tip-target="settings-tab-admins" className={navItem}>
+              <Users aria-hidden="true" />
               {t.settings_admins}
             </TabsTrigger>
-            <TabsTrigger
-              value="billing"
-              data-tip-target="settings-tab-billing"
-              className="justify-start"
-            >
+            <TabsTrigger value="billing" data-tip-target="settings-tab-billing" className={navItem}>
+              <CreditCard aria-hidden="true" />
               {t.settings_billing}
             </TabsTrigger>
-            <TabsTrigger
-              value="domain"
-              disabled={!customDomainAccess}
-              className="justify-start gap-1.5"
-            >
-              {!customDomainAccess && <Lock className="w-3 h-3" />}
+            <TabsTrigger value="domain" disabled={!customDomainAccess} className={navItem}>
+              <Globe aria-hidden="true" />
               Custom Domain
+              {!customDomainAccess && (
+                <Lock className="!size-3 xl:ml-auto" aria-label="Locked: add the Custom Domain upgrade in Billing" />
+              )}
             </TabsTrigger>
-            <TabsTrigger
-              value="slack"
-              className="justify-start"
-              onClick={() => setSlackSub("connection")}
-            >
+            <p className="px-eyebrow hidden px-3 pb-1 pt-4 xl:block">Integrations</p>
+            <TabsTrigger value="slack" className={navItem} onClick={() => setSlackSub("connection")}>
+              <Slack aria-hidden="true" />
               Slack
             </TabsTrigger>
-            {initialTab === "slack" && (
-              <div className="ml-3 flex flex-col gap-1 border-l border-border pl-4">
-                {(
-                  [
-                    ["connection", "Connection"],
-                    ["copilot", "Weekly AI Copilot"],
-                    ["report", "Weekly support report"],
-                  ] as const
-                ).map(([key, label]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setSlackSub(key)}
-                    className={`whitespace-nowrap text-left text-sm rounded-md px-3 py-1.5 transition-colors ${
-                      slackSub === key
-                        ? "bg-background text-foreground font-medium shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            )}
-            <TabsTrigger value="highlevel" className="justify-start">
+            <TabsTrigger value="highlevel" className={navItem}>
+              <Plug aria-hidden="true" />
               HighLevel
             </TabsTrigger>
-            <TabsTrigger value="external" className="justify-start whitespace-normal text-left">
+            <TabsTrigger value="external" className={navItem}>
+              <Link2 aria-hidden="true" />
               Connect external platform
             </TabsTrigger>
           </TabsList>
         </nav>
-        <div className="min-w-0 flex-1 rounded-2xl bg-card p-4">
+
+        <div className="min-w-0 flex-1">
           {/* ── Profile Tab ── */}
-          <TabsContent value="profile" className="space-y-4">
-            <div className="grid w-full min-w-0 gap-4">
-              {viewer.showsAccountAdmin && (
-                <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
-                  <p className="font-medium text-foreground">Signed in as {viewer.displayName}</p>
-                  <p className="truncate text-muted-foreground">{viewer.displayEmail}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    The name and email below are the agency account. Saving them does not change who is signed in.
-                  </p>
-                </div>
-              )}
-              <div>
-                <Label htmlFor="name">{viewer.showsAccountAdmin ? "Account owner name" : t.settings_name}</Label>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder={t.settings_name}
-                />
-              </div>
-              <div>
-                <Label htmlFor="email">{viewer.showsAccountAdmin ? "Account email" : t.settings_email}</Label>
-                <Input id="email" value={userEmail} disabled placeholder={t.settings_email} />
-              </div>
-              <div>
-                <Label htmlFor="phone">Phone (for text alerts)</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+1 555 123 4567"
-                />
-              </div>
-              <div>
-                <Label htmlFor="agency">{t.settings_agencyName}</Label>
-                <Input
-                  id="agency"
-                  value={agencyName}
-                  onChange={(e) => setAgencyName(e.target.value)}
-                  placeholder={t.settings_agencyName}
-                />
-                {agencyName && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {t.settings_urlSlug}:{" "}
-                    <span className="font-mono">{toAgencySlug(agencyName)}</span>
-                  </p>
+          <TabsContent value="profile" className="mt-0 space-y-6">
+            <SectionCard
+              icon={<UserIcon />}
+              title={t.settings_profile}
+              description="Who you are and what your agency is called."
+            >
+              <div className="grid w-full min-w-0 gap-4 sm:grid-cols-2">
+                {viewer.showsAccountAdmin && (
+                  <Banner tone="info" title={`Signed in as ${viewer.displayName}.`} className="sm:col-span-2">
+                    <span className="break-all">{viewer.displayEmail}</span>. The name and email below are the agency
+                    account. Saving them does not change who is signed in.
+                  </Banner>
                 )}
-              </div>
-              <AgencyLogoCard
-                key={agencyLogoUrl}
-                email={email}
-                logoUrl={agencyLogoUrl}
-                onChange={setAgencyLogoUrl}
-              />
-              {showAgencyWarning && (
-                <Alert className="border-amber-300 bg-amber-50">
-                  <AlertTriangle className="h-4 w-4 text-amber-600" />
-                  <AlertDescription className="text-amber-800 space-y-2">
-                    <p>
-                      <strong>{t.common_warning}:</strong> Changing your agency name will update
-                      your URL from "<span className="font-mono">{currentAgencyId}</span>" → "
-                      <span className="font-mono">{toAgencySlug(agencyName)}</span>"
-                    </p>
+                <Field label={viewer.showsAccountAdmin ? "Account owner name" : t.settings_name} htmlFor="name">
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder={t.settings_name}
+                    autoComplete="name"
+                  />
+                </Field>
+                <Field
+                  label={viewer.showsAccountAdmin ? "Account email" : t.settings_email}
+                  htmlFor="email"
+                  hint="Your sign-in email. It can't be changed here."
+                >
+                  <Input id="email" value={userEmail} disabled placeholder={t.settings_email} />
+                </Field>
+                <Field label="Phone" htmlFor="phone" hint="Used for text alerts.">
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+1 555 123 4567"
+                    autoComplete="tel"
+                  />
+                </Field>
+                <Field
+                  label={t.settings_agencyName}
+                  htmlFor="agency"
+                  hint={
+                    agencyName ? (
+                      <>
+                        {t.settings_urlSlug}: <span className="font-mono">{toAgencySlug(agencyName)}</span>
+                      </>
+                    ) : undefined
+                  }
+                >
+                  <Input
+                    id="agency"
+                    value={agencyName}
+                    onChange={(e) => setAgencyName(e.target.value)}
+                    placeholder={t.settings_agencyName}
+                    autoComplete="organization"
+                  />
+                </Field>
+                {showAgencyWarning && (
+                  <Banner
+                    tone="warning"
+                    title="Saving this name changes your URL."
+                    className="sm:col-span-2"
+                  >
+                    It moves from <span className="break-words font-mono">{currentAgencyId}</span> to{" "}
+                    <span className="break-words font-mono">{toAgencySlug(agencyName)}</span>.
                     {agencyUserCount > 0 && (
-                      <p>
-                        You currently have{" "}
+                      <>
+                        {" "}
+                        You have{" "}
                         <strong>
                           {agencyUserCount} user{agencyUserCount !== 1 ? "s" : ""}
                         </strong>{" "}
-                        on your current URL. Once you switch, they will need to{" "}
-                        <strong>log back in once</strong> to your new URL. All their progress will
-                        be saved.
-                      </p>
+                        on the current URL. They will need to <strong>log back in once</strong> at the new one. All
+                        their progress is kept.
+                      </>
                     )}
-                  </AlertDescription>
-                </Alert>
-              )}
-              <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <Label htmlFor="hide-bonuses">{t.settings_hideBonuses}</Label>
-                  <p className="text-xs text-muted-foreground">{t.settings_hideBonusesDesc}</p>
-                </div>
-                <Switch id="hide-bonuses" className="shrink-0" checked={hideBonuses} onCheckedChange={setHideBonuses} />
+                  </Banner>
+                )}
               </div>
+              <SectionFooter note="Saves your name, phone and agency name.">
+                <Button variant="accent" onClick={handleSaveProfile}>
+                  {t.settings_saveProfile}
+                </Button>
+              </SectionFooter>
+            </SectionCard>
+
+            <AgencyLogoCard
+              key={agencyLogoUrl}
+              email={email}
+              logoUrl={agencyLogoUrl}
+              onChange={setAgencyLogoUrl}
+            />
+
+            <SectionCard
+              icon={<SlidersHorizontal />}
+              title="Preferences"
+              description="How SaaSSuite looks and reads for you."
+            >
+              <ToggleRow
+                label={t.settings_hideBonuses}
+                htmlFor="hide-bonuses"
+                description={`${t.settings_hideBonusesDesc.replace(/\.?\s*$/, "")}. Saves as you switch it.`}
+                className="mb-4 border-b border-border pb-4"
+              >
+                <Switch id="hide-bonuses" checked={hideBonuses} onCheckedChange={setHideBonuses} />
+              </ToggleRow>
               {/* Dynamic (one-line CSS + JS) install is always on; the old manual-code switch was removed. */}
               <LanguageSettings />
-              <Button onClick={handleSaveProfile} className="w-full">
-                {t.settings_saveProfile}
-              </Button>
-              <DeleteAccountSection />
-            </div>
+            </SectionCard>
+
+            <DeleteAccountSection />
           </TabsContent>
 
           {/* ── Admins Tab ── */}
-          <TabsContent value="admins" className="space-y-4">
-            <div className="w-full min-w-0 space-y-4">
-              <div className="flex items-center gap-2 mb-4">
-                <Users className="w-5 h-5 text-primary" />
-                <div>
-                  <h3 className="font-medium">{t.admins_title}</h3>
-                  <p className="text-xs text-muted-foreground">{t.admins_desc}</p>
-                </div>
-              </div>
-              <Tabs defaultValue="team" className="space-y-4">
-                <TabsList className="grid grid-cols-3 w-full">
+          <TabsContent value="admins" className="mt-0 space-y-6">
+            <SectionCard icon={<Users />} title={t.admins_title} description={t.admins_desc}>
+              <Tabs defaultValue="team" className="space-y-6">
+                <TabsList>
                   <TabsTrigger value="team">Team</TabsTrigger>
                   <TabsTrigger value="permissions">Permissions</TabsTrigger>
                   <TabsTrigger value="notifications">Notifications</TabsTrigger>
                 </TabsList>
-                <TabsContent value="permissions">
+                <TabsContent value="permissions" className="mt-0">
                   <AdminPermissionsPanel />
                 </TabsContent>
-                <TabsContent value="notifications">
+                <TabsContent value="notifications" className="mt-0">
                   <SupportNotificationsPanel />
                 </TabsContent>
-                <TabsContent value="team" className="space-y-4">
-                  <div className="p-4 border rounded-lg space-y-3">
-                    <div>
-                      <Label htmlFor="admin-email">{t.admins_email}</Label>
-                      <Input
-                        id="admin-email"
-                        type="email"
-                        value={newAdminEmail}
-                        onChange={(e) => setNewAdminEmail(e.target.value)}
-                        placeholder={t.admins_email}
-                      />
+                <TabsContent value="team" className="mt-0 space-y-6">
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground">Invite an admin</h3>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      They get an email invitation and can sign in with that address.
+                    </p>
+                    <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                      <Field label={t.admins_email} htmlFor="admin-email" className="sm:col-span-2">
+                        <Input
+                          id="admin-email"
+                          type="email"
+                          value={newAdminEmail}
+                          onChange={(e) => setNewAdminEmail(e.target.value)}
+                          placeholder="name@agency.com"
+                          autoComplete="off"
+                        />
+                      </Field>
+                      <Field label={t.admins_name} htmlFor="admin-name">
+                        <Input
+                          id="admin-name"
+                          value={newAdminName}
+                          onChange={(e) => setNewAdminName(e.target.value)}
+                          placeholder={t.admins_name}
+                          autoComplete="off"
+                        />
+                      </Field>
+                      <Field label="Phone" htmlFor="admin-phone" hint="Used for text alerts. Optional.">
+                        <Input
+                          id="admin-phone"
+                          type="tel"
+                          value={newAdminPhone}
+                          onChange={(e) => setNewAdminPhone(e.target.value)}
+                          placeholder="+1 555 123 4567"
+                          autoComplete="off"
+                        />
+                      </Field>
                     </div>
-                    <div>
-                      <Label htmlFor="admin-name">{t.admins_name}</Label>
-                      <Input
-                        id="admin-name"
-                        value={newAdminName}
-                        onChange={(e) => setNewAdminName(e.target.value)}
-                        placeholder={t.admins_name}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="admin-phone">Phone (for text alerts)</Label>
-                      <Input
-                        id="admin-phone"
-                        type="tel"
-                        value={newAdminPhone}
-                        onChange={(e) => setNewAdminPhone(e.target.value)}
-                        placeholder="+1 555 123 4567"
-                      />
-                    </div>
-                    <Button
-                      onClick={handleAddAdmin}
-                      disabled={!newAdminEmail || isAddingAdmin}
-                      className="w-full"
-                    >
-                      {isAddingAdmin ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t.admins_sending}
-                        </>
-                      ) : (
-                        <>
-                          <UserPlus className="w-4 h-4 mr-2" /> {t.admins_addAdmin}
-                        </>
-                      )}
-                    </Button>
+                    <SectionFooter note={!newAdminEmail ? "Enter an email address to send the invitation." : undefined}>
+                      <Button variant="accent" onClick={handleAddAdmin} disabled={!newAdminEmail || isAddingAdmin}>
+                        {isAddingAdmin ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t.admins_sending}
+                          </>
+                        ) : (
+                          <>
+                            <UserPlus className="w-4 h-4 mr-2" /> {t.admins_addAdmin}
+                          </>
+                        )}
+                      </Button>
+                    </SectionFooter>
                   </div>
-                  <div className="space-y-2">
-                    <Label>{t.admins_currentAdmins}</Label>
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold text-foreground">{t.admins_currentAdmins}</h3>
                     {loadingAdmins ? (
-                      <div className="flex items-center justify-center p-4">
-                        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                      <div className="space-y-2" aria-busy="true" aria-label="Loading admins">
+                        <div className="px-skeleton h-16 rounded-lg" />
+                        <div className="px-skeleton h-16 rounded-lg" />
                       </div>
                     ) : accountAdmins.length === 0 ? (
-                      <div className="p-4 text-center text-sm text-muted-foreground bg-muted rounded-lg">
-                        {t.admins_noAdmins}
-                      </div>
+                      <EmptyState
+                        className="rounded-lg border border-dashed border-border py-8"
+                        icon={
+                          <EmptyStateIllustration className="size-12 rounded-lg border-border bg-muted text-muted-foreground">
+                            <Users className="size-5" aria-hidden="true" />
+                          </EmptyStateIllustration>
+                        }
+                        title={t.admins_noAdmins}
+                        description="Invite a teammate above to share this account."
+                      />
                     ) : (
-                      <div className="space-y-2">
+                      <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border">
                         {accountAdmins.map((admin) => (
-                          <div
-                            key={admin.id}
-                            className="flex items-center justify-between p-3 border rounded-lg"
-                          >
-                            <div>
-                              <p className="font-medium text-sm">
-                                {admin.admin_name || admin.admin_email}
-                              </p>
-                              {admin.admin_name && (
-                                <p className="text-xs text-muted-foreground">{admin.admin_email}</p>
-                              )}
-                              <div className="flex items-center gap-2 mt-1">
-                                <Badge
-                                  variant={admin.status === "accepted" ? "default" : "secondary"}
-                                  className="text-xs"
-                                >
-                                  {admin.status === "accepted" ? t.admins_active : t.admins_pending}
-                                </Badge>
-                                <span className="text-xs text-muted-foreground">
-                                  {t.admins_invited}{" "}
-                                  {new Date(admin.invited_at).toLocaleDateString()}
-                                </span>
+                          <li key={admin.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                            <div className="flex min-w-0 items-center gap-3">
+                              <span
+                                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-subtle text-sm font-semibold uppercase text-brand"
+                                aria-hidden="true"
+                              >
+                                {(admin.admin_name || admin.admin_email).slice(0, 1)}
+                              </span>
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-medium text-foreground">
+                                  {admin.admin_name || admin.admin_email}
+                                </p>
+                                {admin.admin_name && (
+                                  <p className="truncate text-xs text-muted-foreground">{admin.admin_email}</p>
+                                )}
+                                <div className="mt-1 flex flex-wrap items-center gap-2">
+                                  <Tag tone={admin.status === "accepted" ? "success" : "warning"}>
+                                    {admin.status === "accepted" ? t.admins_active : t.admins_pending}
+                                  </Tag>
+                                  <span className="text-xs text-muted-foreground">
+                                    {t.admins_invited} {new Date(admin.invited_at).toLocaleDateString()}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                             <Button
                               variant="ghost"
                               size="icon"
-                              aria-label="Delete"
+                              aria-label={`Remove ${admin.admin_name || admin.admin_email}`}
                               onClick={() => handleRemoveAdmin(admin.id, admin.admin_email)}
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              className="size-11 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive sm:size-10"
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
-                          </div>
+                          </li>
                         ))}
-                      </div>
+                      </ul>
                     )}
                   </div>
                 </TabsContent>
               </Tabs>
-            </div>
+            </SectionCard>
           </TabsContent>
 
           {/* ── Billing Tab ── */}
-          <TabsContent value="billing" className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold mb-1">{t.billing_title}</h3>
-              <p className="text-sm text-muted-foreground mb-6">
-                {t.billing_currentPlan}{" "}
-                <span className="font-semibold text-foreground">
-                  {userPlan === "STARTER"
-                    ? t.common_starter
-                    : userPlan === "BASIC"
-                      ? t.common_basic
-                      : t.common_advanced}
-                </span>
-                .
-              </p>
-              {!isNativeApp() && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    window.location.href = "https://billing.stripe.com/p/login/bIY04697i9jzghy4gg";
-                  }}
-                  className="mb-6"
-                >
-                  Manage Billing
-                </Button>
-              )}
-            </div>
-
-            {/* Agency Support add-on ($49/month per client account) */}
-            <Card className="border-primary/30">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Users className="w-4 h-4 text-primary" /> Agency Support add-on
-                </CardTitle>
-                <CardDescription>
-                  White-glove fulfillment for your client accounts — $49/month per account. Buy
-                  accounts into your wallet, then assign who gets support.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {userPlan === "ADVANCED" ? (
+          <TabsContent value="billing" className="mt-0 space-y-6">
+            <SectionCard
+              icon={<CreditCard />}
+              title={t.billing_title}
+              description={
+                <>
+                  {t.billing_currentPlan} <span className="font-semibold text-foreground">{planLabel}</span>.
+                </>
+              }
+              actions={
+                !isNativeApp() ? (
                   <Button
-                    className="w-full sm:w-auto h-11"
-                    onClick={() => (window.location.href = "/app/agency-support")}
+                    variant="outline"
+                    className="h-11 sm:h-10"
+                    onClick={() => {
+                      window.location.href = "https://billing.stripe.com/p/login/bIY04697i9jzghy4gg";
+                    }}
                   >
-                    Buy Agency Support accounts
+                    Manage billing <ExternalLink />
                   </Button>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Available on the Advanced plan — upgrade below to add Agency Support.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            <SaasPricingCards
-              compact
-              currentPlan={userPlan}
-              onSelect={setCheckoutPlan}
-              onStarter={() => {
-                window.location.href = "https://billing.stripe.com/p/login/bIY04697i9jzghy4gg";
-              }}
-            />
-
-            <div className="mt-6 p-4 bg-muted rounded-lg">
-              <p className="text-sm text-muted-foreground">
-                <strong>Need help?</strong> <TextUsLink message="HELP" variant="inline" icon={false} className="font-normal text-foreground">Text Us</TextUsLink> for immediate
-                assistance.
+                ) : undefined
+              }
+            >
+              <SaasPricingCards
+                compact
+                currentPlan={userPlan}
+                onSelect={setCheckoutPlan}
+                onStarter={() => {
+                  window.location.href = "https://billing.stripe.com/p/login/bIY04697i9jzghy4gg";
+                }}
+              />
+              <p className="mt-4 text-sm text-muted-foreground">
+                <strong className="font-semibold text-foreground">Need help?</strong>{" "}
+                <TextUsLink message="HELP" variant="inline" icon={false} className="font-normal text-foreground">
+                  Text Us
+                </TextUsLink>{" "}
+                for immediate assistance.
               </p>
-            </div>
+            </SectionCard>
 
             {/* ── Upgrades ── */}
-            <div className="mt-10">
-              <h3 className="text-lg font-semibold mb-1">Upgrades</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Optional add-ons that extend your SaaS Suite experience.
-              </p>
-              <div className="grid gap-4 md:grid-cols-2">
-                <Card className="flex flex-col">
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <GraduationCap className="w-5 h-5 text-primary" /> Onboarding Calls
-                    </CardTitle>
-                    <CardDescription>
-                      Done-with-you onboarding sessions to get your SaaS launched faster.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="mt-auto">
+            <SectionCard
+              icon={<Sparkles />}
+              title="Upgrades"
+              description="Optional add-ons that extend your SaaS Suite experience."
+            >
+              <div className="space-y-3">
+                {/* Agency Support add-on ($49/month per client account) */}
+                <UpgradeTile
+                  icon={<Users />}
+                  title="Agency Support add-on"
+                  description="White-glove fulfillment for your client accounts. $49/month per account. Buy accounts into your wallet, then assign who gets support."
+                >
+                  {userPlan === "ADVANCED" ? (
                     <Button
                       variant="outline"
-                      className="w-full"
-                      onClick={() => {
-                        window.location.href = "/onboardings";
-                      }}
+                      className="h-11 w-full sm:h-10"
+                      onClick={() => (window.location.href = "/app/agency-support")}
                     >
-                      View Onboardings <ExternalLink className="w-4 h-4 ml-2" />
+                      Buy Agency Support accounts
                     </Button>
-                  </CardContent>
-                </Card>
-
-                <Card className="flex flex-col">
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Globe className="w-5 h-5 text-primary" /> Custom Domain
-                      {customDomainAccess && (
-                        <Badge variant="secondary" className="ml-1">
-                          Active
-                        </Badge>
-                      )}
-                    </CardTitle>
-                    <CardDescription>
-                      Replace yoursoftwareonboarding.com with your own domain or subdomain.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="mt-auto">
-                    <Button
-                      variant={customDomainAccess ? "outline" : "default"}
-                      className="w-full"
-                      onClick={() => {
-                        if (customDomainAccess) {
-                          onTabChange?.("domain");
-                        } else {
-                          setCustomDomainDialogOpen(true);
-                        }
-                      }}
-                    >
-                      {customDomainAccess ? "Manage Domain" : "Learn More"}
-                    </Button>
-                  </CardContent>
-                </Card>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Available on the Advanced plan. Upgrade above to add Agency Support.
+                    </p>
+                  )}
+                </UpgradeTile>
+                <UpgradeTile
+                  icon={<GraduationCap />}
+                  title="Onboarding Calls"
+                  description="Done-with-you onboarding sessions to get your SaaS launched faster."
+                >
+                  <Button
+                    variant="outline"
+                    className="h-11 w-full sm:h-10"
+                    onClick={() => {
+                      window.location.href = "/onboardings";
+                    }}
+                  >
+                    View onboardings <ExternalLink />
+                  </Button>
+                </UpgradeTile>
+                <UpgradeTile
+                  icon={<Globe />}
+                  title="Custom Domain"
+                  badge={customDomainAccess ? <Tag tone="success">Active</Tag> : null}
+                  description="Replace yoursoftwareonboarding.com with your own domain or subdomain."
+                >
+                  <Button
+                    variant="outline"
+                    className="h-11 w-full sm:h-10"
+                    onClick={() => {
+                      if (customDomainAccess) {
+                        onTabChange?.("domain");
+                      } else {
+                        setCustomDomainDialogOpen(true);
+                      }
+                    }}
+                  >
+                    {customDomainAccess ? "Manage domain" : "Learn more"}
+                  </Button>
+                </UpgradeTile>
               </div>
-            </div>
+            </SectionCard>
           </TabsContent>
 
           {/* ── Custom Domain Tab ── */}
-          <TabsContent value="domain" className="space-y-6">
+          <TabsContent value="domain" className="mt-0 space-y-6">
             <CustomDomainPanel />
           </TabsContent>
 
-          <TabsContent value="slack" className="space-y-6 mt-0">
-            <Card className="border-primary/20 bg-primary/5">
-              <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                    <Slack className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-foreground">Get 1:1 help from our team</p>
-                    <p className="text-sm text-muted-foreground">
-                      Join our SaaSSuite Slack channel to ask questions and get help directly from
-                      the team.
-                    </p>
-                  </div>
+          <TabsContent value="slack" className="mt-0 space-y-6">
+            <section className="px-surface px-brand-wash flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+              <div className="flex min-w-0 items-start gap-3">
+                <span className="px-icon-chip shrink-0 bg-card [&_svg]:size-5" aria-hidden="true">
+                  <Slack />
+                </span>
+                <div className="min-w-0">
+                  <h2 className="text-base font-semibold text-foreground">Get 1:1 help from our team</h2>
+                  <p className="mt-0.5 text-sm text-muted-foreground">
+                    Join our SaaSSuite Slack channel to ask questions and get help directly from the team.
+                  </p>
                 </div>
-                <Button
-                  type="button"
-                  className="w-full shrink-0 sm:w-auto"
-                  onClick={() => {
-                    window.location.href = "https://saassuite.slack.com/archives/C0C6UU543SR";
-                  }}
-                >
-                  Join OUR Slack
-                  <ExternalLink className="ml-2 h-4 w-4" />
-                </Button>
-              </CardContent>
-            </Card>
+              </div>
+              <Button
+                type="button"
+                variant="accent"
+                className="h-11 w-full shrink-0 sm:h-10 sm:w-auto"
+                onClick={() => {
+                  window.location.href = "https://saassuite.slack.com/archives/C0C6UU543SR";
+                }}
+              >
+                Join our Slack
+                <ExternalLink />
+              </Button>
+            </section>
+            <div className="max-w-full overflow-x-auto">
+              <AnimatedTabs
+                variant="pill"
+                layoutId="settings-slack-sub"
+                activeTab={slackSub}
+                onChange={(id) => setSlackSub(id as typeof slackSub)}
+                tabs={[
+                  { id: "connection", label: "Connection" },
+                  { id: "copilot", label: "Weekly AI Copilot" },
+                  { id: "report", label: "Weekly support report" },
+                ]}
+                className="[&>button]:min-h-[40px] [&>button]:whitespace-nowrap [&>button]:px-3"
+              />
+            </div>
             {slackSub === "connection" && <SlackIntegration />}
             {slackSub === "copilot" && <WeeklyCopilotSlackCard />}
             {slackSub === "report" && <WeeklySlackReportCard />}
           </TabsContent>
 
-          <TabsContent value="highlevel" className="space-y-6 mt-0">
+          <TabsContent value="highlevel" className="mt-0 space-y-6">
             <HighLevelIntegrationPanel agencyId={currentAgencyId} />
           </TabsContent>
-          <TabsContent value="external" className="space-y-6">
+          <TabsContent value="external" className="mt-0 space-y-6">
             <ExternalPlatformGate>
               <ExternalPlatformPanel />
             </ExternalPlatformGate>
@@ -906,6 +901,38 @@ export function SettingsPanel({ onBack, initialTab = "profile", onTabChange }: S
           email={email || undefined}
         />
       </Tabs>
+    </div>
+  );
+}
+
+function UpgradeTile({
+  icon,
+  title,
+  description,
+  badge,
+  children,
+}: {
+  icon: ReactNode;
+  title: string;
+  description: string;
+  badge?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex min-w-0 flex-col gap-4 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 items-start gap-3">
+        <span className="px-icon-chip shrink-0 [&_svg]:size-5" aria-hidden="true">
+          {icon}
+        </span>
+        <div className="min-w-0">
+          <h3 className="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground">
+            {title}
+            {badge}
+          </h3>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</p>
+        </div>
+      </div>
+      <div className="shrink-0 sm:max-w-[240px] [&>button]:sm:w-auto">{children}</div>
     </div>
   );
 }

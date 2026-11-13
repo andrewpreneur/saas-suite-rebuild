@@ -1,8 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Sparkles, RotateCcw, MessageSquare, Play } from "lucide-react";
+import { ArrowRight, Clock, Compass, LayoutGrid, RotateCcw, MessageSquare, Play } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import HubLiveModal from "@/components/onboarding/HubLiveModal";
 import { PageHeader } from "@/components/platform/PageHeader";
 
@@ -35,85 +34,133 @@ const WalkthroughTool = ({ onNavigateToTool, onOpenCoPilot }: WalkthroughToolPro
 
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="mx-auto w-full min-w-0 max-w-4xl space-y-6">
       <PageHeader
+        eyebrow="Learn"
         title="Walkthrough"
         subtitle="A video tour of setting up SaaSSuite and your Client Hub."
+        actions={
+          <Button
+            type="button"
+            variant="outline"
+            className="h-11 sm:h-10"
+            onClick={() => window.dispatchEvent(new CustomEvent("start-walkthrough", { detail: { kind: "nav" } }))}
+          >
+            <Compass />
+            Take the interactive tour
+          </Button>
+        }
       />
       <HubLiveModal open={hubLive} onOpenChange={closeHubLive} hubUrl={hubUrl} />
-      <Card className="shadow-elevated border-border/50 bg-card/80 backdrop-blur-sm">
-        <CardHeader className="pb-4">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-purple-500" />
-            <CardTitle className="text-xl">SaaS Suite Walkthrough</CardTitle>
-          </div>
-        </CardHeader>
-        
-        <CardContent className="space-y-6">
-          <div className="relative w-full rounded-lg overflow-hidden shadow-elevated bg-muted/20">
-            <div className="relative aspect-video">
-              <video
-                ref={videoRef}
-                controls
-                className="w-full h-full object-cover"
-                poster="/lovable-uploads/onboardingthumbnail.png"
-                onPlay={() => setPlaying(true)}
-                onPause={() => setPlaying(false)}
-                onClick={togglePlay}
-              >
-                <source src="https://assets.cdn.filesafe.space/T69cI1milcirIORef4Ib/media/6aaca43e7bf7555bc30e9a17.mp4" type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
 
-              {/* Clicking anywhere on the video starts it — no hunting for the tiny control. */}
-              {!playing && (
-                <button
-                  type="button"
-                  onClick={togglePlay}
-                  aria-label="Play walkthrough video"
-                  className="absolute inset-0 flex items-center justify-center bg-black/25 transition-colors duration-150 hover:bg-black/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                >
-                  <span className="flex h-16 w-16 items-center justify-center rounded-full bg-background/95 shadow-xl transition-transform duration-200 hover:scale-105">
-                    <Play className="ml-0.5 h-7 w-7 text-purple-600" />
-                  </span>
-                </button>
-              )}
-            </div>
-          </div>
+      <section className="px-surface overflow-hidden" aria-label="SaaS Suite walkthrough video">
+        <div className="relative aspect-video w-full bg-black">
+          <video
+            ref={videoRef}
+            controls={playing}
+            playsInline
+            className="h-full w-full object-cover"
+            poster="/lovable-uploads/onboardingthumbnail.png"
+            onPlay={() => setPlaying(true)}
+            onPause={() => setPlaying(false)}
+            onClick={togglePlay}
+          >
+            <source src="https://assets.cdn.filesafe.space/T69cI1milcirIORef4Ib/media/6aaca43e7bf7555bc30e9a17.mp4" type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
 
-          <div className="mt-6 flex w-full min-w-0 flex-col items-stretch space-y-3">
-            <p className="text-center text-lg font-bold text-foreground">Get Started</p>
-            <div className="flex w-full min-w-0 flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
-              <Button 
-                onClick={() => onNavigateToTool?.('client-hub')}
-                className="h-auto w-full max-w-full whitespace-normal bg-purple-600 px-8 py-3 text-base font-semibold leading-relaxed text-white hover:bg-purple-700 sm:w-auto sm:text-lg"
-                size="lg"
-              >
-                <span className="inline sm:inline">Open Client Hub Manager</span>
-              </Button>
-              <Button
-                onClick={onOpenCoPilot}
-                className="h-auto w-full max-w-full gap-2 whitespace-normal bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-3 text-base font-semibold text-white hover:from-blue-700 hover:to-purple-700 sm:w-auto"
-                size="lg"
-              >
-                <MessageSquare className="w-4 h-4" />
-                AI CoPilot Setup
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => navigate("/v2-onboarding?mode=reonboard")}
-                className="h-auto w-full max-w-full whitespace-normal px-6 py-3 text-base font-semibold sm:w-auto"
-                size="lg"
-              >
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Onboarding
-              </Button>
-            </div>
+          {/* Clicking anywhere on the video starts it, no hunting for the tiny control. */}
+          {!playing && (
+            <button
+              type="button"
+              onClick={togglePlay}
+              aria-label="Play walkthrough video"
+              className="group absolute inset-0 flex items-center justify-center bg-black/30 transition-colors duration-200 hover:bg-black/40 focus-visible:outline-none"
+            >
+              <span className="px-brand-fill flex size-16 items-center justify-center rounded-full transition-transform duration-200 ease-out group-hover:scale-105 group-focus-visible:ring-4 group-focus-visible:ring-white/60 sm:size-20">
+                <Play className="ml-1 size-7 fill-current sm:size-8" aria-hidden="true" />
+              </span>
+            </button>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:px-6">
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold text-foreground">SaaS Suite Walkthrough</h2>
+            <p className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Clock className="size-3.5" aria-hidden="true" />
+              20 minutes · Setup, Client Hub and branding
+            </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
+
+      <section aria-label="Get started" className="space-y-3">
+        <h2 className="text-h4 text-foreground">Get Started</h2>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <NextStep
+            primary
+            icon={<LayoutGrid />}
+            title="Open Client Hub Manager"
+            body="Choose your videos and welcome sections."
+            onClick={() => onNavigateToTool?.('client-hub')}
+          />
+          <NextStep
+            icon={<MessageSquare />}
+            title="AI CoPilot Setup"
+            body="Let the copilot set things up with you."
+            onClick={() => onOpenCoPilot?.()}
+          />
+          <NextStep
+            icon={<RotateCcw />}
+            title="Onboarding"
+            body="Run the intro questions again."
+            onClick={() => navigate("/v2-onboarding?mode=reonboard")}
+          />
+        </div>
+      </section>
     </div>
   );
 };
+
+function NextStep({
+  icon,
+  title,
+  body,
+  onClick,
+  primary,
+}: {
+  icon: ReactNode;
+  title: string;
+  body: string;
+  onClick: () => void;
+  primary?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="px-surface-interactive group flex min-h-[72px] items-center gap-3 p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+    >
+      <span
+        className={
+          primary
+            ? "px-brand-fill flex size-10 shrink-0 items-center justify-center rounded-md [&_svg]:size-5"
+            : "px-icon-chip shrink-0 [&_svg]:size-5"
+        }
+        aria-hidden="true"
+      >
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold text-foreground">{title}</span>
+        <span className="block text-xs text-muted-foreground">{body}</span>
+      </span>
+      <ArrowRight
+        className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-brand"
+        aria-hidden="true"
+      />
+    </button>
+  );
+}
 
 export default WalkthroughTool;

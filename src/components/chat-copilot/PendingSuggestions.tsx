@@ -90,14 +90,14 @@ export function PendingSuggestions({ onApply }: Props) {
   if (suggestions.length === 0) return null;
 
   return (
-    <div className="border-b bg-muted/30 p-3 space-y-2 max-h-64 overflow-y-auto">
-      <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-        <Inbox className="w-3.5 h-3.5" />
+    <div className="max-h-64 space-y-2 overflow-y-auto border-b border-border bg-muted/40 p-3">
+      <div className="px-eyebrow flex items-center gap-2">
+        <Inbox className="size-3.5" />
         {suggestions.length} pending suggestion{suggestions.length === 1 ? '' : 's'}
       </div>
       {suggestions.map((s) => (
-        <div key={s.id} className="rounded-lg border bg-background p-2.5 space-y-2">
-          <div className="flex items-center gap-1.5 flex-wrap">
+        <div key={s.id} className="px-surface space-y-2 border border-border/60 p-3">
+          <div className="flex flex-wrap items-center gap-1.5">
             {s.target_field && (
               <Badge variant="secondary" className="text-[10px]">
                 {TARGET_LABELS[s.target_field] || s.target_field}
@@ -105,29 +105,27 @@ export function PendingSuggestions({ onApply }: Props) {
             )}
             <Badge variant="outline" className="text-[10px]">{s.operation}</Badge>
             {s.source && (
-              <span className="text-[10px] text-muted-foreground">via {s.source}</span>
+              <span className="text-caption text-muted-foreground">via {s.source}</span>
             )}
           </div>
-          <p className="text-xs leading-relaxed">{s.message}</p>
-          <div className="flex gap-1.5">
+          <p className="text-sm leading-relaxed">{s.message}</p>
+          <div className="flex gap-2">
             <Button
               size="sm"
-              variant="default"
-              className="h-7 text-xs"
+              variant="accent"
               disabled={busyId === s.id}
               onClick={() => apply(s)}
             >
-              {busyId === s.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3 mr-1" />}
-              Apply
+              {busyId === s.id ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
+              Apply suggestion
             </Button>
             <Button
               size="sm"
               variant="ghost"
-              className="h-7 text-xs"
               disabled={busyId === s.id}
               onClick={() => dismiss(s.id)}
             >
-              <X className="w-3 h-3 mr-1" />
+              <X className="size-3.5" />
               Dismiss
             </Button>
           </div>

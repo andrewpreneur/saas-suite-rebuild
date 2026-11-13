@@ -55,11 +55,11 @@ export function EmptyState({
         </motion.div>
       )}
       <div className="flex flex-col items-center gap-1.5">
-        <p className="font-[family-name:var(--primitive-font-display)] text-[15px] font-semibold tracking-[-0.01em] text-[var(--foreground)]">
+        <p className="text-[15px] font-semibold tracking-[-0.01em] text-foreground">
           {title}
         </p>
         {description && (
-          <p className="max-w-[22rem] text-[13px] leading-relaxed text-[var(--muted-foreground)]">
+          <p className="max-w-[22rem] text-[13px] leading-relaxed text-muted-foreground">
             {description}
           </p>
         )}
@@ -87,10 +87,10 @@ export function EmptyStateIllustration({
   return (
     <div
       className={cn(
-        "flex size-16 items-center justify-center rounded-[var(--primitive-radius-surface)]",
-        "border border-[var(--border)]",
-        "bg-[color-mix(in_srgb,var(--foreground)_3%,var(--background))]",
-        "text-[var(--muted-foreground)]",
+        "flex size-16 items-center justify-center rounded-xl",
+        "border border-border",
+        "px-brand-wash",
+        "text-muted-foreground",
         className,
       )}
     >

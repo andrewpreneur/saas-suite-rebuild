@@ -1,13 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff } from "lucide-react";
+import { EntryShell } from "@/components/premium/entry/EntryShell";
+import { FormMessage, PasswordField, SubmitButton, friendlyAuthError } from "@/components/premium/entry/fields";
 import { markSkipOnboarding, readNextPath } from "@/utils/deepLink";
 import { isKitDeepLink } from "@/lib/kitLoginFlow";
 
@@ -129,123 +125,88 @@ const ResetPassword = () => {
     }
   };
 
+  const mismatch = /match/i.test(error);
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Reset Password</CardTitle>
-          <CardDescription>
-            Enter your new password below
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {verifying ? (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">Verifying reset link...</p>
-            </div>
-          ) : valid ? (
-            <form onSubmit={handleResetPassword} className="space-y-4">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="password">New Password</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Enter new password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    disabled={loading}
-                    className="pr-10"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
-                    disabled={loading}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <div className="relative">
-                  <Input
-                    id="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    placeholder="Confirm new password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    disabled={loading}
-                    className="pr-10"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    disabled={loading}
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Resetting..." : "Reset Password"}
-              </Button>
-
-              <div className="text-center">
-                <Button
-                  type="button"
-                  variant="link"
-                  onClick={() => navigate("/login")}
-                  className="text-sm"
-                >
-                  Back to Login
-                </Button>
-              </div>
-            </form>
-          ) : (
-            <div className="space-y-4">
-              <Alert variant="destructive">
-                <AlertDescription>{error || "Invalid or expired password reset link. Please request a new one."}</AlertDescription>
-              </Alert>
-              <div className="text-center">
-                <Button
-                  type="button"
-                  variant="link"
-                  onClick={() => navigate("/login")}
-                  className="text-sm"
-                >
-                  Back to Login
-                </Button>
-              </div>
-            </div>
+    <EntryShell
+      title={verifying ? "Checking your link" : valid ? "Choose a new password" : "This link has expired"}
+      description={
+        verifying
+          ? "One moment while we verify your reset link."
+          : valid
+            ? "Pick something you haven't used before."
+            : "Reset links work once and expire after a short time."
+      }
+      footer={
+        <button
+          type="button"
+          onClick={() => navigate("/login")}
+          className="font-semibold text-brand underline-offset-4 hover:text-brand-hover hover:underline"
+        >
+          Back to sign in
+        </button>
+      }
+    >
+      {verifying ? (
+        <div className="space-y-3" role="status" aria-label="Verifying reset link">
+          <div className="px-skeleton h-11 rounded-md" />
+          <div className="px-skeleton h-11 rounded-md" />
+          <div className="px-skeleton h-11 rounded-md" />
+        </div>
+      ) : valid ? (
+        <form onSubmit={handleResetPassword} className="space-y-4">
+          <PasswordField
+            id="password"
+            label="New password"
+            autoComplete="new-password"
+            autoFocus
+            visible={showPassword}
+            onToggleVisible={() => setShowPassword(!showPassword)}
+            placeholder="At least 6 characters"
+            hint="Use 6 or more characters."
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            disabled={loading}
+          />
+          <PasswordField
+            id="confirmPassword"
+            label="Confirm new password"
+            autoComplete="new-password"
+            visible={showConfirmPassword}
+            onToggleVisible={() => setShowConfirmPassword(!showConfirmPassword)}
+            placeholder="Type it again"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            disabled={loading}
+            aria-invalid={mismatch ? true : undefined}
+          />
+          {error && (
+            <FormMessage>
+              {mismatch
+                ? "The two passwords don't match. Type the same password in both fields."
+                : /at least 6/i.test(error)
+                  ? "That password is too short. Use 6 or more characters."
+                  : friendlyAuthError(error)}
+            </FormMessage>
           )}
-        </CardContent>
-      </Card>
-    </div>
+          <SubmitButton type="submit" loading={loading} loadingLabel="Saving your password">
+            Save new password
+          </SubmitButton>
+        </form>
+      ) : (
+        <div className="space-y-4">
+          <FormMessage>
+            {error || "Invalid or expired password reset link. Please request a new one."} Go back to sign in, enter your
+            email and choose "Forgot password?" to get a fresh link.
+          </FormMessage>
+          <SubmitButton type="button" onClick={() => navigate("/login")}>
+            Request a new link
+          </SubmitButton>
+        </div>
+      )}
+    </EntryShell>
   );
 };
 

@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tag } from '@/components/ui/tag';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Check } from 'lucide-react';
+import { ArrowRight, Check, Gift, Sparkles } from 'lucide-react';
 import { useOfferTimer } from '@/hooks/useOfferTimer';
 import PricingModeToggle from '@/components/pricing/PricingModeToggle';
 import AgencyPricingCards from '@/components/pricing/AgencyPricingCards';
@@ -65,86 +66,101 @@ const UpgradeDialog = ({ open, onOpenChange, isTrialMode = false, isSixMonthsOff
   };
 
 
+  // Trial mode on the web shows one focused plan card; everything else shows the shared plan grid.
+  const singlePlan = !(isNativeApp() || !isTrialMode);
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className={pricingMode === 'agency' ? 'max-w-4xl' : 'max-w-6xl max-h-[90vh] overflow-y-auto'}>
-          <DialogHeader>
-            <DialogTitle className="text-center">Upgrade Your Plan</DialogTitle>
+        <DialogContent className={cn('max-h-[90vh] max-w-[calc(100vw-1.5rem)] overflow-y-auto', pricingMode === 'agency' ? 'sm:max-w-4xl' : singlePlan ? 'sm:max-w-xl' : 'sm:max-w-6xl')}>
+          <DialogHeader className="items-center text-center sm:text-center">
+            <p className="px-eyebrow">Plans</p>
+            <DialogTitle className="text-center text-h3">Upgrade Your Plan</DialogTitle>
+            <DialogDescription className="text-center">
+              Pick the plan that fits where your agency is today. You can change it any time.
+            </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-6">
             <PricingModeToggle value={pricingMode} onChange={setPricingMode} />
 
             {pricingMode === 'agency' ? (
               <AgencyPricingCards variant="panel" />
-            ) : isNativeApp() || !isTrialMode ? (
+            ) : !singlePlan ? (
               <SaasPricingCards onSelect={setCheckoutPlan} onStarter={() => onOpenChange(false)} />
             ) : (
             <>
             {/* Six Months Offer Notification */}
             {isSixMonthsOffer && (
-              <div className="bg-primary/10 border border-primary/20 rounded-lg p-3 text-center">
-                <div className="text-sm font-medium text-primary mb-1">
-                  🎉 Unlock 6 Months Free
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Offer expires {timeLeft}
-                </div>
+              <div role="status" className="flex items-center justify-center gap-3 rounded-lg border border-brand/25 bg-brand-subtle px-3 py-2 text-small">
+                <Gift className="size-4 shrink-0 text-brand" aria-hidden="true" />
+                <span className="font-semibold text-foreground">Unlock 6 Months Free</span>
+                <span className="tabular-nums text-muted-foreground">Offer expires {timeLeft}</span>
               </div>
             )}
 
-            {/* Billing Toggle */}
-            <div className="flex items-center justify-center gap-3">
-              <span className={`text-sm ${!isYearly ? 'font-medium' : 'text-muted-foreground'}`}>
-                Monthly
-              </span>
-              <Switch
-                checked={isYearly}
-                onCheckedChange={setIsYearly}
-              />
-              <span className={`text-sm ${isYearly ? 'font-medium' : 'text-muted-foreground'}`}>
-                Yearly
-              </span>
-            </div>
-
             {/* Pricing Card */}
-            <Card className="border-2 border-primary">
-              <CardHeader className="text-center">
-              <CardTitle>Advanced Plan</CardTitle>
-                <CardDescription>
-                  Everything you need to grow your business
-                </CardDescription>
-                <div className="mt-4">
-                  <div className="text-3xl font-bold">
-                    ${isYearly ? yearlyPrice : monthlyPrice}
-                    <span className="text-base font-normal text-muted-foreground">
-                      {isYearly ? '/year' : '/month'}
-                    </span>
+            <section aria-label="Advanced Plan" className="overflow-hidden rounded-xl border border-brand/30 bg-card shadow-raised">
+              <div className="px-brand-wash space-y-4 p-6">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-h4 text-foreground">Advanced Plan</h3>
+                    <p className="mt-1 text-small text-muted-foreground">Everything you need to grow your business</p>
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">{isYearly ? 'Billed in full yearly · Auto-renews yearly' : 'Billed monthly · Auto-renews monthly'}</p>
-                  {isYearly && <p className="mt-1 text-xs text-muted-foreground">Equivalent to ${monthlyEquivalent}/month</p>}
+                  <Tag tone="brand" className="shrink-0">
+                    <Sparkles aria-hidden="true" />
+                    Most popular
+                  </Tag>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <ul className="space-y-2">
+
+                <div className="flex flex-wrap items-end justify-between gap-4">
+                  <div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-h1 tabular-nums text-foreground">${isYearly ? yearlyPrice : monthlyPrice}</span>
+                      <span className="text-small text-muted-foreground">{isYearly ? '/year' : '/month'}</span>
+                    </div>
+                    <p className="mt-1 text-caption font-normal text-muted-foreground">{isYearly ? 'Billed in full yearly · Auto-renews yearly' : 'Billed monthly · Auto-renews monthly'}</p>
+                    {isYearly && <p className="mt-0.5 text-caption font-normal text-muted-foreground">Equivalent to ${monthlyEquivalent}/month</p>}
+                  </div>
+
+                  {/* Billing Toggle */}
+                  <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-full border border-border bg-card px-3">
+                    <span className={cn('text-small', !isYearly ? 'font-semibold text-foreground' : 'text-muted-foreground')}>
+                      Monthly
+                    </span>
+                    <Switch
+                      checked={isYearly}
+                      onCheckedChange={setIsYearly}
+                      aria-label="Bill yearly"
+                    />
+                    <span className={cn('text-small', isYearly ? 'font-semibold text-foreground' : 'text-muted-foreground')}>
+                      Yearly
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="space-y-6 p-6">
+                <ul className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
                   {features.map((feature, index) => (
-                    <li key={index} className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-primary flex-shrink-0" />
-                      <PlanFeatureLabel feature={feature} className="text-sm" />
+                    <li key={index} className="flex items-start gap-2">
+                      <Check className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden="true" />
+                      <PlanFeatureLabel feature={feature} className="text-small" />
                     </li>
                   ))}
                 </ul>
-                
-                <Button 
+
+                <Button
                   onClick={handleGetStarted}
-                  className="w-full mt-6"
+                  variant="accent"
+                  className="w-full"
                   size="lg"
                 >
                   Get Started
+                  <ArrowRight aria-hidden="true" />
                 </Button>
-              </CardContent>
-            </Card>
+              </div>
+            </section>
             </>
             )}
           </div>

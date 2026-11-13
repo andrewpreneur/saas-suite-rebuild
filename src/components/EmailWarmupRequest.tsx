@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
+import { Tag } from "@/components/ui/tag";
+import { Banner } from "@/components/ui/banner";
+import { Progress } from "@/components/ui/progress";
+import { SectionCard } from "@/components/premium/SectionCard";
+import { Field, SectionFooter } from "@/components/premium/settings/Field";
 import { Mail, CheckCircle2, Clock, Rocket } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -169,21 +171,18 @@ const EmailWarmupRequest = () => {
   const getStatusBadge = (request: WarmupRequest) => {
     if (isWarmupComplete(request)) {
       return (
-        <Badge className="bg-green-100 text-green-800">
+        <Tag tone="success">
+          <CheckCircle2 aria-hidden="true" />
           Complete
-        </Badge>
+        </Tag>
       );
     }
-
-    const statusColors: { [key: string]: string } = {
-      'sent': 'bg-blue-100 text-blue-800',
-      'in progress': 'bg-yellow-100 text-yellow-800',
-    };
-
+    const status = request.status.toLowerCase();
     return (
-      <Badge className={statusColors[request.status.toLowerCase()] || 'bg-gray-100 text-gray-800'}>
+      <Tag tone={status === "sent" ? "info" : status === "in progress" ? "warning" : "neutral"} className="capitalize">
+        <Clock aria-hidden="true" />
         {request.status}
-      </Badge>
+      </Tag>
     );
   };
 
@@ -210,8 +209,9 @@ const EmailWarmupRequest = () => {
   if (credits === 0 && existingRequest && (existingRequest.status === 'sent' || existingRequest.status === 'in progress')) {
     const completed = isWarmupComplete(existingRequest);
     return (
-      <div className="space-y-4">
+      <div className="mx-auto w-full min-w-0 max-w-3xl space-y-6">
         <PageHeader
+          eyebrow="Grow"
           title="Email warmup"
           subtitle="Ask SaaSSuite to warm a sending domain before you email your clients."
         />
@@ -222,205 +222,167 @@ const EmailWarmupRequest = () => {
 
   if (credits === 0 && existingRequest && existingRequest.status === 'complete') {
     return (
-      <div className="space-y-4">
+      <div className="mx-auto w-full min-w-0 max-w-3xl space-y-6">
       <PageHeader
-        title="Email warmup"
+        eyebrow="Grow"
+          title="Email warmup"
         subtitle="Ask SaaSSuite to warm a sending domain before you email your clients."
       />
-      <Card className="shadow-card border-border">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Rocket className="w-5 h-5 text-green-600" />
-              <CardTitle>Email Warmup Complete</CardTitle>
-            </div>
-            <Badge className="bg-green-100 text-green-800">Complete</Badge>
-          </div>
-          <CardDescription>Your domain has been successfully warmed up</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="p-4 bg-green-50 border border-green-200 rounded-lg space-y-2">
-            <div className="flex items-start gap-2">
-              <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5" />
-              <div>
-                <p className="text-sm font-semibold text-green-900">Warmed Domain</p>
-                <p className="text-base font-mono text-green-900">{existingRequest.warmed_domain || existingRequest.sender_email}</p>
-              </div>
-            </div>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Your sending reputation is established — you can now send from this domain with confidence.
-          </p>
-        </CardContent>
-      </Card>
+      <SectionCard
+        icon={<Rocket />}
+        title="Email warmup complete"
+        description="Your domain has been warmed up."
+        actions={<Tag tone="success"><CheckCircle2 aria-hidden="true" />Complete</Tag>}
+      >
+        <Banner tone="success" title="Warmed domain:">
+          <span className="break-all font-mono">{existingRequest.warmed_domain || existingRequest.sender_email}</span>
+        </Banner>
+        <p className="mt-4 text-sm text-muted-foreground">
+          Your sending reputation is established. You can now send from this domain with confidence.
+        </p>
+      </SectionCard>
       </div>
     );
   }
 
   function renderInProgress(existingRequest: WarmupRequest, completed: boolean) {
     
+    const daysLeft = getDaysRemaining(existingRequest);
     return (
-      <Card className="shadow-card border-border">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              {completed ? <Rocket className="w-5 h-5 text-green-600" /> : <Mail className="w-5 h-5 text-primary" />}
-              <CardTitle>Email Warmup {completed ? "Complete" : "Request"}</CardTitle>
-            </div>
-            {getStatusBadge(existingRequest)}
-          </div>
-          <CardDescription>
-            {completed 
-              ? "Your email warmup is complete — you're ready to send!" 
-              : "Your warmup request is being processed"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="p-4 bg-muted rounded-lg space-y-3">
-            <div className="flex items-start space-x-2">
-              <Clock className="w-4 h-4 mt-1 text-muted-foreground" />
-              <div className="flex-1">
-                <p className="text-sm font-medium">Submitted on</p>
-                <p className="text-sm text-muted-foreground">
-                  {new Date(existingRequest.created_at).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4 pt-2">
-              <div>
-                <p className="text-xs text-muted-foreground">Agency Name</p>
-                <p className="text-sm font-medium">{existingRequest.agency_name}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Sender Name</p>
-                <p className="text-sm font-medium">{existingRequest.sender_name}</p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-xs text-muted-foreground">Sender Email</p>
-                <p className="text-sm font-medium">{existingRequest.sender_email}</p>
-              </div>
-            </div>
-          </div>
-          
+      <SectionCard
+        icon={completed ? <Rocket /> : <Mail />}
+        title={completed ? "Email warmup complete" : "Warmup in progress"}
+        description={
+          completed
+            ? "Your email warmup is complete. You're ready to send."
+            : "We are warming your sending domain. Nothing else is needed from you."
+        }
+        actions={getStatusBadge(existingRequest)}
+      >
+        <div className="space-y-4">
           {completed ? (
-            <div className="flex items-start space-x-3 p-4 bg-green-50 rounded-lg border border-green-200">
-              <CheckCircle2 className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-sm font-semibold text-green-900">Your email warmup is complete! 🎉</p>
-                <p className="text-sm text-green-800 mt-1">
-                  You're now ready to start sending emails and get guaranteed inbox placement from your GoHighLevel account. 
-                  Your sending reputation has been established — go ahead and start your outreach campaigns with confidence!
-                </p>
-              </div>
-            </div>
+            <Banner tone="success" title="Your email warmup is complete.">
+              You're ready to start sending emails and get guaranteed inbox placement from your GoHighLevel account.
+              Your sending reputation has been established, so you can start your outreach campaigns with confidence.
+            </Banner>
           ) : (
-            <>
-              <div className="flex items-center space-x-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <CheckCircle2 className="w-5 h-5 text-blue-600" />
-                <p className="text-sm text-blue-900">
-                  Your warmup is in progress. Approximately <strong>{getDaysRemaining(existingRequest)} days</strong> remaining until completion.
+            <div className="px-brand-wash rounded-lg p-4">
+              <div className="mb-2 flex items-end justify-between gap-3">
+                <p className="text-sm text-foreground">
+                  About <strong className="text-h4 tabular-nums">{daysLeft}</strong> days remaining
                 </p>
+                <span className="text-xs tabular-nums text-muted-foreground">Day {28 - daysLeft} of 28</span>
               </div>
-              <div className="w-full bg-muted rounded-full h-2.5">
-                <div 
-                  className="bg-primary h-2.5 rounded-full transition-all"
-                  style={{ width: `${Math.min(100, ((28 - getDaysRemaining(existingRequest)) / 28) * 100)}%` }}
-                />
-              </div>
-            </>
+              <Progress
+                value={Math.min(100, ((28 - daysLeft) / 28) * 100)}
+                aria-label={`Warmup progress: day ${28 - daysLeft} of 28`}
+                className="bg-card"
+              />
+            </div>
           )}
-        </CardContent>
-      </Card>
+          <dl className="grid gap-4 rounded-lg border border-border p-4 sm:grid-cols-2">
+            <div className="min-w-0">
+              <dt className="text-xs text-muted-foreground">Agency name</dt>
+              <dd className="truncate text-sm font-medium text-foreground">{existingRequest.agency_name}</dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="text-xs text-muted-foreground">Sender name</dt>
+              <dd className="truncate text-sm font-medium text-foreground">{existingRequest.sender_name}</dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="text-xs text-muted-foreground">Sender email</dt>
+              <dd className="break-all text-sm font-medium text-foreground">{existingRequest.sender_email}</dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="text-xs text-muted-foreground">Submitted on</dt>
+              <dd className="text-sm font-medium text-foreground">
+                {new Date(existingRequest.created_at).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </SectionCard>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto w-full min-w-0 max-w-3xl space-y-6">
     <PageHeader
-      title="Email warmup"
+      eyebrow="Grow"
+          title="Email warmup"
       subtitle="Ask SaaSSuite to warm a sending domain before you email your clients."
     />
     {credits > 0 && (
-      <Card className="shadow-card border-border bg-primary/5">
-        <CardContent className="py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Rocket className="w-5 h-5 text-primary" />
-            <div>
-              <p className="text-sm font-semibold">Warmup Wallet</p>
-              <p className="text-xs text-muted-foreground">Each submission uses one credit</p>
-            </div>
+      <section className="px-surface px-brand-wash flex flex-wrap items-center justify-between gap-3 p-4 sm:p-6">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="px-icon-chip shrink-0 bg-card" aria-hidden="true">
+            <Rocket className="size-5" />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold text-foreground">Warmup wallet</h2>
+            <p className="text-sm text-muted-foreground">Each submission uses one credit.</p>
           </div>
-          <Badge className="bg-primary text-primary-foreground text-base px-3 py-1">
-            {credits} credit{credits === 1 ? '' : 's'} remaining
-          </Badge>
-        </CardContent>
-      </Card>
+        </div>
+        <Tag tone="brand" className="h-8 px-3 text-sm">
+          {credits} credit{credits === 1 ? '' : 's'} remaining
+        </Tag>
+      </section>
     )}
     {credits > 0 && recentRequests.length > 0 && (
-      <Card className="shadow-card border-border">
-        <CardHeader>
-          <CardTitle className="text-base">Recent submissions</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
+      <SectionCard icon={<Clock />} title="Recent submissions" description="Your last five warmup requests.">
+        <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border">
           {recentRequests.slice(0, 5).map((r) => (
-            <div key={r.id} className="flex items-center justify-between text-sm border-b border-border last:border-0 pb-2 last:pb-0">
-              <div>
-                <p className="font-medium">{r.sender_email}</p>
-                <p className="text-xs text-muted-foreground">
-                  {new Date(r.created_at).toLocaleDateString()} — {r.agency_name}
+            <li key={r.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+              <div className="min-w-0">
+                <p className="truncate font-medium text-foreground">{r.sender_email}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {new Date(r.created_at).toLocaleDateString()} · {r.agency_name}
                 </p>
               </div>
               {getStatusBadge(r)}
-            </div>
+            </li>
           ))}
-        </CardContent>
-      </Card>
+        </ul>
+      </SectionCard>
     )}
-    <Card className="shadow-card border-border">
-      <CardHeader>
-        <div className="flex items-center space-x-2">
-          <Mail className="w-5 h-5 text-primary" />
-          <CardTitle>Email Warmup Request</CardTitle>
-        </div>
-        <CardDescription>
-          Submit a request to warm up your email for better deliverability
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="agency-name">Agency Name</Label>
-              <Input
-                id="agency-name"
-                value={agencyName}
-                onChange={(e) => setAgencyName(e.target.value)}
-                placeholder="Your Agency Name"
-                required
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="sender-name">Sender Name</Label>
-              <Input
-                id="sender-name"
-                value={senderName}
-                onChange={(e) => setSenderName(e.target.value)}
-                placeholder="John Doe"
-                required
-              />
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="sender-email">Sender Email</Label>
+    <SectionCard
+      icon={<Mail />}
+      title="Request a warmup"
+      description="Warming takes about four weeks and builds the sending reputation that keeps you out of spam."
+    >
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Agency name" htmlFor="agency-name">
+            <Input
+              id="agency-name"
+              value={agencyName}
+              onChange={(e) => setAgencyName(e.target.value)}
+              placeholder="Your agency name"
+              autoComplete="organization"
+              required
+            />
+          </Field>
+          <Field label="Sender name" htmlFor="sender-name">
+            <Input
+              id="sender-name"
+              value={senderName}
+              onChange={(e) => setSenderName(e.target.value)}
+              placeholder="John Doe"
+              autoComplete="name"
+              required
+            />
+          </Field>
+          <Field
+            label="Sender email"
+            htmlFor="sender-email"
+            hint="Use an address on your dedicated sending domain."
+          >
             <Input
               id="sender-email"
               type="email"
@@ -429,22 +391,8 @@ const EmailWarmupRequest = () => {
               placeholder="name@mail.yourdomain.com"
               required
             />
-          </div>
-
-          <div className="flex items-start space-x-2 p-3 bg-muted rounded-lg">
-            <Checkbox
-              id="confirmed-domain"
-              checked={confirmedDomain}
-              onCheckedChange={(checked) => setConfirmedDomain(!!checked)}
-              required
-            />
-            <Label htmlFor="confirmed-domain" className="text-sm leading-relaxed cursor-pointer">
-              I confirm I have added the above email as a dedicated sending domain in GHL
-            </Label>
-          </div>
-
-          <div>
-            <Label htmlFor="profile-image">1x1 Profile Image Link</Label>
+          </Field>
+          <Field label="Profile image link" htmlFor="profile-image" hint="A square (1x1) image URL.">
             <Input
               id="profile-image"
               type="url"
@@ -453,39 +401,58 @@ const EmailWarmupRequest = () => {
               placeholder="https://example.com/profile.jpg"
               required
             />
-          </div>
+          </Field>
+        </div>
 
-          <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg space-y-2">
-            <p className="text-sm text-yellow-900">
-              <strong>Note:</strong> Add admin@howtousehighlevel.com to your subaccount as an admin before submitting
-            </p>
-            <p className="text-xs text-yellow-800">
-              Our team will import our custom list of contacts, email them and only them, and we will not interact with any other parts of the subaccount.
-            </p>
-          </div>
+        <Banner tone="warning" title="Before you submit:">
+          add <span className="break-all font-mono">admin@howtousehighlevel.com</span> to your subaccount as an
+          admin. Our team will import our custom list of contacts, email them and only them, and we will not
+          interact with any other parts of the subaccount.
+        </Banner>
 
-          <div className="flex items-start space-x-2 p-3 bg-muted rounded-lg">
+        <fieldset className="space-y-2">
+          <legend className="mb-2 text-sm font-medium text-foreground">Confirm both to continue</legend>
+          <label
+            htmlFor="confirmed-domain"
+            className="flex min-h-[44px] cursor-pointer items-start gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-muted/40 has-[[data-state=checked]]:border-brand has-[[data-state=checked]]:bg-brand-subtle"
+          >
+            <Checkbox
+              id="confirmed-domain"
+              className="mt-0.5"
+              checked={confirmedDomain}
+              onCheckedChange={(checked) => setConfirmedDomain(!!checked)}
+              required
+            />
+            <span className="text-sm leading-relaxed text-foreground">
+              I confirm I have added the above email as a dedicated sending domain in GHL
+            </span>
+          </label>
+          <label
+            htmlFor="confirmed-admin"
+            className="flex min-h-[44px] cursor-pointer items-start gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-muted/40 has-[[data-state=checked]]:border-brand has-[[data-state=checked]]:bg-brand-subtle"
+          >
             <Checkbox
               id="confirmed-admin"
+              className="mt-0.5"
               checked={confirmedAdmin}
               onCheckedChange={(checked) => setConfirmedAdmin(!!checked)}
               required
             />
-            <Label htmlFor="confirmed-admin" className="text-sm leading-relaxed cursor-pointer">
+            <span className="text-sm leading-relaxed text-foreground">
               I confirm that I have added the above email to my agency to request my warmup
-            </Label>
-          </div>
+            </span>
+          </label>
+        </fieldset>
 
-          <Button 
-            type="submit" 
-            className="w-full" 
-            disabled={isSaving || !confirmedDomain || !confirmedAdmin}
-          >
-            {isSaving ? "Submitting..." : "Submit Warmup Request"}
+        <SectionFooter
+          note={!confirmedDomain || !confirmedAdmin ? "Tick both confirmations to submit your request." : undefined}
+        >
+          <Button type="submit" variant="accent" disabled={isSaving || !confirmedDomain || !confirmedAdmin}>
+            {isSaving ? "Submitting..." : "Submit warmup request"}
           </Button>
-        </form>
-      </CardContent>
-    </Card>
+        </SectionFooter>
+      </form>
+    </SectionCard>
     </div>
   );
 };

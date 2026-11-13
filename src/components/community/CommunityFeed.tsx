@@ -20,7 +20,10 @@ import {
   Pencil,
   Trash2,
   Search,
+  PenLine,
+  MessageCircle,
 } from "lucide-react";
+import { EmptyState, EmptyStateIllustration } from "@/components/premium/21st/empty-state";
 import { AuthorLine, MemberAvatar } from "./shared";
 import { GifPicker, GifPreview, MediaAttachment, type GifSelection } from "./GifPicker";
 import type { CommunityProfile } from "@/hooks/useCommunityProfile";
@@ -41,10 +44,10 @@ export const POST_CATEGORIES = ["Sales", "Beginner", "Growth", "SaaSSuite", "Oth
 export type PostCategory = (typeof POST_CATEGORIES)[number];
 
 const CATEGORY_STYLES: Record<string, string> = {
-  Sales: "border-primary/40 bg-primary/10 text-primary",
-  Beginner: "border-sky-500/40 bg-sky-500/10 text-sky-600 dark:text-sky-400",
-  Growth: "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  SaaSSuite: "border-violet-500/40 bg-violet-500/10 text-violet-600 dark:text-violet-400",
+  Sales: "border-warning/40 bg-warning/10 text-warning",
+  Beginner: "border-info/40 bg-info/10 text-info",
+  Growth: "border-success/40 bg-success/10 text-success",
+  SaaSSuite: "border-brand/40 bg-brand-subtle text-brand",
   Other: "border-border bg-muted text-muted-foreground",
 };
 
@@ -327,18 +330,24 @@ export default function CommunityFeed({
         {canAnnounce && <AnnouncementComposer onPosted={() => void loadPosts()} />}
 
         {/* Composer */}
-        <Card className="rounded-none border-0 bg-transparent shadow-none">
-          <CardContent className={`px-0 ${composerOpen ? "pt-2" : "py-1"}`}>
+        <Card className="px-surface border-0">
+          <CardContent className="p-3 sm:p-4">
             {!composerOpen ? (
               <button
                 type="button"
                 onClick={() => setComposerOpen(true)}
-                className="flex w-full items-center gap-3 text-left"
+                className="group flex w-full items-center gap-3 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <MemberAvatar name={profile?.display_name} avatarUrl={profile?.avatar_url} />
-                <span className="flex-1 truncate rounded-full border border-border bg-muted/40 px-4 py-2 text-sm text-muted-foreground">
-                  What's on your mind
-                  {profile?.display_name ? `, ${profile.display_name.split(" ")[0]}` : ""}?
+                <span className="flex h-11 min-w-0 flex-1 items-center truncate rounded-md border border-border bg-muted/40 px-4 text-sm text-muted-foreground transition-colors group-hover:border-brand/40 group-hover:bg-card">
+                  <span className="truncate">
+                    Share a win or ask a question
+                    {profile?.display_name ? `, ${profile.display_name.split(" ")[0]}` : ""}
+                  </span>
+                </span>
+                <span className="px-brand-fill hidden h-10 shrink-0 items-center gap-2 rounded-md px-4 text-sm font-semibold sm:inline-flex">
+                  <PenLine className="size-4" aria-hidden="true" />
+                  Write a post
                 </span>
               </button>
             ) : (
@@ -404,24 +413,31 @@ export default function CommunityFeed({
         {/* Search + category filter */}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search posts..."
-              className="h-9 w-full rounded-full border border-border bg-background pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary/50"
+              placeholder="Search posts"
+              aria-label="Search posts"
+              className="h-11 w-full rounded-md border border-input bg-card pl-9 pr-3 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 sm:h-10 sm:text-sm"
             />
           </div>
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div
+            role="radiogroup"
+            aria-label="Filter posts by topic"
+            className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden"
+          >
             {["All", ...POST_CATEGORIES].map((c) => (
               <button
                 key={c}
                 type="button"
+                role="radio"
+                aria-checked={categoryFilter === c}
                 onClick={() => setCategoryFilter(c)}
-                className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
+                className={`inline-flex h-11 shrink-0 items-center rounded-full border px-4 text-sm font-medium transition-colors sm:h-9 sm:px-3 ${
                   categoryFilter === c
-                    ? CATEGORY_STYLES[c] || "border-primary/40 bg-primary/10 text-primary"
-                    : "border-border text-muted-foreground hover:text-foreground"
+                    ? "border-brand bg-brand-subtle text-brand"
+                    : "border-border bg-card text-muted-foreground hover:border-brand/40 hover:text-foreground"
                 }`}
               >
                 {c}
@@ -431,17 +447,51 @@ export default function CommunityFeed({
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-10">
-            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          <div className="space-y-3" aria-busy="true" aria-label="Loading posts">
+            <div className="px-skeleton h-32 rounded-lg" />
+            <div className="px-skeleton h-32 rounded-lg" />
+            <div className="px-skeleton h-32 rounded-lg" />
           </div>
         ) : visiblePosts.length === 0 ? (
-          <Card className="rounded-none border-0 bg-transparent shadow-none">
-            <CardContent className="px-0 py-10 text-center text-sm text-muted-foreground">
-              {posts.length === 0
-                ? "No posts here yet — be the first to start a conversation."
-                : "No posts match your search."}
-            </CardContent>
-          </Card>
+          <div className="px-surface">
+            {posts.length === 0 ? (
+              <EmptyState
+                icon={
+                  <EmptyStateIllustration className="rounded-lg border-border bg-muted text-muted-foreground">
+                    <MessageCircle className="size-7" aria-hidden="true" />
+                  </EmptyStateIllustration>
+                }
+                title="No posts yet"
+                description="Be the first to start a conversation. Share a win or ask the group a question."
+                action={
+                  <Button variant="accent" onClick={() => setComposerOpen(true)}>
+                    <PenLine /> Write the first post
+                  </Button>
+                }
+              />
+            ) : (
+              <EmptyState
+                icon={
+                  <EmptyStateIllustration className="rounded-lg border-border bg-muted text-muted-foreground">
+                    <Search className="size-7" aria-hidden="true" />
+                  </EmptyStateIllustration>
+                }
+                title="No posts match"
+                description="Try a different word or topic."
+                action={
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSearch("");
+                      setCategoryFilter("All");
+                    }}
+                  >
+                    Clear filters
+                  </Button>
+                }
+              />
+            )}
+          </div>
         ) : (
           <AnimatePresence initial={false}>
           {visiblePosts.map((post) => {
@@ -460,10 +510,10 @@ export default function CommunityFeed({
                 transition={{ duration: 0.22, ease: "easeOut" }}
               >
               <Card
-                className={`rounded-none border-0 border-b border-border/60 bg-transparent shadow-none transition-colors hover:bg-muted/30 ${isEditing ? "" : "cursor-pointer"}`}
+                className={`border-0 ${isEditing ? "px-surface" : "px-surface-interactive cursor-pointer"}`}
                 onClick={isEditing ? undefined : () => setOpenPostId(post.id)}
               >
-                <CardContent className="px-0 py-4">
+                <CardContent className="p-4 sm:p-5">
                   <div className="flex items-start gap-3">
                     <MemberAvatar
                       name={author?.display_name}
@@ -483,20 +533,20 @@ export default function CommunityFeed({
                           <span className="text-[10px] text-muted-foreground">(edited)</span>
                         )}
                         <span
-                          className={`rounded-full border px-2 py-0.5 text-[9px] font-medium leading-none ${
+                          className={`rounded-full border px-2 py-0.5 text-xs font-medium leading-none ${
                             CATEGORY_STYLES[post.category || "Other"]
                           }`}
                         >
                           {post.category || "Other"}
                         </span>
                         {post.is_pinned && (
-                          <Badge variant="outline" className="gap-1 text-[9px] h-4 px-1.5 leading-none">
-                            <Pin className="w-2.5 h-2.5" /> Pinned
+                          <Badge variant="outline" className="h-5 gap-1 px-1.5 text-xs leading-none">
+                            <Pin className="w-3 h-3" /> Pinned
                           </Badge>
                         )}
                         {post.is_answered && (
-                          <Badge variant="secondary" className="gap-1 text-[9px] h-4 px-1.5 leading-none">
-                            <CheckCircle2 className="w-2.5 h-2.5" /> Answered
+                          <Badge variant="secondary" className="h-5 gap-1 px-1.5 text-xs leading-none">
+                            <CheckCircle2 className="w-3 h-3" /> Answered
                           </Badge>
                         )}
                         {canManage && !isEditing && (

@@ -31,6 +31,13 @@ import {
 } from "@/utils/colorExtraction";
 import { useHubUrls } from "@/lib/hubUrl";
 import HowItWorksCard from "./HowItWorksCard";
+import { ArrowLeft, ArrowRight, TriangleAlert } from "lucide-react";
+import { motion } from "framer-motion";
+import { pageEnter } from "@/lib/motion";
+import AnimatedTabs from "@/components/premium/21st/animated-tabs";
+import { TextShimmer } from "@/components/premium/21st/text-shimmer";
+import { StepRail } from "@/components/premium/onboarding/OnboardingShell";
+import { CopyField, SettingRow, SuccessMark } from "@/components/premium/onboarding/pieces";
 import MenuLinkPicker from "@/components/highlevel/MenuLinkPicker";
 import CreateMenuLinkWidget from "@/components/highlevel/CreateMenuLinkWidget";
 import { useGhl } from "@/components/highlevel/useGhl";
@@ -148,9 +155,10 @@ const InstallationGuidePanel = ({ standalone = false }: InstallationGuidePanelPr
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      toast.success("Copied to clipboard!");
+      toast.success("Copied");
     } catch (err) {
-      toast.error("Failed to copy");
+      toast.error("Could not copy. Select the text and copy it by hand.");
+      return false;
     }
   };
 
@@ -265,10 +273,26 @@ const InstallationGuidePanel = ({ standalone = false }: InstallationGuidePanelPr
   }, [menuLinkId, menuLinkId2]);
 
   useEffect(() => {
-    if (isLoading || ghlConn.loading || !ghlConn.connected || ghlConn.error || ghlConn.agencyId !== agencyId) return;
+    if (
+      isLoading ||
+      ghlConn.loading ||
+      !ghlConn.connected ||
+      ghlConn.error ||
+      ghlConn.agencyId !== agencyId
+    )
+      return;
     const current = resolveInstallationMenu(ghlConn.menus, menuLinkId, agencyId);
     if (current !== menuLinkId) setMenuLinkId(current);
-  }, [isLoading, ghlConn.loading, ghlConn.connected, ghlConn.error, ghlConn.agencyId, ghlConn.menus, menuLinkId, agencyId]);
+  }, [
+    isLoading,
+    ghlConn.loading,
+    ghlConn.connected,
+    ghlConn.error,
+    ghlConn.agencyId,
+    ghlConn.menus,
+    menuLinkId,
+    agencyId,
+  ]);
 
   const { css: cssImportSnippet, js: jsScriptSnippet } = installSnippets(agencyId);
 
@@ -345,61 +369,110 @@ const InstallationGuidePanel = ({ standalone = false }: InstallationGuidePanelPr
 
   const shownStep = currentStep <= 1 ? 1 : currentStep === 3 ? 2 : 3;
 
+  const stepTitle = (text: string, hint?: string) => (
+    <div>
+      <h3 className="text-h4 text-foreground">{text}</h3>
+      {hint ? <p className="mt-1 text-small text-muted-foreground">{hint}</p> : null}
+    </div>
+  );
+
+  const installAt = (where: string) => (
+    <p className="rounded-md bg-muted px-3 py-2 text-small text-muted-foreground">
+      Paste this in <strong className="font-semibold text-foreground">{where}</strong>
+    </p>
+  );
+
+  const featureToggles = (
+    <div className="space-y-3">
+      <SettingRow
+        htmlFor="guide-remove-launchpad"
+        title="Hide the HighLevel Launchpad"
+        description="Clients land on your hub, not the default setup page."
+        control={
+          <Switch
+            id="guide-remove-launchpad"
+            checked={removeLaunchpad}
+            onCheckedChange={(v) => {
+              setRemoveLaunchpad(v);
+              saveMenuConfig({ remove_launchpad: v });
+            }}
+          />
+        }
+      />
+      {isAdvancedPlan && (
+        <SettingRow
+          htmlFor="guide-auto-navigate"
+          title="Open onboarding on login"
+          description="Send clients straight to your hub each time they log in."
+          control={
+            <Switch
+              id="guide-auto-navigate"
+              checked={autoNavigateOnLogin}
+              onCheckedChange={(v) => {
+                setAutoNavigateOnLogin(v);
+                saveMenuConfig({ auto_navigate_on_login: v });
+              }}
+            />
+          }
+        />
+      )}
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <HowItWorksCard />
       {/* Step Navigation */}
-      <div className="flex items-center gap-4">
-        <Progress value={(shownStep / 3) * 100} className="flex-1" />
-        <span className="text-sm font-medium">Step {shownStep} of 3</span>
-      </div>
+      <StepRail
+        index={shownStep - 1}
+        labels={["Menu link", "Options", "Paste the code"]}
+        onStepClick={(i) => setCurrentStep(i === 0 ? 1 : 3)}
+      />
 
       {/* Step 1: Create Custom Menu Link */}
       {currentStep === 1 && (
-        <div className="space-y-6">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
-              1
-            </div>
-            <h3 className="text-lg font-semibold">Create Custom Menu Link</h3>
-          </div>
+        <motion.div
+          key="s1"
+          variants={pageEnter}
+          initial="hidden"
+          animate="show"
+          className="space-y-6"
+        >
+          {stepTitle(
+            "Create your custom menu link",
+            "This is the link clients click inside HighLevel to open your hub.",
+          )}
 
           {!ghlConn.connected && (
             <>
-              <ol className="list-decimal pl-5 space-y-2 text-sm text-muted-foreground">
-                <li>Go to Agency view → Settings → Custom Menu Link</li>
+              <ol className="list-decimal space-y-2 pl-5 text-body text-muted-foreground">
+                <li>In HighLevel, go to Agency view → Settings → Custom Menu Link</li>
                 <li>
-                  Create a custom menu link pointing to:
-                  <div className="mt-2 flex items-center gap-2 bg-muted p-3 rounded border">
-                    <span className="text-xs truncate flex-1 font-mono">
-                      {hubUrlFor(agencyId, "[AGENCY_ID]")}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => copyToClipboard(hubUrlFor(agencyId, "[AGENCY_ID]"))}
-                    >
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                  </div>
+                  Create a custom menu link that points to:
+                  <CopyField
+                    className="mt-2"
+                    value={hubUrlFor(agencyId, "[AGENCY_ID]")}
+                    label="Copy your hub link"
+                    onCopy={() => copyToClipboard(hubUrlFor(agencyId, "[AGENCY_ID]"))}
+                  />
                 </li>
-                <li>Title the Menu Link "Onboarding"</li>
-                <li>Click Save, then refresh the page</li>
+                <li>Name the menu link "Onboarding"</li>
+                <li>Save, then refresh the page</li>
               </ol>
 
-              <div className="border rounded-lg overflow-hidden bg-muted/50">
+              <div className="overflow-hidden rounded-lg border border-border bg-muted">
                 <img
                   src="https://storage.googleapis.com/msgsndr/T69cI1milcirIORef4Ib/media/691378439bbd7d32b603fdc5.gif"
                   alt="How to find menu link ID"
                   className="w-full"
+                  loading="lazy"
                 />
               </div>
 
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <p className="text-sm text-amber-800 font-medium">
-                  💡 Important: After creating the menu link, save it and refresh before proceeding.
-                </p>
-              </div>
+              <p className="flex items-start gap-2 rounded-md bg-muted p-3 text-small text-foreground">
+                <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
+                After you create the menu link, save it and refresh HighLevel before you continue.
+              </p>
             </>
           )}
 
@@ -420,7 +493,12 @@ const InstallationGuidePanel = ({ standalone = false }: InstallationGuidePanelPr
           )}
 
           {ghlConn.loading || ghlConn.error ? (
-            <LoadNotice loading={ghlConn.loading} error={ghlConn.error} label="Refreshing your HighLevel menu links…" onRetry={() => void ghlConn.reload(true)} />
+            <LoadNotice
+              loading={ghlConn.loading}
+              error={ghlConn.error}
+              label="Refreshing your HighLevel menu links…"
+              onRetry={() => void ghlConn.reload(true)}
+            />
           ) : ghlConn.connected ? (
             <MenuLinkPicker
               menus={ghlConn.menus}
@@ -431,197 +509,126 @@ const InstallationGuidePanel = ({ standalone = false }: InstallationGuidePanelPr
               onSelect={(id) => setMenuLinkId(id)}
             />
           ) : (
-            <div className="space-y-2">
-              <Label>Menu Link ID</Label>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="guide-menu-link-id">Menu link ID</Label>
               <Input
+                id="guide-menu-link-id"
                 value={menuLinkId}
                 onChange={(e) => setMenuLinkId(e.target.value)}
                 onBlur={() => {
                   if (menuLinkId.trim()) saveMenuConfig();
                 }}
-                placeholder="e.g., custom-menu-12345"
+                placeholder="e.g. custom-menu-12345"
                 className="font-mono"
               />
+              <p className="text-small text-muted-foreground">
+                Open the menu link in HighLevel. The ID is the last part of the address.
+              </p>
             </div>
           )}
 
-          {userPlan === "ADVANCED" && (ghlConn.connected && agencyId
-            ? <ConnectedPlanLinks agencyId={agencyId} />
-            : <MultiPlanConnectionNotice />)}
+          {userPlan === "ADVANCED" &&
+            (ghlConn.connected && agencyId ? (
+              <ConnectedPlanLinks agencyId={agencyId} />
+            ) : (
+              <MultiPlanConnectionNotice />
+            ))}
           {userPlan === "BASIC" && ghlConn.connected && (
-            <MenuLinkPicker menus={ghlConn.menus} value={menuLinkId2} agencyId={agencyId}
-              onRefresh={() => ghlConn.reload(true)} startOnPick onSelect={setMenuLinkId2} />
+            <MenuLinkPicker
+              menus={ghlConn.menus}
+              value={menuLinkId2}
+              agencyId={agencyId}
+              onRefresh={() => ghlConn.reload(true)}
+              startOnPick
+              onSelect={setMenuLinkId2}
+            />
           )}
 
-          <Button
-            onClick={() => {
-              saveMenuConfig();
-              setCurrentStep(3);
-            }}
-            disabled={!menuLinkId.trim()}
-          >
-            <Check className="w-4 h-4 mr-2" />
-            Continue
-          </Button>
-          <p className="text-xs text-muted-foreground">
-            Brand colors are set on Design. This install step only covers the menu link and the
-            code.
-          </p>
-        </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+            <p className="text-small text-muted-foreground">
+              {menuLinkId.trim()
+                ? "Brand colors are set on Design. This guide only covers the menu link and the code."
+                : "Add your menu link ID to continue."}
+            </p>
+            <Button
+              variant="accent"
+              onClick={() => {
+                saveMenuConfig();
+                setCurrentStep(3);
+              }}
+              disabled={!menuLinkId.trim()}
+            >
+              Continue
+              <ArrowRight />
+            </Button>
+          </div>
+        </motion.div>
       )}
 
       {/* Step 3: Configure Features / Custom Code */}
       {currentStep === 3 && (
-        <div className="space-y-6">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
-              2
-            </div>
-            <h3 className="text-lg font-semibold">
-              {dynamicInstallation ? "Configure Features" : "Add Custom Code"}
-            </h3>
-          </div>
+        <motion.div
+          key="s3"
+          variants={pageEnter}
+          initial="hidden"
+          animate="show"
+          className="space-y-6"
+        >
+          {stepTitle(
+            dynamicInstallation ? "Choose your options" : "Add custom code",
+            dynamicInstallation ? "Changes save on their own and sync to HighLevel." : undefined,
+          )}
 
           {dynamicInstallation ? (
             /* Dynamic mode: just toggles + save */
-            <div className="space-y-4">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <p className="text-sm text-green-800">
-                  <strong>🚀 Dynamic mode:</strong> Changes save automatically and sync to your GHL
-                  installation.
-                </p>
-              </div>
+            <div className="space-y-6">
+              {featureToggles}
 
-              <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
-                <div>
-                  <Label>Replace GHL Default Launchpad</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Hide the HighLevel LaunchPad feature
-                  </p>
-                </div>
-                <Switch
-                  checked={removeLaunchpad}
-                  onCheckedChange={(v) => {
-                    setRemoveLaunchpad(v);
-                    saveMenuConfig({ remove_launchpad: v });
-                  }}
-                />
-              </div>
-
-              {isAdvancedPlan && (
-                <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
-                  <div>
-                    <Label>Auto Navigate to Onboarding On Login</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Direct users to onboarding upon login
-                    </p>
-                  </div>
-                  <Switch
-                    checked={autoNavigateOnLogin}
-                    onCheckedChange={(v) => {
-                      setAutoNavigateOnLogin(v);
-                      saveMenuConfig({ auto_navigate_on_login: v });
-                    }}
-                  />
-                </div>
-              )}
-
-              <div className="flex gap-4">
-                <Button variant="outline" onClick={() => setCurrentStep(1)}>
+              <div className="flex flex-wrap justify-between gap-3 border-t border-border pt-4">
+                <Button variant="ghost" onClick={() => setCurrentStep(1)}>
+                  <ArrowLeft />
                   Back
                 </Button>
                 <Button
+                  variant="accent"
                   onClick={() => {
                     saveMenuConfig();
                     setCurrentStep(4);
                   }}
                 >
-                  <Check className="w-4 h-4 mr-2" />
-                  Continue to Install URLs
+                  Continue to the code
+                  <ArrowRight />
                 </Button>
               </div>
             </div>
           ) : (
             /* Legacy mode: sub-steps with code blocks */
             <>
-              {/* Sub-step navigation */}
-              <div className="flex items-center justify-center gap-2 pb-4 border-b">
-                {[1, 2, 3].map((step) => (
-                  <div key={step} className="flex items-center">
-                    <button
-                      onClick={() => setCodeSubStep(step)}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
-                        codeSubStep === step
-                          ? "bg-primary text-primary-foreground"
-                          : codeSubStep > step
-                            ? "bg-green-500 text-white"
-                            : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {codeSubStep > step ? <Check className="w-4 h-4" /> : step}
-                    </button>
-                    {step < 3 && (
-                      <div
-                        className={`w-12 h-0.5 mx-1 ${codeSubStep > step ? "bg-green-500" : "bg-muted"}`}
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-              <div className="flex justify-center gap-8 text-xs text-muted-foreground mb-4">
-                <span className={codeSubStep === 1 ? "font-medium text-foreground" : ""}>
-                  Features
-                </span>
-                <span className={codeSubStep === 2 ? "font-medium text-foreground" : ""}>
-                  Custom CSS
-                </span>
-                <span className={codeSubStep === 3 ? "font-medium text-foreground" : ""}>
-                  Custom JS
-                </span>
-              </div>
+              <AnimatedTabs
+                variant="segment"
+                activeTab={String(codeSubStep)}
+                onChange={(id) => setCodeSubStep(Number(id))}
+                tabs={[
+                  { id: "1", label: "1. Options" },
+                  { id: "2", label: "2. Custom CSS" },
+                  { id: "3", label: "3. Custom JS" },
+                ]}
+                className="max-w-full [&_button]:whitespace-nowrap"
+              />
 
               {/* Sub-step 1: Features */}
               {codeSubStep === 1 && (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
-                    <div>
-                      <Label>Replace GHL Default Launchpad</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Hide the HighLevel LaunchPad feature
-                      </p>
-                    </div>
-                    <Switch
-                      checked={removeLaunchpad}
-                      onCheckedChange={(v) => {
-                        setRemoveLaunchpad(v);
-                        saveMenuConfig({ remove_launchpad: v });
-                      }}
-                    />
-                  </div>
-
-                  {isAdvancedPlan && (
-                    <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
-                      <div>
-                        <Label>Auto Navigate to Onboarding On Login</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Direct users to onboarding upon login
-                        </p>
-                      </div>
-                      <Switch
-                        checked={autoNavigateOnLogin}
-                        onCheckedChange={(v) => {
-                          setAutoNavigateOnLogin(v);
-                          saveMenuConfig({ auto_navigate_on_login: v });
-                        }}
-                      />
-                    </div>
-                  )}
-
-                  <div className="flex gap-4">
-                    <Button variant="outline" onClick={() => setCurrentStep(1)}>
+                  {featureToggles}
+                  <div className="flex flex-wrap justify-between gap-3">
+                    <Button variant="ghost" onClick={() => setCurrentStep(1)}>
+                      <ArrowLeft />
                       Back
                     </Button>
-                    <Button onClick={() => setCodeSubStep(2)}>Next: Custom CSS</Button>
+                    <Button variant="outline" onClick={() => setCodeSubStep(2)}>
+                      Next: Custom CSS
+                      <ArrowRight />
+                    </Button>
                   </div>
                 </div>
               )}
@@ -629,18 +636,18 @@ const InstallationGuidePanel = ({ standalone = false }: InstallationGuidePanelPr
               {/* Sub-step 2: Custom CSS */}
               {codeSubStep === 2 && (
                 <div className="space-y-4">
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                    <p className="text-sm text-amber-800">
-                      <strong>Install at:</strong> Agency Level → Company → White Label → Custom CSS
-                    </p>
-                  </div>
+                  {installAt("Agency level → Company → White Label → Custom CSS")}
                   <CodeBlock code={generateCssCode()} language="css" maxHeight="400px" />
 
-                  <div className="flex gap-4">
-                    <Button variant="outline" onClick={() => setCodeSubStep(1)}>
+                  <div className="flex flex-wrap justify-between gap-3">
+                    <Button variant="ghost" onClick={() => setCodeSubStep(1)}>
+                      <ArrowLeft />
                       Back
                     </Button>
-                    <Button onClick={() => setCodeSubStep(3)}>Next: Custom JS</Button>
+                    <Button variant="outline" onClick={() => setCodeSubStep(3)}>
+                      Next: Custom JS
+                      <ArrowRight />
+                    </Button>
                   </div>
                 </div>
               )}
@@ -650,12 +657,7 @@ const InstallationGuidePanel = ({ standalone = false }: InstallationGuidePanelPr
                 <div className="space-y-4">
                   {autoNavigateOnLogin ? (
                     <>
-                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                        <p className="text-sm text-amber-800">
-                          <strong>Install at:</strong> Agency Level → Company → White Label → Custom
-                          JS
-                        </p>
-                      </div>
+                      {installAt("Agency level → Company → White Label → Custom JS")}
                       <CodeBlock
                         code={generateCombinedJsCode()}
                         language="javascript"
@@ -663,107 +665,102 @@ const InstallationGuidePanel = ({ standalone = false }: InstallationGuidePanelPr
                       />
                     </>
                   ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <p>No JavaScript features are enabled. You can skip this step.</p>
-                    </div>
+                    <p className="rounded-lg bg-muted p-6 text-center text-body text-muted-foreground">
+                      Nothing to paste here. You can skip this part.
+                    </p>
                   )}
 
-                  <div className="flex gap-4">
-                    <Button variant="outline" onClick={() => setCodeSubStep(2)}>
+                  <div className="flex flex-wrap justify-between gap-3">
+                    <Button variant="ghost" onClick={() => setCodeSubStep(2)}>
+                      <ArrowLeft />
                       Back
                     </Button>
-                    <Button onClick={() => setCurrentStep(4)}>
-                      <Check className="w-4 h-4 mr-2" />
-                      Continue to Dynamic Install
+                    <Button variant="accent" onClick={() => setCurrentStep(4)}>
+                      Continue to the one-time install
+                      <ArrowRight />
                     </Button>
                   </div>
                 </div>
               )}
             </>
           )}
-        </div>
+        </motion.div>
       )}
 
       {/* Step 4: Dynamic Install URLs */}
       {currentStep === 4 && (
-        <div className="space-y-6">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
-              3
-            </div>
-            <h3 className="text-lg font-semibold">Dynamic Install (Recommended)</h3>
-          </div>
-
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <p className="text-sm text-green-800">
-              <strong>🚀 One-time setup:</strong> Install these URLs once in GHL. Any changes you
-              make in SaaSSuite will automatically reflect within 5 minutes — no need to update code
-              again!
-            </p>
-          </div>
+        <motion.div
+          key="s4"
+          variants={pageEnter}
+          initial="hidden"
+          animate="show"
+          className="space-y-6"
+        >
+          {stepTitle(
+            "Paste two lines into HighLevel",
+            "You do this once. After that, every change you make in SaaSSuite shows up in HighLevel within 5 minutes.",
+          )}
 
           {!configSaved && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <p className="text-sm text-amber-800">
-                <strong>⚠️ Save your configuration first</strong> before installing the URLs below.
-              </p>
-            </div>
+            <p className="flex items-start gap-2 rounded-md bg-muted p-3 text-small text-foreground">
+              <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
+              <span>
+                <strong className="font-semibold">Save your options first.</strong> Go back one
+                step, then return here.
+              </span>
+            </p>
           )}
 
           {/* JS URL - Always show for all plans */}
           <div className="space-y-2">
-            <Label className="font-medium">
-              1. Custom JS — Install in GHL White Label → Custom JS
-            </Label>
-            <p className="text-xs text-muted-foreground">
-              Add this script tag in your Custom JS field:
-            </p>
-            <div className="flex items-center gap-2 bg-muted p-3 rounded border">
-              <code className="text-xs flex-1 break-all font-mono">{jsScriptSnippet}</code>
-              <Button variant="outline" size="sm" onClick={() => copyToClipboard(jsScriptSnippet)}>
-                <Copy className="w-4 h-4" />
-              </Button>
-            </div>
+            <p className="text-body font-semibold text-foreground">1. Custom JS</p>
+            {installAt("White Label → Custom JS")}
+            <CopyField
+              wrap
+              value={jsScriptSnippet}
+              label="Copy Custom JS"
+              onCopy={() => copyToClipboard(jsScriptSnippet)}
+            />
           </div>
 
           <div className="space-y-2">
-            <Label className="font-medium">
-              2. Custom CSS — Install in GHL White Label → Custom CSS
-            </Label>
-            <p className="text-xs text-muted-foreground">
-              Add this as the first line in your Custom CSS field:
-            </p>
-            <div className="flex items-center gap-2 bg-muted p-3 rounded border">
-              <code className="text-xs flex-1 break-all font-mono">{cssImportSnippet}</code>
-              <Button variant="outline" size="sm" onClick={() => copyToClipboard(cssImportSnippet)}>
-                <Copy className="w-4 h-4" />
-              </Button>
-            </div>
+            <p className="text-body font-semibold text-foreground">2. Custom CSS</p>
+            {installAt("White Label → Custom CSS, as the first line")}
+            <CopyField
+              wrap
+              value={cssImportSnippet}
+              label="Copy Custom CSS"
+              onCopy={() => copyToClipboard(cssImportSnippet)}
+            />
           </div>
 
-          <div className="bg-muted/50 border rounded-lg p-4 space-y-2">
-            <p className="text-sm font-medium">Current Configuration:</p>
-            <ul className="text-sm text-muted-foreground space-y-1">
-              <li>
-                • Menu Link ID: <span className="font-mono">{menuLinkId || "Not set"}</span>
-              </li>
+          <div className="rounded-lg bg-muted p-4">
+            <p className="px-eyebrow mb-2">Your current setup</p>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-small">
+              <dt className="text-muted-foreground">Menu link ID</dt>
+              <dd className="truncate font-mono text-foreground">{menuLinkId || "Not set"}</dd>
               {supportsSecondLink && (
-                <li>
-                  • Second Menu Link ID:{" "}
-                  <span className="font-mono">{menuLinkId2 || "Not set"}</span>
-                </li>
+                <>
+                  <dt className="text-muted-foreground">Second menu link ID</dt>
+                  <dd className="truncate font-mono text-foreground">{menuLinkId2 || "Not set"}</dd>
+                </>
               )}
-              <li>• Hide LaunchPad: {removeLaunchpad ? "✅ Yes" : "❌ No"}</li>
-              <li>• Auto-Navigate on Login: {autoNavigateOnLogin ? "✅ Yes" : "❌ No"}</li>
-              <li>• Brand colors are set on the Design page.</li>
-            </ul>
+              <dt className="text-muted-foreground">Hide Launchpad</dt>
+              <dd className="text-foreground">{removeLaunchpad ? "On" : "Off"}</dd>
+              <dt className="text-muted-foreground">Open onboarding on login</dt>
+              <dd className="text-foreground">{autoNavigateOnLogin ? "On" : "Off"}</dd>
+              <dt className="text-muted-foreground">Brand colors</dt>
+              <dd className="text-foreground">Set on the Design page</dd>
+            </dl>
           </div>
 
-          <div className="flex gap-4">
-            <Button variant="outline" onClick={() => setCurrentStep(3)}>
+          <div className="flex flex-wrap justify-between gap-3 border-t border-border pt-4">
+            <Button variant="ghost" onClick={() => setCurrentStep(3)}>
+              <ArrowLeft />
               Back
             </Button>
             <Button
+              variant="accent"
               onClick={async () => {
                 setCompletePhase("loading");
                 setCompleteDismissed(false);
@@ -775,29 +772,39 @@ const InstallationGuidePanel = ({ standalone = false }: InstallationGuidePanelPr
                 setTimeout(() => setCompletePhase("done"), 2500);
               }}
             >
-              <Check className="w-4 h-4 mr-2" />
-              Complete Setup
+              <Check />
+              Finish install
             </Button>
           </div>
-        </div>
+        </motion.div>
       )}
 
-      {/* Completion overlay: loading bar → animated green checkmark */}
+      {/* Completion: shimmer while saving, then a one-shot tick */}
       {completePhase !== "idle" && !completeDismissed && (
-        <div className="relative border rounded-lg p-8 text-center space-y-4 bg-background">
-          <button
+        <motion.div
+          variants={pageEnter}
+          initial="hidden"
+          animate="show"
+          role="status"
+          className="px-surface px-brand-wash relative p-8 text-center"
+        >
+          <Button
+            variant="ghost"
+            size="icon-sm"
             onClick={() => setCompleteDismissed(true)}
             aria-label="Close"
-            className="absolute right-3 top-3 rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            className="absolute right-3 top-3"
           >
-            <X className="w-4 h-4" />
-          </button>
+            <X />
+          </Button>
 
           {completePhase === "loading" ? (
-            <div className="space-y-4 py-4 animate-fade-in">
-              <Loader2 className="w-8 h-8 mx-auto animate-spin text-primary" />
-              <p className="font-medium">Loading your CSS and JS…</p>
-              <div className="max-w-xs mx-auto">
+            <div className="space-y-4 py-4">
+              <Loader2 className="mx-auto size-8 animate-spin text-brand" />
+              <TextShimmer className="text-body font-medium">
+                Saving your install settings
+              </TextShimmer>
+              <div className="mx-auto max-w-xs">
                 <Progress
                   value={100}
                   className="h-2 [&>div]:transition-all [&>div]:duration-[2400ms]"
@@ -805,16 +812,17 @@ const InstallationGuidePanel = ({ standalone = false }: InstallationGuidePanelPr
               </div>
             </div>
           ) : (
-            <div className="space-y-3 py-2 animate-scale-in">
-              <CheckCircle2 className="w-14 h-14 mx-auto text-green-500 animate-scale-in" />
-              <p className="text-lg font-semibold text-green-700">Your menu link has been saved!</p>
-              <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                Everything is set up. It may take <strong>5–10 minutes</strong> for the changes to
-                update inside HighLevel — feel free to continue with your day.
+            <div className="flex flex-col items-center gap-3 py-2">
+              <SuccessMark size={48} className="bg-card bg-none" />
+              <p className="text-h4 text-foreground">Your install is saved</p>
+              <p className="mx-auto max-w-md text-small text-muted-foreground">
+                Everything is set up. HighLevel can take{" "}
+                <strong className="text-foreground">5 to 10 minutes</strong> to show the changes, so
+                carry on with your day.
               </p>
             </div>
           )}
-        </div>
+        </motion.div>
       )}
     </div>
   );

@@ -5,7 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Lock, ShieldCheck } from "lucide-react";
+import { Loader2, ShieldCheck } from "lucide-react";
+import { Banner } from "@/components/ui/banner";
+import { EmptyState, EmptyStateIllustration } from "@/components/premium/21st/empty-state";
 import { toast } from "sonner";
 import { PERMISSION_AREAS, useTeamAccess, type AccessLevel, type AdminRow } from "@/hooks/useTeamAccess";
 
@@ -31,15 +33,21 @@ export default function AdminPermissionsPanel() {
 
   if (!access.isOwner) {
     return (
-      <div className="p-4 border rounded-lg text-sm text-muted-foreground flex items-start gap-2">
-        <Lock className="w-4 h-4 mt-0.5" />
+      <Banner tone="info" title="Owner only.">
         Only the account owner can change admin permissions.
-      </div>
+      </Banner>
     );
   }
 
   if (access.admins.length === 0) {
-    return <div className="p-4 text-center text-sm text-muted-foreground bg-muted rounded-lg">Add an admin first, then set their permissions here.</div>;
+    return (
+      <EmptyState
+        className="rounded-lg border border-dashed border-border py-8"
+        icon={<EmptyStateIllustration className="size-12 rounded-lg border-border bg-muted text-muted-foreground"><ShieldCheck className="size-5" aria-hidden="true" /></EmptyStateIllustration>}
+        title="No admins to set up yet"
+        description="Add an admin on the Team tab first, then set their permissions here."
+      />
+    );
   }
 
   const setLevel = (area: string, level: AccessLevel) =>
@@ -67,11 +75,11 @@ export default function AdminPermissionsPanel() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <ShieldCheck className="w-4 h-4 text-primary" />
+        <ShieldCheck className="size-4 shrink-0 text-brand" aria-hidden="true" />
         You (the owner) always have full access. Admins can't change their own permissions.
       </div>
 
-      <div>
+      <div className="flex flex-col gap-1.5">
         <Label>Admin</Label>
         <Select value={selectedId} onValueChange={setSelectedId}>
           <SelectTrigger><SelectValue placeholder="Choose an admin" /></SelectTrigger>
@@ -85,23 +93,23 @@ export default function AdminPermissionsPanel() {
 
       {draft && (
         <>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
               <Label>Name</Label>
               <Input value={draft.admin_name || ""} onChange={(e) => setDraft({ ...draft, admin_name: e.target.value })} />
             </div>
-            <div>
+            <div className="flex flex-col gap-1.5">
               <Label>Phone</Label>
               <Input value={draft.admin_phone || ""} onChange={(e) => setDraft({ ...draft, admin_phone: e.target.value })} placeholder="+1…" />
             </div>
           </div>
 
-          <div className="border rounded-lg divide-y">
+          <div className="divide-y divide-border overflow-hidden rounded-lg border border-border">
             {PERMISSION_AREAS.map((area) => (
-              <div key={area.key} className="flex items-center justify-between gap-3 p-3">
+              <div key={area.key} className="flex min-h-[52px] items-center justify-between gap-3 px-4 py-2">
                 <span className="text-sm">{area.label}</span>
                 <Select value={(draft.permissions?.[area.key] as AccessLevel) || "edit"} onValueChange={(v) => setLevel(area.key, v as AccessLevel)}>
-                  <SelectTrigger className="w-[150px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-10 w-[150px] text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">No access</SelectItem>
                     <SelectItem value="view">View</SelectItem>
@@ -112,18 +120,18 @@ export default function AdminPermissionsPanel() {
             ))}
           </div>
 
-          <div className="border rounded-lg divide-y">
-            <label className="flex items-center justify-between gap-3 p-3 cursor-pointer">
+          <div className="divide-y divide-border overflow-hidden rounded-lg border border-border">
+            <label className="flex min-h-[52px] cursor-pointer items-center justify-between gap-3 px-4 py-2">
               <span className="text-sm">Only see chats assigned to them</span>
               <Switch checked={draft.restrict_assigned_chats} onCheckedChange={(v) => setDraft({ ...draft, restrict_assigned_chats: v })} />
             </label>
-            <label className="flex items-center justify-between gap-3 p-3 cursor-pointer">
+            <label className="flex min-h-[52px] cursor-pointer items-center justify-between gap-3 px-4 py-2">
               <span className="text-sm">Only see tickets assigned to them</span>
               <Switch checked={draft.restrict_assigned_tickets} onCheckedChange={(v) => setDraft({ ...draft, restrict_assigned_tickets: v })} />
             </label>
           </div>
 
-          <Button onClick={() => void save()} disabled={saving} className="w-full">
+          <Button variant="accent" onClick={() => void save()} disabled={saving} className="h-11 w-full sm:ml-auto sm:flex sm:h-10 sm:w-auto">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save permissions"}
           </Button>
         </>

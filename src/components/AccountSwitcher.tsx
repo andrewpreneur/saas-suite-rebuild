@@ -134,52 +134,61 @@ export const AccountSwitcher = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2 h-9">
+        <Button variant="outline" size="sm" className="gap-2" aria-label={`Switch account. Current: ${currentAccount.agencyName || currentAccount.ownerName || currentAccount.email}`}>
           {currentAccount.type === 'own' ? (
-            <User className="h-4 w-4 text-primary" />
+            <User className="text-brand" aria-hidden="true" />
           ) : (
-            <Building2 className="h-4 w-4 text-blue-500" />
+            <Building2 className="text-brand" aria-hidden="true" />
           )}
-          <span className="max-w-[120px] truncate hidden sm:inline">
+          <span className="hidden max-w-[120px] truncate sm:inline">
             {currentAccount.agencyName || currentAccount.ownerName || currentAccount.email}
           </span>
-          <ChevronDown className="h-3 w-3 text-muted-foreground" />
+          <ChevronDown className="!size-3 text-muted-foreground" aria-hidden="true" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-64">
-        <DropdownMenuLabel>Switch Account</DropdownMenuLabel>
+      <DropdownMenuContent align="end" className="w-72 max-w-[calc(100vw-1.5rem)]">
+        <DropdownMenuLabel className="px-eyebrow">Switch account</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {accounts.map((account) => (
-          <DropdownMenuItem
-            key={account.email}
-            onClick={() => handleSwitchAccount(account)}
-            className="flex items-center gap-3 cursor-pointer"
-            disabled={switching}
-          >
-            {account.type === 'own' ? (
-              <User className="h-4 w-4 text-primary shrink-0" />
-            ) : (
-              <Building2 className="h-4 w-4 text-blue-500 shrink-0" />
-            )}
-            <div className="flex-1 min-w-0">
-              <div className="font-medium truncate">
-                {account.agencyName || account.ownerName || account.email}
+        {accounts.map((account) => {
+          const active = account.email === selectedAccountEmail;
+          return (
+            <DropdownMenuItem
+              key={account.email}
+              onClick={() => handleSwitchAccount(account)}
+              className="flex min-h-11 cursor-pointer items-center gap-3"
+              disabled={switching}
+              aria-current={active ? 'true' : undefined}
+            >
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-brand-subtle text-brand">
+                {account.type === 'own' ? (
+                  <User className="size-4" aria-hidden="true" />
+                ) : (
+                  <Building2 className="size-4" aria-hidden="true" />
+                )}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-small font-medium">
+                  {account.agencyName || account.ownerName || account.email}
+                </div>
+                <div className="truncate text-caption font-normal text-muted-foreground">
+                  {account.type === 'own' ? 'Your account' : `Admin • ${account.email}`}
+                </div>
               </div>
-              <div className="text-xs text-muted-foreground truncate">
-                {account.type === 'own' ? 'Your Account' : `Admin • ${account.email}`}
-              </div>
-            </div>
-            {account.email === selectedAccountEmail && (
-              <Check className="h-4 w-4 text-primary shrink-0" />
-            )}
-          </DropdownMenuItem>
-        ))}
+              {active && (
+                <>
+                  <Check className="size-4 shrink-0 text-brand" aria-hidden="true" />
+                  <span className="sr-only">Current account</span>
+                </>
+              )}
+            </DropdownMenuItem>
+          );
+        })}
         {switching && (
           <>
             <DropdownMenuSeparator />
-            <div className="flex items-center justify-center py-2 text-sm text-muted-foreground">
-              <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-              Switching...
+            <div role="status" className="flex items-center justify-center gap-2 py-2 text-small text-muted-foreground">
+              <RefreshCw className="size-4 animate-spin" aria-hidden="true" />
+              Switching accounts
             </div>
           </>
         )}

@@ -61,14 +61,15 @@ export default function ChatModeSettings() {
 
   return (
     <div className="space-y-3">
-      <div className="p-4 rounded-lg bg-muted/50 space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <Headphones className="w-5 h-5 text-muted-foreground mt-0.5" />
-            <div>
-              <Label htmlFor="human-chat-toggle" className="font-medium">Human Chat</Label>
-              <p className="text-xs text-muted-foreground">Customers can reach a real person in the chat.</p>
-            </div>
+      <div className="space-y-3">
+        <div className="flex min-h-11 items-start justify-between gap-4">
+          <div className="min-w-0">
+            <Label htmlFor="human-chat-toggle" className="text-sm font-medium">Human chat</Label>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              {human
+                ? "On. A client can ask for a person, and the chat lands in your inbox as Needs reply."
+                : "Off. Only the AI answers your clients."}
+            </p>
           </div>
           <Switch id="human-chat-toggle" checked={human} disabled={saving}
             onCheckedChange={(v) => { setHuman(v); save({ human_chat_enabled: v }, v ? "Human chat turned on" : "Human chat turned off", () => setHuman(!v)); }} />
@@ -84,18 +85,18 @@ export default function ChatModeSettings() {
               const active = mode === k;
               return (
                 <button key={k} type="button" disabled={saving} onClick={() => pickMode(k)}
-                  className={`text-left rounded-lg border p-3 transition-colors ${active ? "border-primary bg-primary/5" : "bg-card hover:bg-muted/50"} ${locked ? "opacity-70" : ""}`}>
+                  aria-pressed={active}
+                  className={`cursor-pointer text-left rounded-lg border p-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${active ? "border-brand bg-brand-subtle" : "border-border bg-card hover:bg-muted/60"} ${locked ? "opacity-70" : ""}`}>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">{title}</span>
                     {locked && <Badge variant="outline" className="text-[10px] gap-1"><Lock className="w-3 h-3" />Advanced</Badge>}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">{desc}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{desc}</p>
                 </button>
               );
             })}
           </div>
         )}
-        {!human && <p className="text-xs text-muted-foreground">Human chat is off, so only the AI answers your customers.</p>}
       </div>
     </div>
   );

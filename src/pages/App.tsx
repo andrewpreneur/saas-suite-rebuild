@@ -686,7 +686,7 @@ const AppPage = () => {
             {/* Main Content Area */}
             <div className={`min-w-0 flex-1 flex flex-col overflow-hidden lg:pr-[var(--copilot-dock-offset,0px)]`}>
               {/* Mobile Header */}
-              <div className="md:hidden bg-card/80 backdrop-blur-sm border-b border-border sticky top-0 z-40">
+              <div className="px-glass md:hidden border-b border-border/70 sticky top-0 z-40">
                 <div className="flex items-center justify-between p-4">
                   <SidebarTrigger className="md:hidden" />
                   {newUi ? (

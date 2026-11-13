@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, CreditCard } from "lucide-react";
+import { CreditCard } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { ChromeStrip } from "@/components/premium/entry/chrome";
 
 const STRIPE_PORTAL = "https://billing.stripe.com/p/login/bIY04697i9jzghy4gg";
 
@@ -41,30 +42,19 @@ const PastDueBanner = () => {
   if (!pastDue) return null;
 
   return (
-    <div className="sticky top-0 z-40 w-full border-b-2 border-destructive bg-destructive text-destructive-foreground">
-      <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center">
-        <AlertTriangle className="h-6 w-6 shrink-0" />
-        <div className="flex-1 space-y-1 text-sm">
-          <p className="text-base font-bold">
-            Payment failed or subscription canceled — your SaaS is paused
-          </p>
-          <p className="opacity-95">
-            Your customers <strong>cannot log into your platform right now</strong> (only your
-            very first customer still has access). All of your branding, menu link removals and
-            settings are <strong>still saved</strong> — they're just not applied while your
-            subscription is inactive. Update your card to restore everything instantly.
-          </p>
-        </div>
-        <Button
-          variant="secondary"
-          className="shrink-0 font-semibold"
-          onClick={() => window.open(STRIPE_PORTAL, "_blank")}
-        >
-          <CreditCard className="mr-2 h-4 w-4" />
+    <ChromeStrip
+      tone="error"
+      title="Payment failed or subscription canceled. Your SaaS is paused."
+      actions={
+        <Button size="sm" onClick={() => window.open(STRIPE_PORTAL, "_blank")}>
+          <CreditCard aria-hidden="true" />
           Update card
         </Button>
-      </div>
-    </div>
+      }
+    >
+      Your customers can't log in right now (only your first customer still has access). Your branding, menu
+      link removals and settings are saved and come back as soon as you update your card.
+    </ChromeStrip>
   );
 };
 

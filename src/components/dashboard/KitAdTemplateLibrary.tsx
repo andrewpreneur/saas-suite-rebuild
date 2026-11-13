@@ -115,7 +115,7 @@ function TemplatePreview({
   return (
     <button
       type="button"
-      className="block w-full cursor-zoom-in rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-700"
+      className="block w-full cursor-zoom-in rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
       onClick={onEnlarge}
       aria-label={`Enlarge ${item.title}`}
     >
@@ -379,10 +379,10 @@ export function KitAdTemplateLibrary({ lineIds }: { lineIds: string[] }) {
       <Accordion type="single" collapsible>
         <AccordionItem
           value="ad-library"
-          className="group rounded-xl border border-purple-200 px-4 dark:border-purple-800"
+          className="group px-surface border-0 px-4 sm:px-6"
         >
           <AccordionTrigger
-            className="text-lg font-semibold text-purple-800 hover:no-underline dark:text-purple-200"
+            className="text-base font-semibold text-foreground hover:no-underline"
             data-testid="kit-ad-library-toggle"
           >
             Ad Library ({KIT_AD_TEMPLATE_COUNT})
@@ -418,7 +418,7 @@ export function KitAdTemplateLibrary({ lineIds }: { lineIds: string[] }) {
             {zipError ? <p className="text-sm text-destructive">{zipError}</p> : null}
             {KIT_AD_GROUPS.map((group) => (
               <div key={group.id} className="space-y-3">
-                <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                <h4 className="px-eyebrow">
                   {group.label}
                 </h4>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">

@@ -1,4 +1,4 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/premium/21st/empty-state";
 import { Crown, Medal, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { GiveawayLeader } from "@/constants/giveaway";
@@ -39,25 +39,37 @@ const GiveawayLeaderboard = ({ leaders, myName, className, limit = 25 }: Props) 
   const top = rows[0]?.points ?? 0;
 
   return (
-    <Card className={cn("overflow-hidden border-border", className)}>
-      <div className="flex items-center justify-between gap-3 border-b bg-gradient-to-r from-violet-500/10 via-emerald-500/10 to-transparent px-4 py-3 md:px-6">
-        <div className="flex items-center gap-2 text-sm font-bold text-foreground">
-          <Trophy className="h-4 w-4 text-primary" />
-          {ended ? "Challenge standings" : "Live Leaderboard"}
-        </div>
-        <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+    <section className={cn("px-surface overflow-hidden", className)}>
+      <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-4 md:px-6">
+        <h2 className="flex items-center gap-3 text-base font-semibold text-foreground">
+          <span className="px-icon-chip shrink-0" aria-hidden="true">
+            <Trophy className="size-5" />
           </span>
-          {ended ? "Challenge ended" : "Updating live"}
-        </span>
+          {ended ? "Final standings" : "Live leaderboard"}
+        </h2>
+        {ended ? (
+          <span className="text-xs font-medium text-muted-foreground">Challenge ended</span>
+        ) : (
+          <span className="flex items-center gap-1.5 text-xs font-medium text-success">
+            <span className="relative flex size-2" aria-hidden="true">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75 motion-reduce:hidden" />
+              <span className="relative inline-flex size-2 rounded-full bg-success" />
+            </span>
+            Updating live
+          </span>
+        )}
       </div>
-      <CardContent className="p-0">
+      <div>
         {rows.length === 0 ? (
-          <p className="px-6 py-8 text-center text-sm text-muted-foreground">
-            No entries yet — be the first on the board.
-          </p>
+          <EmptyState
+            icon={
+              <span className="px-icon-chip">
+                <Trophy className="size-5" />
+              </span>
+            }
+            title="No entries yet"
+            description="Be the first on the board."
+          />
         ) : (
           <ul className="divide-y divide-border">
             {rows.map((row) => {
@@ -69,9 +81,9 @@ const GiveawayLeaderboard = ({ leaders, myName, className, limit = 25 }: Props) 
                 <li
                   key={`${row.rank}-${row.display_name}`}
                   className={cn(
-                    "px-4 py-3 transition-colors hover:bg-muted/50 md:px-6",
+                    "px-4 py-3 md:px-6",
                     tier?.row,
-                    isMe && "bg-primary/5 ring-1 ring-inset ring-primary/30",
+                    isMe && "bg-brand-subtle ring-1 ring-inset ring-brand/30",
                   )}
                 >
                   <div className="flex items-center justify-between gap-3">
@@ -86,8 +98,8 @@ const GiveawayLeaderboard = ({ leaders, myName, className, limit = 25 }: Props) 
                       </span>
                       <span className="truncate text-sm font-semibold text-foreground">
                         {row.display_name}
-                        {isMe && <span className="ml-2 text-xs text-primary">(you)</span>}
-                        {ended && tier && <span className="ml-2 text-xs font-bold text-primary">Winner</span>}
+                        {isMe && <span className="ml-2 text-xs font-medium text-brand">You</span>}
+                        {ended && tier && <span className="ml-2 text-xs font-medium text-muted-foreground">Winner</span>}
                       </span>
                     </div>
                     <span className="shrink-0 text-sm font-bold tabular-nums text-foreground">
@@ -98,7 +110,7 @@ const GiveawayLeaderboard = ({ leaders, myName, className, limit = 25 }: Props) 
                     <div
                       className={cn(
                         "h-full rounded-full transition-all duration-700",
-                        tier?.bar ?? "bg-gradient-to-r from-violet-500 to-emerald-500",
+                        tier?.bar ?? "bg-brand",
                       )}
                       style={{ width: `${width}%` }}
                     />
@@ -108,8 +120,8 @@ const GiveawayLeaderboard = ({ leaders, myName, className, limit = 25 }: Props) 
             })}
           </ul>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 };
 

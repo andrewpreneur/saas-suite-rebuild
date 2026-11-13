@@ -1,23 +1,26 @@
+import { motion } from 'framer-motion';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { popIn } from '@/lib/motion';
 
 interface ActionConfirmationProps {
   message: string;
   className?: string;
 }
 
+/** "What just happened": a change Copilot made, confirmed in place. */
 export function ActionConfirmation({ message, className }: ActionConfirmationProps) {
   return (
-    <div
-      className={cn(
-        'flex items-center gap-2 px-3 py-2 bg-green-500/10 border border-green-500/20 rounded-lg animate-fade-in',
-        className
-      )}
+    <motion.div
+      variants={popIn}
+      initial="hidden"
+      animate="show"
+      className={cn('flex items-center gap-2 rounded-md border border-success/20 bg-success/10 px-3 py-2', className)}
     >
-      <div className="flex-shrink-0 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center animate-scale-in">
-        <Check className="w-3 h-3 text-white" />
-      </div>
-      <span className="text-sm text-green-700 dark:text-green-400">{message}</span>
-    </div>
+      <span className="inline-grid size-5 shrink-0 place-items-center rounded-full bg-success text-success-foreground">
+        <Check className="size-3" strokeWidth={3} />
+      </span>
+      <span className="text-sm text-foreground">{message}</span>
+    </motion.div>
   );
 }

@@ -38,7 +38,7 @@ export function KitReturnLink({
     <Link
       to={target}
       data-testid="kit-return-link"
-      className={`inline-flex items-center gap-1.5 text-sm font-semibold text-purple-800 underline decoration-purple-400 underline-offset-4 hover:text-purple-950 dark:text-purple-200 dark:hover:text-purple-50 ${className}`}
+      className={`inline-flex items-center gap-1.5 text-sm font-semibold text-foreground underline decoration-brand/40 underline-offset-4 hover:text-brand-hover ${className}`}
     >
       <ArrowLeft className="h-4 w-4" aria-hidden="true" />
       Back to One Feature Kit

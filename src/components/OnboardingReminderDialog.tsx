@@ -4,8 +4,14 @@ import { useNavigate } from "react-router-dom";
 import { useUser } from "@/contexts/UserContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Rocket } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ArrowRight, Rocket } from "lucide-react";
 
 /**
  * Reminds users who skipped onboarding to finish it — desktop only.
@@ -56,28 +62,37 @@ const OnboardingReminderDialog = () => {
   return (
     <Dialog open={open} onOpenChange={(o) => !o && setOpen(false)}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Rocket className="w-5 h-5 text-primary" />
-            Finish setting up your SaaS Suite
-          </DialogTitle>
+        <DialogHeader className="items-center text-center sm:items-start sm:text-left">
+          <span className="px-icon-chip mb-2" aria-hidden="true">
+            <Rocket className="size-5" />
+          </span>
+          <DialogTitle>Finish setting up SaaSSuite</DialogTitle>
           <DialogDescription>
-            You skipped onboarding earlier. You're on a desktop now, so this is the perfect time to install
-            SaaSSuite in HighLevel and unlock the branding tool, login tracking, support and everything else.
+            You skipped setup earlier. You are on a computer now, so it is a good time to install
+            SaaSSuite in HighLevel. It takes about 10 minutes and unlocks branding, login tracking
+            and support.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           <Button
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+            variant="accent"
+            size="lg"
+            className="w-full"
             onClick={() => navigate("/v2-onboarding")}
           >
-            Complete my onboarding
+            Finish my setup
+            <ArrowRight />
           </Button>
           <Button variant="ghost" className="w-full" onClick={() => setOpen(false)}>
             Remind me later
           </Button>
-          <Button variant="ghost" size="sm" className="w-full text-muted-foreground" onClick={dismissForever}>
-            Don't show this again
+          <Button
+            variant="link"
+            size="sm"
+            className="w-full text-muted-foreground"
+            onClick={dismissForever}
+          >
+            Do not show this again
           </Button>
         </div>
       </DialogContent>

@@ -2,25 +2,15 @@ import { Link, useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/platform/PageHeader";
 import { LoadNotice } from "@/components/platform/LoadNotice";
 import { LOAD_TIMEOUT_MESSAGE, armLoadDeadline, loadErrorText } from "@/lib/loadSettle";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import TicketRepliesThread from "@/components/support/TicketRepliesThread";
 import { supabase } from "@/integrations/supabase/client";
 import { useUser } from "@/contexts/UserContext";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Tag } from "@/components/ui/tag";
 import {
   Select,
   SelectContent,
@@ -38,19 +28,20 @@ import {
 } from "@/components/ui/dialog";
 import {
   Ticket,
-  AlertCircle,
+  CircleAlert,
   Clock,
-  CheckCircle2,
+  CircleCheck,
   Mail,
   MessageSquare,
   Sparkles,
-  Bot,
+  Inbox,
+  Bell,
   RefreshCw,
   Settings,
   Plus,
+  ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
-import ChatInterventionPanel from "@/components/client-hub/ChatInterventionPanel";
 import {
   MultiAttachmentDropzone,
   type DropFile,
@@ -66,6 +57,12 @@ import { useTeamAccess, type TeamMember } from "@/hooks/useTeamAccess";
 import OpenTicketFromChatDialog from "@/components/support/OpenTicketFromChatDialog";
 import { ticketAgencyChoices } from "@/lib/ticketAgencyChoices";
 import { TicketListPreview } from "@/components/support/TicketListPreview";
+import { Reveal, RevealItem } from "@/components/premium/Reveal";
+import { EmptyState, EmptyStateIllustration } from "@/components/premium/21st/empty-state";
+import SupportInbox from "@/components/premium/support/SupportInbox";
+import { FilterChips } from "@/components/premium/support/FilterChips";
+import { KpiCard } from "@/components/premium/support/KpiCard";
+import { PersonAvatar } from "@/components/premium/support/PersonAvatar";
 
 interface SupportTicket {
   id: string;
@@ -101,34 +98,35 @@ const formatDate = (d: string) =>
     minute: "2-digit",
   });
 
+// Status is always an icon plus a word; the tone only reinforces it.
 const getStatusBadge = (status: string) => {
   switch (status.toLowerCase()) {
     case "open":
       return (
-        <Badge variant="destructive" className="flex items-center gap-1">
-          <AlertCircle className="w-3 h-3" /> Open
-        </Badge>
+        <Tag tone="danger">
+          <CircleAlert aria-hidden="true" /> Open
+        </Tag>
       );
     case "completed":
       return (
-        <Badge variant="secondary" className="flex items-center gap-1 bg-green-600 text-white">
-          <CheckCircle2 className="w-3 h-3" /> Completed
-        </Badge>
+        <Tag tone="success">
+          <CircleCheck aria-hidden="true" /> Completed
+        </Tag>
       );
     case "in_progress":
       return (
-        <Badge className="flex items-center gap-1 bg-amber-500">
-          <Clock className="w-3 h-3" /> In Progress
-        </Badge>
+        <Tag tone="warning">
+          <Clock aria-hidden="true" /> In progress
+        </Tag>
       );
     case "responded":
       return (
-        <Badge variant="secondary" className="flex items-center gap-1">
-          <Mail className="w-3 h-3" /> Responded
-        </Badge>
+        <Tag tone="info">
+          <Mail aria-hidden="true" /> Responded
+        </Tag>
       );
     default:
-      return <Badge variant="outline">{status}</Badge>;
+      return <Tag tone="neutral">{status}</Tag>;
   }
 };
 
@@ -137,6 +135,7 @@ export function TicketsTable({
   onSelect,
   onStatusChange,
   emptyLabel,
+  emptyAction,
   isLoading,
   team,
   onAssign,
@@ -149,20 +148,21 @@ export function TicketsTable({
   onSelect: (t: SupportTicket) => void;
   onStatusChange: (id: string, status: string) => void;
   emptyLabel: string;
+  /** The one action offered when the list is empty. */
+  emptyAction?: React.ReactNode;
   isLoading?: boolean;
 }) {
   if (isLoading) {
     return (
-      <div className="rounded-md border divide-y">
+      <div className="px-surface divide-y divide-border" role="status" aria-label="Loading tickets">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-4 p-3">
-            <Skeleton className="h-4 w-10" />
-            <div className="flex-1 space-y-1.5">
-              <Skeleton className="h-3.5 w-40" />
-              <Skeleton className="h-3 w-56" />
+          <div key={i} className="flex items-center gap-4 p-4">
+            <div className="px-skeleton size-10 shrink-0 rounded-full" />
+            <div className="flex-1 space-y-2">
+              <div className="px-skeleton h-3.5 w-40 max-w-full" />
+              <div className="px-skeleton h-3 w-72 max-w-full" />
             </div>
-            <Skeleton className="h-5 w-20 rounded-full" />
-            <Skeleton className="h-3 w-16" />
+            <div className="px-skeleton hidden h-6 w-24 rounded-full sm:block" />
           </div>
         ))}
       </div>
@@ -170,123 +170,139 @@ export function TicketsTable({
   }
   if (tickets.length === 0) {
     return (
-      <div className="text-center py-12 text-muted-foreground border rounded-md">
-        <Ticket className="w-10 h-10 mx-auto mb-3 opacity-40" />
-        <p className="text-sm">{emptyLabel}</p>
+      <div className="px-surface">
+        <EmptyState
+          icon={
+            <EmptyStateIllustration>
+              <Ticket className="size-6" aria-hidden="true" />
+            </EmptyStateIllustration>
+          }
+          title={emptyLabel}
+          action={emptyAction}
+        />
       </div>
     );
   }
-  const statusSelect = (t: SupportTicket) => (
-    <Select value={t.status} onValueChange={(v) => onStatusChange(t.id, v)} disabled={!canEdit}>
-      <SelectTrigger className="w-[130px] h-8 p-0 border-0 bg-transparent">
-        <SelectValue>{getStatusBadge(t.status)}</SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="open">Open</SelectItem>
-        <SelectItem value="in_progress">In Progress</SelectItem>
-        <SelectItem value="responded">Responded</SelectItem>
-        <SelectItem value="completed">Completed</SelectItem>
-      </SelectContent>
-    </Select>
+  const controls = (t: SupportTicket) => (
+    <>
+      <AssignUserButton
+        team={team}
+        assignedEmail={t.assigned_to}
+        onAssign={(e) => onAssign(t.id, e)}
+        disabled={!canEdit}
+      />
+      <Select value={t.status} onValueChange={(v) => onStatusChange(t.id, v)} disabled={!canEdit}>
+        <SelectTrigger
+          className="h-9 w-auto gap-1 border-0 bg-transparent px-1 shadow-none"
+          aria-label={`Status of ticket ${t.ticket_number}`}
+        >
+          <SelectValue>{getStatusBadge(t.status)}</SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="open">Open</SelectItem>
+          <SelectItem value="in_progress">In progress</SelectItem>
+          <SelectItem value="responded">Responded</SelectItem>
+          <SelectItem value="completed">Completed</SelectItem>
+        </SelectContent>
+      </Select>
+    </>
+  );
+  const heading = (t: SupportTicket) => (
+    <div className="flex flex-wrap items-baseline gap-x-2">
+      <p className="truncate text-sm font-semibold text-foreground">{t.customer_name}</p>
+      <span className="text-xs tabular-nums text-muted-foreground">
+        #{t.ticket_number} · {formatDate(t.created_at)}
+      </span>
+    </div>
+  );
+  const category = (t: SupportTicket) => (
+    <p className="mt-2 inline-flex h-6 items-center rounded-full bg-muted px-2.5 text-xs font-medium text-muted-foreground">
+      {t.issue_category}
+    </p>
   );
   return (
     <>
-      <div className="xl:hidden space-y-2">
+      {/* Phones and tablets: one card per ticket */}
+      <div className="px-surface divide-y divide-border overflow-hidden lg:hidden">
         {tickets.map((t) => (
           <div
             key={t.id}
             role="button"
             tabIndex={0}
             onClick={() => onSelect(t)}
-            className="rounded-lg border bg-card p-3 space-y-2 cursor-pointer active:bg-muted/40"
+            onKeyDown={(e) => {
+              if (e.target !== e.currentTarget) return;
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onSelect(t);
+              }
+            }}
+            className="cursor-pointer space-y-3 p-4 outline-none transition-colors active:bg-muted/60 focus-visible:bg-muted/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
           >
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="font-medium text-sm truncate">
-                  <span className="font-mono text-muted-foreground mr-1.5">#{t.ticket_number}</span>
-                  {t.customer_name}
-                </p>
-                <p className="text-xs text-muted-foreground truncate">{t.customer_email}</p>
+            <div className="flex min-w-0 items-start gap-3">
+              <PersonAvatar name={t.customer_name || t.customer_email} />
+              <div className="min-w-0 flex-1">
+                {heading(t)}
                 <TicketListPreview
                   ticket={t}
-                  className="mt-1 text-sm text-muted-foreground line-clamp-2 break-words [overflow-wrap:anywhere]"
+                  className="mt-0.5 line-clamp-2 break-words text-sm text-muted-foreground [overflow-wrap:anywhere]"
                 />
+                {category(t)}
               </div>
-              <span className="text-xs text-muted-foreground shrink-0">
-                {formatDate(t.created_at)}
-              </span>
             </div>
             <div
-              className="flex items-center justify-between gap-2 flex-wrap"
+              className="flex flex-wrap items-center justify-between gap-2 pl-[52px]"
               onClick={(e) => e.stopPropagation()}
             >
-              <Badge variant="outline">{t.issue_category}</Badge>
-              <div className="flex items-center gap-1">
-                <AssignUserButton
-                  team={team}
-                  assignedEmail={t.assigned_to}
-                  onAssign={(e) => onAssign(t.id, e)}
-                  disabled={!canEdit}
-                />
-                {statusSelect(t)}
-              </div>
+              {controls(t)}
             </div>
           </div>
         ))}
       </div>
-      <div className="rounded-md border hidden xl:block">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead className="w-20">#</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead className="max-w-xs">Request</TableHead>
-              <TableHead>Assigned</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Date</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+      {/* Desktop: the same rows as a table, so columns line up */}
+      <div className="px-surface hidden overflow-hidden lg:block">
+        <table className="w-full table-fixed border-collapse text-left">
+          <thead className="sr-only">
+            <tr>
+              <th scope="col">Ticket</th>
+              <th scope="col">Assigned to and status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
             {tickets.map((t) => (
-              <TableRow
+              <tr
                 key={t.id}
-                className="cursor-pointer hover:bg-muted/40"
+                tabIndex={0}
                 onClick={() => onSelect(t)}
+                onKeyDown={(e) => {
+                  if (e.target !== e.currentTarget) return;
+                  if (e.key === "Enter") onSelect(t);
+                }}
+                className="cursor-pointer outline-none transition-colors hover:bg-muted/60 focus-visible:bg-muted/60"
               >
-                <TableCell className="font-mono">#{t.ticket_number}</TableCell>
-                <TableCell className="min-w-0 max-w-[16rem]">
-                  <div className="min-w-0">
-                    <p className="font-medium text-sm truncate">{t.customer_name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{t.customer_email}</p>
+                <td className="p-4 align-middle">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <PersonAvatar name={t.customer_name || t.customer_email} />
+                    <div className="min-w-0 flex-1">
+                      {heading(t)}
+                      <TicketListPreview ticket={t} />
+                      {category(t)}
+                    </div>
                   </div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline">{t.issue_category}</Badge>
-                </TableCell>
-                <TableCell className="max-w-xs min-w-0">
-                  <TicketListPreview ticket={t} />
-                </TableCell>
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  <AssignUserButton
-                    team={team}
-                    assignedEmail={t.assigned_to}
-                    onAssign={(e) => onAssign(t.id, e)}
-                    disabled={!canEdit}
-                  />
-                </TableCell>
-                <TableCell onClick={(e) => e.stopPropagation()}>{statusSelect(t)}</TableCell>
-                <TableCell className="text-xs text-muted-foreground">
-                  {formatDate(t.created_at)}
-                </TableCell>
-              </TableRow>
+                </td>
+                <td className="w-[22rem] p-4 align-middle" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-end gap-2">{controls(t)}</div>
+                </td>
+              </tr>
             ))}
-          </TableBody>
-        </Table>
+          </tbody>
+        </table>
       </div>
     </>
   );
 }
+
+type TicketFilter = "open" | "mine" | "unassigned" | "responded" | "closed" | "all";
 
 export default function SupportDashboard() {
   const navigate = useNavigate();
@@ -312,6 +328,9 @@ export default function SupportDashboard() {
   const [handoverPendingCount, setHandoverPendingCount] = useState(0);
   const [handoverQueueCount, setHandoverQueueCount] = useState(0);
   const [createOpen, setCreateOpen] = useState(false);
+  const [ticketFilter, setTicketFilter] = useState<TicketFilter>("open");
+  const filterChosenRef = useRef(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const agencyChoices = ticketAgencyChoices(agencyVersions);
   const primaryAgencyId = agencyChoices[0]?.id || "";
 
@@ -450,7 +469,7 @@ export default function SupportDashboard() {
       .eq("id", ticketId);
     if (error) {
       setTickets(prev);
-      toast.error("Failed to update status");
+      toast.error("Couldn't update the status. Try again.");
     } else {
       toast.success("Status updated");
     }
@@ -468,7 +487,7 @@ export default function SupportDashboard() {
       .eq("id", ticketId);
     if (error) {
       setTickets(prev);
-      toast.error("Failed to assign ticket");
+      toast.error("Couldn't assign the ticket. Try again.");
       return;
     }
     const who = access.team.find((m) => m.email === assigned)?.name || assigned;
@@ -497,7 +516,7 @@ export default function SupportDashboard() {
           .update({ attachment_urls: urls })
           .eq("id", selectedTicket.id);
       }
-      toast.success("Response sent — customer will receive an email shortly.");
+      toast.success("Response sent. The client gets an email shortly.");
       setTickets((ts) =>
         ts.map((t) =>
           t.id === selectedTicket.id
@@ -516,7 +535,7 @@ export default function SupportDashboard() {
       setTicketFiles([]);
     } catch (e: any) {
       console.error(e);
-      toast.error(e?.message || "Failed to send response");
+      toast.error(e?.message || "Couldn't send the response. Try again.");
     } finally {
       setIsSending(false);
     }
@@ -539,148 +558,200 @@ export default function SupportDashboard() {
   );
   const unassignedTickets = tickets.filter((t) => !t.assigned_to && t.status !== "completed");
 
+  // Start on "Open" when there is something to do, otherwise show everything.
+  useEffect(() => {
+    if (isLoading || filterChosenRef.current) return;
+    setTicketFilter(openTickets.length > 0 ? "open" : "all");
+  }, [isLoading, openTickets.length]);
+
+  const ticketViews: Record<TicketFilter, { list: SupportTicket[]; empty: string }> = {
+    open: { list: openTickets, empty: "No open tickets. You're all caught up." },
+    mine: { list: mineTickets, empty: "No open tickets are assigned to you." },
+    unassigned: { list: unassignedTickets, empty: "Every open ticket has an owner." },
+    responded: { list: respondedTickets, empty: "No tickets are waiting on a client reply." },
+    closed: { list: closedTickets, empty: "No completed tickets yet." },
+    all: { list: tickets, empty: "No tickets yet." },
+  };
+  const view = ticketViews[ticketFilter];
+  const openCount = counts.open + counts.in_progress;
+  const closeTicket = () => {
+    setSelectedTicket(null);
+    setTicketResponse("");
+    setTicketFiles([]);
+  };
+  const refresh = () => {
+    setLoadAttempt((attempt) => attempt + 1);
+    setRefreshKey((k) => k + 1);
+  };
+  const createTicketButton = canEditTickets ? (
+    <Button variant="accent" onClick={() => setCreateOpen(true)} disabled={!primaryAgencyId}>
+      <Plus aria-hidden="true" />
+      Create Ticket
+    </Button>
+  ) : null;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <PageHeader
-            title="Client Support"
-            subtitle="Tickets and AI chats from your clients. Assign one to a teammate and they get notified."
+      <PageHeader
+        title="Client Support"
+        subtitle="Every client chat and ticket in one place. Assign one and your teammate is notified."
+        actions={
+          <>
+            <Button variant="ghost" onClick={refresh} disabled={isLoading}>
+              <RefreshCw className={isLoading ? "animate-spin" : ""} aria-hidden="true" />
+              Refresh
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/app/client-hub?support=1")}>
+              <Settings aria-hidden="true" />
+              Customize Support
+            </Button>
+          </>
+        }
+      />
+      {loadError && <LoadNotice error={loadError} onRetry={refresh} />}
+
+      <Reveal className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+        <RevealItem>
+          <KpiCard
+            icon={<MessageSquare />}
+            label="Chats needing a reply"
+            value={chatStats.open}
+            hint={chatStats.open > 0 ? "A client asked for a person" : "No one is waiting on you"}
+            className="h-full"
           />
-        </div>
-        <Button variant="outline" size="sm" onClick={() => setLoadAttempt((attempt) => attempt + 1)} disabled={isLoading}>
-          <RefreshCw className={`w-4 h-4 mr-1 ${isLoading ? "animate-spin" : ""}`} />
-          Refresh
-        </Button>
-      </div>
-      {loadError && <LoadNotice error={loadError} onRetry={() => setLoadAttempt((attempt) => attempt + 1)} />}
-
-      <Card>
-        <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
-          <p className="text-sm text-muted-foreground">
-            Onboarding calls and agency support are available when you go looking for them.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/app/onboarding-calls">Onboarding calls</Link>
-            </Button>
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/app/agency-support">Agency support</Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* KPI cards */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase tracking-wider">
-              <AlertCircle className="w-3.5 h-3.5" /> Open
-            </div>
-            <div className="grid grid-cols-2 gap-2 mt-1">
-              <div>
-                <p className="text-2xl font-bold">{chatStats.open}</p>
-                <p className="text-[11px] text-muted-foreground">Open Chats</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{counts.open + counts.in_progress}</p>
-                <p className="text-[11px] text-muted-foreground">Open Tickets</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase tracking-wider">
-              <Mail className="w-3.5 h-3.5" /> Responded
-            </div>
-            <div className="grid grid-cols-2 gap-2 mt-1">
-              <div>
-                <p className="text-2xl font-bold">{counts.responded}</p>
-                <p className="text-[11px] text-muted-foreground">Tickets responded</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{chatStats.responded}</p>
-                <p className="text-[11px] text-muted-foreground">Chats responded (48h)</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase tracking-wider">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Closed
-            </div>
-            <div className="grid grid-cols-2 gap-2 mt-1">
-              <div>
-                <p className="text-2xl font-bold">{counts.completed}</p>
-                <p className="text-[11px] text-muted-foreground">Tickets closed</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold">
-                  {Math.max(0, chatStats.total - chatStats.open - chatStats.responded)}
-                </p>
-                <p className="text-[11px] text-muted-foreground">Chats without open requests</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase tracking-wider">
-              <Ticket className="w-3.5 h-3.5" /> Total
-            </div>
-            <div className="grid grid-cols-2 gap-2 mt-1">
-              <div>
-                <p className="text-2xl font-bold">{tickets.length}</p>
-                <p className="text-[11px] text-muted-foreground">Total Tickets</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{chatStats.total}</p>
-                <p className="text-[11px] text-muted-foreground">Chat Engagements</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+        </RevealItem>
+        <RevealItem>
+          <KpiCard
+            icon={<Ticket />}
+            label="Open tickets"
+            value={openCount}
+            loading={isLoading}
+            hint={`${counts.in_progress} in progress`}
+            className="h-full"
+          />
+        </RevealItem>
+        <RevealItem>
+          <KpiCard
+            icon={<Mail />}
+            label="Replied, waiting on client"
+            value={counts.responded + chatStats.responded}
+            loading={isLoading}
+            hint={`${counts.responded} ${counts.responded === 1 ? "ticket" : "tickets"} · ${chatStats.responded} ${chatStats.responded === 1 ? "chat" : "chats"} in 48h`}
+            className="h-full"
+          />
+        </RevealItem>
+        <RevealItem>
+          <KpiCard
+            icon={<CircleCheck />}
+            label="Tickets completed"
+            value={counts.completed}
+            loading={isLoading}
+            hint={`${tickets.length} tickets · ${chatStats.total} chats in total`}
+            className="h-full"
+          />
+        </RevealItem>
+      </Reveal>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
-        <div
-          className="flex items-center justify-between gap-2 overflow-x-auto"
-          data-tip-target="support-tabs"
-        >
-          <TabsList className="justify-start shrink-0">
+        <div data-tip-target="support-tabs">
+          <TabsList>
             <TabsTrigger value="ai-chats">
-              <Bot className="w-4 h-4 mr-1.5" />
+              <Inbox className="mr-1.5 size-4" aria-hidden="true" />
               Inbox
               {chatStats.open > 0 && (
-                <Badge className="ml-2 h-5 min-w-5 px-1.5 bg-destructive text-destructive-foreground">
+                <span className="ml-2 min-w-5 rounded-full bg-brand px-1.5 text-center text-xs font-semibold leading-5 text-white">
                   {chatStats.open}
-                </Badge>
+                  <span className="sr-only"> need a reply</span>
+                </span>
               )}
             </TabsTrigger>
             <TabsTrigger value="tickets">
-              <Ticket className="w-4 h-4 mr-1.5" />
+              <Ticket className="mr-1.5 size-4" aria-hidden="true" />
               Tickets
-              {counts.open + counts.in_progress > 0 && (
-                <Badge variant="secondary" className="ml-2 h-5 min-w-5 px-1.5">
-                  {counts.open + counts.in_progress}
-                </Badge>
+              {openCount > 0 && (
+                <span className="ml-2 min-w-5 rounded-full bg-muted px-1.5 text-center text-xs font-semibold leading-5 text-muted-foreground">
+                  {openCount}
+                  <span className="sr-only"> open</span>
+                </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="slack">Notifications</TabsTrigger>
+            <TabsTrigger value="slack">
+              <Bell className="mr-1.5 size-4" aria-hidden="true" />
+              Notifications
+            </TabsTrigger>
           </TabsList>
-          <Button
-            variant="outline"
-            size="sm"
-            className="shrink-0"
-            onClick={() => navigate("/app/client-hub?support=1")}
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            Customize Support
-          </Button>
         </div>
+
+        <TabsContent value="ai-chats" className="mt-4">
+          <SupportInbox
+            agencyVersions={agencyVersions}
+            onStats={setChatStats}
+            refreshKey={refreshKey}
+          />
+        </TabsContent>
+
+        <TabsContent value="tickets" className="mt-4 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <FilterChips
+              label="Filter tickets"
+              data-tip-target="support-ticket-filters"
+              className="min-w-0 max-w-full"
+              value={ticketFilter}
+              onChange={(v) => {
+                filterChosenRef.current = true;
+                setTicketFilter(v as TicketFilter);
+              }}
+              options={[
+                { id: "open", label: "Open", count: openTickets.length },
+                { id: "mine", label: "Assigned to me", count: mineTickets.length },
+                { id: "unassigned", label: "Unassigned", count: unassignedTickets.length },
+                { id: "responded", label: "Waiting on client", count: respondedTickets.length },
+                { id: "closed", label: "Completed", count: closedTickets.length },
+                { id: "all", label: "All", count: tickets.length },
+              ]}
+            />
+            {createTicketButton}
+          </div>
+          <TicketsTable
+            team={access.team}
+            onAssign={handleAssign}
+            canEdit={canEditTickets}
+            tickets={view.list}
+            isLoading={isLoading}
+            onSelect={(t) => {
+              setSelectedTicket(t);
+              setTicketResponse("");
+              setTicketFiles([]);
+            }}
+            onStatusChange={handleStatusChange}
+            emptyLabel={view.empty}
+            emptyAction={
+              ticketFilter !== "all" && tickets.length > 0 ? (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    filterChosenRef.current = true;
+                    setTicketFilter("all");
+                  }}
+                >
+                  Show all tickets
+                </Button>
+              ) : canEditTickets ? (
+                <Button
+                  variant="outline"
+                  onClick={() => setCreateOpen(true)}
+                  disabled={!primaryAgencyId}
+                >
+                  <Plus aria-hidden="true" />
+                  Create Ticket
+                </Button>
+              ) : undefined
+            }
+          />
+          <p className="text-sm text-muted-foreground">
+            A ticket you create here uses the same types and alerts as one opened from a chat.
+          </p>
+        </TabsContent>
 
         <TabsContent value="slack" className="mt-4 space-y-4">
           <NotificationChannelsCard />
@@ -689,146 +760,23 @@ export default function SupportDashboard() {
           <CustomerUpdatesWebhookCard />
           <WeeklySlackReportCard />
         </TabsContent>
-
-        <TabsContent value="tickets" className="mt-4 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm text-muted-foreground">
-              Open a ticket for a client from this queue. It uses the same types and alerts as a ticket opened from chat.
-            </p>
-            {canEditTickets && (
-              <Button size="sm" onClick={() => setCreateOpen(true)} disabled={!primaryAgencyId}>
-                <Plus className="w-4 h-4 mr-1" />
-                Create Ticket
-              </Button>
-            )}
-          </div>
-          <Tabs
-            key={openTickets.length > 0 ? "has-open" : "no-open"}
-            defaultValue={openTickets.length > 0 ? "open" : "all"}
-            className="w-full"
-          >
-            <TabsList
-              className="h-auto p-1 w-full justify-start overflow-x-auto md:w-auto"
-              data-tip-target="support-ticket-filters"
-            >
-              <TabsTrigger value="open">Open ({openTickets.length})</TabsTrigger>
-              <TabsTrigger value="mine">Assigned to me ({mineTickets.length})</TabsTrigger>
-              <TabsTrigger value="unassigned">Unassigned ({unassignedTickets.length})</TabsTrigger>
-              <TabsTrigger value="responded">
-                Responded / Waiting ({respondedTickets.length})
-              </TabsTrigger>
-              <TabsTrigger value="closed">Closed ({closedTickets.length})</TabsTrigger>
-              <TabsTrigger value="all">All ({tickets.length})</TabsTrigger>
-            </TabsList>
-            <TabsContent value="open" className="mt-4">
-              <TicketsTable
-                team={access.team}
-                onAssign={handleAssign}
-                canEdit={canEditTickets}
-                tickets={openTickets}
-                isLoading={isLoading}
-                onSelect={(t) => {
-                  setSelectedTicket(t);
-                  setTicketResponse("");
-                  setTicketFiles([]);
-                }}
-                onStatusChange={handleStatusChange}
-                emptyLabel="No open tickets — you're all caught up!"
-              />
-            </TabsContent>
-            <TabsContent value="mine" className="mt-4">
-              <TicketsTable
-                team={access.team}
-                onAssign={handleAssign}
-                canEdit={canEditTickets}
-                tickets={mineTickets}
-                isLoading={isLoading}
-                onSelect={(t) => {
-                  setSelectedTicket(t);
-                  setTicketResponse("");
-                  setTicketFiles([]);
-                }}
-                onStatusChange={handleStatusChange}
-                emptyLabel="No open tickets assigned to you."
-              />
-            </TabsContent>
-            <TabsContent value="unassigned" className="mt-4">
-              <TicketsTable
-                team={access.team}
-                onAssign={handleAssign}
-                canEdit={canEditTickets}
-                tickets={unassignedTickets}
-                isLoading={isLoading}
-                onSelect={(t) => {
-                  setSelectedTicket(t);
-                  setTicketResponse("");
-                  setTicketFiles([]);
-                }}
-                onStatusChange={handleStatusChange}
-                emptyLabel="Every open ticket has someone assigned."
-              />
-            </TabsContent>
-            <TabsContent value="responded" className="mt-4">
-              <TicketsTable
-                team={access.team}
-                onAssign={handleAssign}
-                canEdit={canEditTickets}
-                tickets={respondedTickets}
-                isLoading={isLoading}
-                onSelect={(t) => {
-                  setSelectedTicket(t);
-                  setTicketResponse("");
-                  setTicketFiles([]);
-                }}
-                onStatusChange={handleStatusChange}
-                emptyLabel="No tickets waiting on customer replies."
-              />
-            </TabsContent>
-            <TabsContent value="closed" className="mt-4">
-              <TicketsTable
-                team={access.team}
-                onAssign={handleAssign}
-                canEdit={canEditTickets}
-                tickets={closedTickets}
-                isLoading={isLoading}
-                onSelect={(t) => {
-                  setSelectedTicket(t);
-                  setTicketResponse("");
-                  setTicketFiles([]);
-                }}
-                onStatusChange={handleStatusChange}
-                emptyLabel="No closed tickets yet."
-              />
-            </TabsContent>
-            <TabsContent value="all" className="mt-4">
-              <TicketsTable
-                team={access.team}
-                onAssign={handleAssign}
-                canEdit={canEditTickets}
-                tickets={tickets}
-                isLoading={isLoading}
-                onSelect={(t) => {
-                  setSelectedTicket(t);
-                  setTicketResponse("");
-                  setTicketFiles([]);
-                }}
-                onStatusChange={handleStatusChange}
-                emptyLabel="No support tickets yet."
-              />
-            </TabsContent>
-          </Tabs>
-        </TabsContent>
-
-        <TabsContent value="ai-chats" className="mt-4">
-          <div className="rounded-lg border p-0 md:p-4">
-            <ChatInterventionPanel
-              agencyVersions={agencyVersions}
-              filterMode="all"
-              onStats={setChatStats}
-            />
-          </div>
-        </TabsContent>
       </Tabs>
+
+      <p className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+        <span className="w-full sm:w-auto">Want us to do it for you?</span>
+        <Link
+          to="/app/onboarding-calls"
+          className="inline-flex min-h-11 items-center gap-1 font-medium text-brand hover:underline sm:min-h-0"
+        >
+          Onboarding calls <ArrowRight className="size-3.5" aria-hidden="true" />
+        </Link>
+        <Link
+          to="/app/agency-support"
+          className="inline-flex min-h-11 items-center gap-1 font-medium text-brand hover:underline sm:min-h-0"
+        >
+          Agency support <ArrowRight className="size-3.5" aria-hidden="true" />
+        </Link>
+      </p>
 
       <OpenTicketFromChatDialog
         open={createOpen}
@@ -841,30 +789,29 @@ export default function SupportDashboard() {
         }}
       />
 
-      {/* Response dialog */}
+      {/* Ticket conversation and reply */}
       <Dialog
         open={!!selectedTicket}
         onOpenChange={(open) => {
-          if (!open) {
-            setSelectedTicket(null);
-            setTicketResponse("");
-            setTicketFiles([]);
-          }
+          if (!open) closeTicket();
         }}
       >
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
           {selectedTicket && (
             <>
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <Ticket className="w-4 h-4" />
-                  Ticket #{selectedTicket.ticket_number} — {selectedTicket.issue_category}
+                <DialogTitle className="flex flex-wrap items-center gap-2">
+                  Ticket #{selectedTicket.ticket_number}
+                  {getStatusBadge(
+                    tickets.find((t) => t.id === selectedTicket.id)?.status ?? selectedTicket.status,
+                  )}
                 </DialogTitle>
                 <DialogDescription>
-                  From <span className="font-medium">{selectedTicket.customer_name}</span> (
-                  {selectedTicket.customer_email})
+                  {selectedTicket.issue_category} · from{" "}
+                  <span className="font-medium text-foreground">{selectedTicket.customer_name}</span>{" "}
+                  ({selectedTicket.customer_email})
                 </DialogDescription>
-                <div className="pt-1">
+                <div className="-ml-2 pt-1">
                   <AssignUserButton
                     team={access.team}
                     assignedEmail={tickets.find((t) => t.id === selectedTicket.id)?.assigned_to}
@@ -874,22 +821,31 @@ export default function SupportDashboard() {
                 </div>
               </DialogHeader>
               <div className="space-y-4">
-                <div className="rounded-lg border bg-muted/40 p-3 text-sm whitespace-pre-wrap">
-                  {selectedTicket.request_text}
-                  {selectedTicket.attachment_url && (
-                    <a
-                      href={selectedTicket.attachment_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-3 block"
-                    >
-                      <img
-                        src={selectedTicket.attachment_url}
-                        alt="Customer attachment"
-                        className="max-h-48 rounded border"
-                      />
-                    </a>
-                  )}
+                <div className="flex items-start gap-3">
+                  <PersonAvatar
+                    name={selectedTicket.customer_name || selectedTicket.customer_email}
+                    size="sm"
+                  />
+                  <div className="min-w-0 flex-1 whitespace-pre-wrap rounded-lg border border-border bg-muted/40 p-3 text-sm [overflow-wrap:anywhere]">
+                    {selectedTicket.request_text}
+                    {selectedTicket.attachment_url && (
+                      <a
+                        href={selectedTicket.attachment_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-3 block"
+                      >
+                        <img
+                          src={selectedTicket.attachment_url}
+                          alt="Customer attachment"
+                          className="max-h-48 rounded-sm border border-border"
+                        />
+                      </a>
+                    )}
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {formatDate(selectedTicket.created_at)}
+                    </p>
+                  </div>
                 </div>
                 <TicketRepliesThread
                   ticketId={selectedTicket.id}
@@ -898,12 +854,15 @@ export default function SupportDashboard() {
                   latestResponseAttachmentUrl={selectedTicket.admin_response_attachment_url}
                 />
                 <div>
-                  <Label className="text-sm font-medium mb-1 block">Your response</Label>
+                  <Label htmlFor="ticket-response" className="mb-1 block text-sm font-medium">
+                    Your response
+                  </Label>
                   <Textarea
+                    id="ticket-response"
                     value={ticketResponse}
                     onChange={(e) => setTicketResponse(e.target.value)}
-                    placeholder="Write the key points of your response. Our AI will turn this into a friendly email."
-                    rows={6}
+                    placeholder="Write the key points. We turn them into a friendly email."
+                    rows={5}
                   />
                 </div>
                 <MultiAttachmentDropzone
@@ -911,29 +870,23 @@ export default function SupportDashboard() {
                   onChange={setTicketFiles}
                   disabled={isSending}
                 />
-                <div className="flex items-start gap-2 rounded-md bg-muted/40 border p-3 text-xs text-muted-foreground">
-                  <Sparkles className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" />
+                <p className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Sparkles className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden="true" />
                   <span>
-                    Our AI will email{" "}
-                    <span className="font-medium">{selectedTicket.customer_email}</span> with their
-                    ticket update — including any attached image. The ticket will be marked as
-                    responded.
+                    We email{" "}
+                    <span className="font-medium text-foreground">
+                      {selectedTicket.customer_email}
+                    </span>{" "}
+                    your update with any attached image, and mark the ticket as responded.
                   </span>
-                </div>
+                </p>
               </div>
               <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSelectedTicket(null);
-                    setTicketResponse("");
-                    setTicketFiles([]);
-                  }}
-                  disabled={isSending}
-                >
+                <Button variant="outline" onClick={closeTicket} disabled={isSending}>
                   Cancel
                 </Button>
                 <Button
+                  variant="accent"
                   onClick={handleSendResponse}
                   disabled={isSending || !ticketResponse.trim() || !canEditTickets}
                 >

@@ -8,9 +8,9 @@ import { validFaviconFile } from "@/lib/faviconUpload";
 export function FaviconControl({ value, onChange, disabled }: { value: string; onChange: (url: string) => void; disabled?: boolean }) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
-  return <section className="flex flex-wrap items-center gap-3 border-t pt-4">
-    <div className="min-w-0 flex-1"><p className="text-sm font-medium">Browser tab icon</p><p className="text-xs text-muted-foreground">PNG, JPEG, WebP or ICO · up to 2 MB</p></div>
-    {value && <img src={value} alt="Browser tab icon" className="size-8 object-contain" />}
+  return <section className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-muted/40 p-3 sm:p-4">
+    <div className="min-w-0 flex-1"><p className="text-sm font-medium">Browser tab icon</p><p className="text-xs text-muted-foreground">The small icon in the browser tab. PNG, JPEG, WebP or ICO, up to 2 MB</p></div>
+    {value && <img src={value} alt="Browser tab icon" className="size-8 rounded-sm border border-border bg-card object-contain p-0.5" />}
     <input ref={input} type="file" aria-label="Upload favicon" className="hidden" accept="image/png,image/jpeg,image/webp,image/x-icon,image/vnd.microsoft.icon,.ico" onChange={async event => {
       const file = event.target.files?.[0];
       event.target.value = "";

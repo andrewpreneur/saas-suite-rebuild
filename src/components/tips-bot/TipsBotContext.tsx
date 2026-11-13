@@ -817,6 +817,8 @@ interface TipsBotContextType {
   dismissTip: (tipId: string) => Promise<void>;
   refreshTips: () => Promise<void>;
   showNextTip: () => void;
+  /** Walkthrough only: go back one step. Never wraps. */
+  showPrevTip: () => void;
   isLoading: boolean;
   isWalkthroughMode: boolean;
   startWalkthrough: (kind?: TourKind, fromStep?: number) => void;
@@ -1015,6 +1017,11 @@ export const TipsBotProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   };
 
+  const showPrevTip = () => {
+    if (!isWalkthroughMode) return;
+    setCurrentTipIndex((prev) => Math.max(prev - 1, 0));
+  };
+
   const startWalkthrough = (kind: TourKind = 'nav', fromStep = 0) => {
     setSessionSuppressed(false);
     trackEvent('walkthrough_started', kind === 'nav' ? 'Navigation walkthrough' : 'Client Hub walkthrough', { step: fromStep + 1 });
@@ -1114,6 +1121,7 @@ export const TipsBotProvider: React.FC<{ children: ReactNode }> = ({ children })
       dismissTip,
       refreshTips,
       showNextTip,
+      showPrevTip,
       isLoading,
       isWalkthroughMode,
       startWalkthrough,

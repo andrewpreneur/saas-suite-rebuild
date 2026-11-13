@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import confetti from "canvas-confetti";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Copy, ExternalLink, PartyPopper, Check } from "lucide-react";
+import { ExternalLink } from "lucide-react";
+import { CopyField, SuccessMark } from "@/components/premium/onboarding/pieces";
+import { TextShimmer } from "@/components/premium/21st/text-shimmer";
 import { toast } from "sonner";
 import { useUser } from "@/contexts/UserContext";
 import { useSessionTracker } from "@/contexts/SessionTrackerContext";
@@ -38,7 +40,8 @@ const HubLiveModal = ({ open, onOpenChange, hubUrl }: HubLiveModalProps) => {
         .select("agency_id")
         .ilike("email", email)
         .maybeSingle();
-      if (data?.agency_id) setResolvedUrl(`https://yoursoftwareonboarding.com/v2/${data.agency_id}`);
+      if (data?.agency_id)
+        setResolvedUrl(`https://yoursoftwareonboarding.com/v2/${data.agency_id}`);
     })();
   }, [open, email, resolvedUrl]);
   const hubId = resolvedUrl ? resolvedUrl.split("/").filter(Boolean).pop() || null : null;
@@ -52,50 +55,67 @@ const HubLiveModal = ({ open, onOpenChange, hubUrl }: HubLiveModalProps) => {
     const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (prefersReduced) return;
     const origin = { x: 0.5, y: 0.42 };
+    // One restrained burst rather than three: celebratory, not noisy.
     const timers = [
-      setTimeout(() => confetti({ particleCount: 130, spread: 90, startVelocity: 45, origin, scalar: 1.05 }), 250),
-      setTimeout(() => confetti({ particleCount: 80, spread: 120, origin, scalar: 0.9 }), 550),
-      setTimeout(() => confetti({ particleCount: 60, spread: 160, origin, scalar: 0.8 }), 850),
+      setTimeout(
+        () =>
+          confetti({
+            particleCount: 70,
+            spread: 80,
+            startVelocity: 38,
+            origin,
+            scalar: 0.9,
+            ticks: 140,
+          }),
+        450,
+      ),
     ];
     return () => timers.forEach(clearTimeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const copy = async () => {
-    if (!finalUrl) return;
+    if (!finalUrl) return false;
     try {
       await navigator.clipboard.writeText(finalUrl);
       setCopied(true);
       toast.success("Link copied");
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error("Couldn't copy — long-press the link instead");
+      toast.error("Could not copy. Long-press the link instead.");
+      return false;
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md text-center">
-        <div className="space-y-5 py-2">
-          <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-            <PartyPopper className="w-6 h-6 text-primary" />
-          </div>
+        <div className="flex min-w-0 flex-col items-center gap-6 py-2">
+          {open ? <SuccessMark size={48} /> : null}
 
           <div className="space-y-2">
-            <h2 className="text-xl font-bold text-foreground">
-              Congrats! We generated your custom SaaS onboarding portal.
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              You'll install this as a custom menu link in GHL later.
-            </p>
+            <DialogTitle className="text-h3 text-foreground">
+              Your client portal is live
+            </DialogTitle>
+            <DialogDescription className="text-body text-muted-foreground">
+              We built it from your answers. You will add it to HighLevel as a menu link later.
+            </DialogDescription>
           </div>
 
-          <div className="rounded-lg border border-border bg-muted/40 p-3 break-all text-sm font-mono">
-            {finalUrl || "Preparing your link..."}
+          <div className="w-full min-w-0 text-left">
+            {finalUrl ? (
+              <CopyField value={finalUrl} label="Copy your portal link" onCopy={copy} />
+            ) : (
+              <div className="rounded-md border border-border bg-muted p-3 text-center">
+                <TextShimmer className="text-small">Preparing your link</TextShimmer>
+              </div>
+            )}
           </div>
 
-          <div className="flex flex-col gap-2">
+          <div className="flex w-full flex-col gap-2">
             <Button
+              variant="accent"
+              size="lg"
               className="w-full"
               disabled={!finalUrl}
               onClick={() => {
@@ -103,12 +123,8 @@ const HubLiveModal = ({ open, onOpenChange, hubUrl }: HubLiveModalProps) => {
                 if (finalUrl) window.open(finalUrl, "_blank", "noopener");
               }}
             >
-              <ExternalLink className="w-4 h-4 mr-2" />
-              Open it now
-            </Button>
-            <Button variant="outline" className="w-full" disabled={!finalUrl} onClick={copy}>
-              {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
-              {copied ? "Copied" : "Copy link"}
+              <ExternalLink />
+              Open my portal
             </Button>
             <Button
               variant="ghost"
@@ -118,12 +134,12 @@ const HubLiveModal = ({ open, onOpenChange, hubUrl }: HubLiveModalProps) => {
                 onOpenChange(false);
               }}
             >
-              I'll open it later
+              I will open it later
             </Button>
           </div>
 
-          <p className="text-xs text-muted-foreground">
-            No login needed for the next 24 hours so you can preview it like a client would.
+          <p className="text-caption text-muted-foreground">
+            No login needed for the next 24 hours, so you can preview it like a client would.
           </p>
         </div>
       </DialogContent>

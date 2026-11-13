@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Mail, MonitorSmartphone, Check, Loader2 } from "lucide-react";
+import { ArrowRight, Mail, MonitorSmartphone, Check, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
+import { pageEnter } from "@/lib/motion";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useUser } from "@/contexts/UserContext";
 import { getDeviceType } from "@/utils/device";
 import { checkInstallStatus } from "@/lib/installStatus";
-
 
 /**
  * Persistent "you still need to install" task.
@@ -37,7 +37,6 @@ const InstallTaskBanner = () => {
     })();
   }, [email]);
 
-
   const sendGuide = async () => {
     setSending(true);
     try {
@@ -47,10 +46,10 @@ const InstallTaskBanner = () => {
       if (error) throw error;
       if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
       setSent(true);
-      toast.success("Sent — check your email on your computer.");
+      toast.success("Guide sent. Open the email on your computer.");
     } catch (e) {
       console.error("send-install-guide failed:", e);
-      toast.error("Couldn't send the guide. Try again in a moment.");
+      toast.error("Could not send the guide. Try again in a moment.");
     } finally {
       setSending(false);
     }
@@ -65,42 +64,49 @@ const InstallTaskBanner = () => {
   if (!visible) return null;
 
   return (
-    <Card className="border-amber-400/70 bg-amber-50/70 dark:bg-amber-950/20 p-4 animate-install-glow">
-      <div className="flex flex-col md:flex-row md:items-center gap-3">
-        <div className="flex items-start gap-3 flex-1">
-          <div className="w-9 h-9 rounded-full bg-amber-400/20 flex items-center justify-center shrink-0">
-            <MonitorSmartphone className="w-5 h-5 text-amber-600" />
-          </div>
+    <motion.section
+      variants={pageEnter}
+      initial="hidden"
+      animate="show"
+      aria-label="Finish installing SaaSSuite"
+      className="px-surface px-brand-wash p-4 sm:p-6"
+    >
+      <div className="flex flex-col gap-4 md:flex-row md:items-center">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <span className="px-icon-chip shrink-0 bg-card" aria-hidden="true">
+            <MonitorSmartphone className="size-5" />
+          </span>
           <div className="min-w-0">
-            <p className="font-semibold text-foreground text-sm md:text-base">
-              One thing left: install SaaSSuite in HighLevel
+            <p className="px-eyebrow">One thing left</p>
+            <p className="text-body font-semibold text-foreground">
+              Install SaaSSuite in HighLevel
             </p>
-            <p className="text-xs md:text-sm text-muted-foreground">
+            <p className="mt-0.5 text-small text-muted-foreground">
               {isMobile
-                ? "This part needs a desktop. We'll email you the guide so it's waiting for you."
-                : "Takes about 10 minutes and puts your software in front of every client."}
+                ? "This part needs a computer. We can email you the guide so it is waiting for you."
+                : "It takes about 10 minutes and puts your software in front of every client."}
             </p>
           </div>
         </div>
 
         {isMobile ? (
-          <Button onClick={sendGuide} disabled={sending || sent} className="w-full md:w-auto shrink-0">
-            {sending ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : sent ? (
-              <Check className="w-4 h-4 mr-2" />
-            ) : (
-              <Mail className="w-4 h-4 mr-2" />
-            )}
+          <Button
+            variant="accent"
+            onClick={sendGuide}
+            disabled={sending || sent}
+            className="w-full shrink-0 md:w-auto"
+          >
+            {sending ? <Loader2 className="animate-spin" /> : sent ? <Check /> : <Mail />}
             {sent ? "Guide sent" : "Email me the install guide"}
           </Button>
         ) : (
-          <Button onClick={openInstallGuide} className="w-full md:w-auto shrink-0">
-            Open the installation guide
+          <Button variant="accent" onClick={openInstallGuide} className="w-full shrink-0 md:w-auto">
+            Open the install guide
+            <ArrowRight />
           </Button>
         )}
       </div>
-    </Card>
+    </motion.section>
   );
 };
 

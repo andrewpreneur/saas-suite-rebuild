@@ -32,6 +32,7 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
+import { EmptyState, EmptyStateIllustration } from "@/components/premium/21st/empty-state";
 import { relativeTime } from "./shared";
 import type { CommunityProfile } from "@/hooks/useCommunityProfile";
 
@@ -521,7 +522,7 @@ export default function CommunityIdeas({
             </Button>
           ))}
         </div>
-        <Button size="sm" className="gap-2" onClick={() => setDialogOpen(true)}>
+        <Button size="sm" variant="accent" className="h-11 gap-2 sm:h-9" onClick={() => setDialogOpen(true)}>
           <Plus className="h-3.5 w-3.5" /> Submit idea
         </Button>
       </div>
@@ -531,11 +532,22 @@ export default function CommunityIdeas({
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
       ) : visible.length === 0 ? (
-        <Card>
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            No ideas here yet — submit the first one.
-          </CardContent>
-        </Card>
+        <div className="px-surface">
+          <EmptyState
+            icon={
+              <EmptyStateIllustration className="rounded-lg border-border bg-muted text-muted-foreground">
+                <Plus className="size-7" aria-hidden="true" />
+              </EmptyStateIllustration>
+            }
+            title="No ideas here yet"
+            description="Tell us what would make SaaSSuite better. Other agencies can vote your idea up."
+            action={
+              <Button variant="accent" onClick={() => setDialogOpen(true)}>
+                <Plus /> Submit an idea
+              </Button>
+            }
+          />
+        </div>
       ) : (
         <div className="space-y-3">
           {visible.map((idea, i) => {

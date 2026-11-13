@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { canDeleteDisplayedAccount } from '../../../supabase/functions/delete-user-account/policy';
 import { hardSignOut } from '@/lib/hardSignOut';
 import { finishAccountDeletion } from '@/lib/finishAccountDeletion';
+import { DangerZone } from '@/components/premium/settings/DangerZone';
 
 export default function DeleteAccountSection() {
   const { actualEmail, email, isImpersonating, clearUser } = useUser();
@@ -45,11 +46,12 @@ export default function DeleteAccountSection() {
     }
   };
 
-  return <section className="mt-4 min-w-0 space-y-2 border-t border-border pt-4">
-    <h3 className="font-semibold">Delete account</h3>
-    <p className="text-sm text-muted-foreground">Permanently delete your SaaSSuite account and account data, then sign out and return to the home page. This cannot be undone.</p>
-    <Button variant="destructive" className="w-full sm:w-auto" onClick={() => { setOpen(true); setError(''); setConfirmation(''); setAcknowledged(false); }}>
-      <Trash2 className="mr-2 h-4 w-4" />Delete Account
+  return <DangerZone
+    title="Delete account"
+    description="Permanently delete your SaaSSuite account and account data, then sign out and return to the home page. This cannot be undone."
+  >
+    <Button variant="destructive" className="h-11 w-full sm:h-10 sm:w-auto" onClick={() => { setOpen(true); setError(''); setConfirmation(''); setAcknowledged(false); }}>
+      <Trash2 className="mr-2 h-4 w-4" />Delete account
     </Button>
     <Dialog open={open} onOpenChange={(value) => { if (!busy) setOpen(value); }}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md" onEscapeKeyDown={(e) => { if (busy) e.preventDefault(); }} onInteractOutside={(e) => { if (busy) e.preventDefault(); }}>
@@ -68,12 +70,12 @@ export default function DeleteAccountSection() {
         </div>
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         <DialogFooter className="gap-2">
-          <Button variant="outline" disabled={busy} onClick={() => setOpen(false)}>Keep Account</Button>
+          <Button variant="outline" disabled={busy} onClick={() => setOpen(false)}>Keep account</Button>
           <Button variant="destructive" disabled={busy || !acknowledged || confirmation !== 'DELETE'} onClick={deleteAccount}>
-            {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{busy ? 'Deleting…' : 'Permanently Delete Account'}
+            {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{busy ? 'Deleting…' : 'Permanently delete account'}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  </section>;
+  </DangerZone>;
 }

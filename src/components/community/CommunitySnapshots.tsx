@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Download, Loader2, Mail, Mic, Video, Workflow, Users, Rocket } from "lucide-react";
+import { EmptyState, EmptyStateIllustration } from "@/components/premium/21st/empty-state";
 import { UpgradePrompt } from "./shared";
 
 // Seeded install baselines that drip upward each day.
@@ -139,11 +140,17 @@ export default function CommunitySnapshots({ isPaid }: { isPaid: boolean }) {
       </div>
 
       {visible.length === 0 ? (
-        <Card>
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            No snapshots in this category yet.
-          </CardContent>
-        </Card>
+        <div className="px-surface">
+          <EmptyState
+            icon={
+              <EmptyStateIllustration className="rounded-lg border-border bg-muted text-muted-foreground">
+                <Download className="size-7" aria-hidden="true" />
+              </EmptyStateIllustration>
+            }
+            title="No snapshots in this category yet"
+            description="New import-ready snapshots are added here as agencies share them."
+          />
+        </div>
       ) : (
         <motion.div
           layout

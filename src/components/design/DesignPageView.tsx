@@ -1,10 +1,14 @@
 import { FaviconControl } from "@/components/branding/FaviconControl";
 import { SWITCHYARD_FIELDS, cleanSwitchyardColors } from "../../../supabase/functions/_shared/switchyardTheme";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import { newUi } from "@/lib/uiVersion";
 import { PageHeader } from "@/components/platform/PageHeader";
 import { LoadNotice } from "@/components/platform/LoadNotice";
+import { SectionCard } from "@/components/premium/SectionCard";
+import { ChoiceCard, StudioSteps, ToggleSection } from "@/components/premium/branding/studio";
 import { DesignPreview } from "@/components/design/DesignPreview";
 import LoginCustomizationPanel from "@/components/branding/LoginCustomizationPanel";
 import ButtonCustomizationPanel from "@/components/branding/ButtonCustomizationPanel";
@@ -12,7 +16,6 @@ import MobileBrandingCard from "@/components/client-hub/MobileBrandingCard";
 import TopNavWidgetCard from "@/components/client-hub/TopNavWidgetCard";
 import ColorPicker from "@/components/ColorPicker";
 import FontSelector from "@/components/FontSelector";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,15 +29,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ButtonGroup } from "@/components/ui/button-group";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
@@ -64,8 +58,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { DURATION, EASE_OUT, slideStep } from "@/lib/motion";
 import {
   tabChecked,
   unsavedChangeBar,
@@ -79,7 +73,31 @@ import {
 import type { BrandingPreset } from "@/lib/brandingPresets";
 import { THEME_INSTALL_UPDATE_NOTE } from "@/lib/installSnippets";
 import { minimumBrandingPlanName } from "@/lib/designAccess";
-import { Check, ChevronDown, Copy, Loader2, Lock, Trash2, Undo } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  ArrowUpRight,
+  Bookmark,
+  Check,
+  ChevronDown,
+  CircleCheck,
+  Code2,
+  Copy,
+  HelpCircle,
+  LayoutGrid,
+  Loader2,
+  Lock,
+  LogIn,
+  MessageCircle,
+  MousePointerClick,
+  Palette,
+  PanelLeft,
+  Plus,
+  SlidersHorizontal,
+  Smartphone,
+  Trash2,
+  Undo,
+} from "lucide-react";
 
 const STYLES: { id: SidebarStyle; name: string; detail: string }[] = [
   { id: "v1", name: "Classic", detail: "Full sidebar styling" },
@@ -95,40 +113,86 @@ const LAYOUTS: { id: number; name: string; detail: string }[] = [
   { id: 4, name: "Neo", detail: "Bold dark layout" },
 ];
 
-const TABS: { id: DesignTab; label: string; step: number }[] = [
-  { id: "style", label: "Style", step: 1 },
-  { id: "layout", label: "Layout", step: 2 },
-  { id: "widgets", label: "Widgets", step: 3 },
-  { id: "advanced", label: "Advanced", step: 4 },
+const TABS: { id: DesignTab; label: string; hint: string }[] = [
+  { id: "style", label: "Style", hint: "Colors, sidebar" },
+  { id: "layout", label: "Layout", hint: "Client Hub" },
+  { id: "widgets", label: "Widgets", hint: "Popup, help" },
+  { id: "advanced", label: "Advanced", hint: "Extras" },
 ];
 
-function StyleThumb({ id }: { id: SidebarStyle }) {
+const PANEL_ID = "design-step-panel";
+
+/** Small picture of each sidebar style, drawn in the colors being edited. */
+function StyleThumb({
+  id,
+  accent,
+  sidebar,
+}: {
+  id: SidebarStyle;
+  accent: string;
+  sidebar: string;
+}) {
+  const rows = (
+    <>
+      <span className="h-1.5 w-full rounded-full bg-muted-foreground/25" />
+      <span className="h-1.5 w-full rounded-full bg-muted-foreground/25" />
+      <span className="h-1.5 w-full rounded-full" style={{ background: accent }} />
+      <span className="h-1.5 w-full rounded-full bg-muted-foreground/25" />
+    </>
+  );
+  const content = (
+    <div className="flex flex-1 flex-col gap-1.5 p-2">
+      <span className="h-2 w-10 rounded-full bg-muted-foreground/30" />
+      <span className="flex-1 rounded-md bg-muted" />
+    </div>
+  );
   if (id === "v1") {
     return (
-      <div className="flex h-24 overflow-hidden bg-muted">
-        <div className="w-10 bg-foreground" />
-        <div className="m-2 flex-1 rounded-md bg-primary/15" />
+      <div className="flex h-28 p-3">
+        <div className="flex flex-1 overflow-hidden rounded-md border border-border bg-card shadow-card">
+          <div className="flex w-12 flex-col gap-1.5 p-2" style={{ background: sidebar || "hsl(var(--foreground))" }}>
+            {rows}
+          </div>
+          {content}
+        </div>
       </div>
     );
   }
   if (id === "v2") {
     return (
-      <div className="flex h-24 items-center justify-center bg-muted">
-        <div className="flex h-16 w-[80%] overflow-hidden rounded-md border bg-background">
-          <div className="w-6 bg-muted-foreground/20" />
-          <div className="m-1.5 flex-1 rounded-sm bg-primary/10" />
+      <div className="flex h-28 p-3">
+        <div className="flex flex-1 overflow-hidden rounded-md border border-border bg-card shadow-card">
+          <div className="m-1.5 flex w-11 flex-col gap-1.5 rounded-md border border-border p-1.5">{rows}</div>
+          {content}
+        </div>
+      </div>
+    );
+  }
+  if (id === "v3") {
+    return (
+      <div className="flex h-28 p-3">
+        <div className="flex flex-1 overflow-hidden rounded-md border border-border bg-card shadow-card">
+          <div className="flex w-7 flex-col items-center gap-1.5 border-r border-border py-2">
+            <span className="size-2 rounded-full bg-muted-foreground/30" />
+            <span className="size-2 rounded-full bg-muted-foreground/30" />
+            <span className="size-2 rounded-full" style={{ background: accent }} />
+            <span className="size-2 rounded-full bg-muted-foreground/30" />
+          </div>
+          {content}
         </div>
       </div>
     );
   }
   return (
-    <div className="flex h-24 items-center gap-2 bg-muted px-3">
-      <div className="flex h-16 w-8 flex-col gap-1 rounded-md border bg-background p-1">
-        <span className="size-2 rounded-full bg-muted-foreground/40" />
-        <span className="size-2 rounded-full bg-muted-foreground/40" />
-        <span className="size-2 rounded-full bg-primary" />
+    <div className="flex h-28 p-3">
+      <div className="flex flex-1 overflow-hidden rounded-md border border-border bg-card shadow-card">
+        <div className="w-3 bg-foreground/80" />
+        <div className="flex w-12 flex-col gap-1.5 bg-muted/70 p-2">{rows}</div>
+        <div className="flex flex-1 flex-col">
+          <div className="h-4 border-b border-border" />
+          <div className="m-2 flex-1 rounded-md bg-muted" />
+        </div>
       </div>
-      <div className="h-10 flex-1 rounded-md bg-background" />
     </div>
   );
 }
@@ -136,35 +200,53 @@ function StyleThumb({ id }: { id: SidebarStyle }) {
 function LayoutThumb({ id }: { id: number }) {
   if (id === 1) {
     return (
-      <div className="grid h-20 grid-cols-3 gap-1 bg-muted p-2">
+      <div className="grid h-24 grid-cols-3 gap-1.5 p-3">
         {Array.from({ length: 6 }).map((_, index) => (
-          <div key={index} className="rounded-sm bg-primary/20" />
+          <div key={index} className="rounded-sm bg-brand/20" />
         ))}
       </div>
     );
   }
   if (id === 3) {
     return (
-      <div className="grid h-20 grid-cols-5 gap-1 bg-muted p-2">
-        <div className="col-span-2 rounded-sm bg-primary/25" />
-        <div className="col-span-3 rounded-sm bg-background" />
+      <div className="grid h-24 grid-cols-5 gap-1.5 p-3">
+        <div className="col-span-2 flex flex-col gap-1.5">
+          <span className="flex-1 rounded-sm bg-brand/25" />
+          <span className="flex-1 rounded-sm bg-card" />
+          <span className="flex-1 rounded-sm bg-card" />
+        </div>
+        <div className="col-span-3 rounded-sm bg-card shadow-card" />
       </div>
     );
   }
   if (id === 4) {
     return (
-      <div className="flex h-20 flex-col justify-center gap-1 bg-foreground p-3">
-        <div className="h-2 w-10 rounded-full bg-primary" />
+      <div className="flex h-24 flex-col justify-center gap-1.5 bg-foreground p-4">
+        <div className="h-2 w-10 rounded-full bg-brand" />
         <div className="h-1.5 w-full rounded-full bg-background/20" />
         <div className="h-1.5 w-4/5 rounded-full bg-background/20" />
       </div>
     );
   }
+  if (id === 0) {
+    return (
+      <div className="flex h-24 flex-col justify-center gap-2 p-4">
+        {[true, true, false].map((done, index) => (
+          <div key={index} className="flex items-center gap-2">
+            <span className={cn("size-2.5 rounded-full", done ? "bg-success" : "bg-muted-foreground/30")} />
+            <span className="h-1.5 flex-1 rounded-full bg-card" />
+          </div>
+        ))}
+      </div>
+    );
+  }
   return (
-    <div className="flex h-20 flex-col gap-1 bg-muted p-2">
-      <div className="h-6 rounded-sm bg-primary/20" />
-      <div className="h-2 rounded-sm bg-background" />
-      <div className="h-2 rounded-sm bg-background" />
+    <div className="flex h-24 flex-col gap-1.5 p-3">
+      <div className="h-8 rounded-sm bg-brand/20" />
+      <div className="grid flex-1 grid-cols-2 gap-1.5">
+        <div className="rounded-sm bg-card" />
+        <div className="rounded-sm bg-card" />
+      </div>
     </div>
   );
 }
@@ -183,111 +265,105 @@ function PlanLock({
   testId: string;
 }) {
   return (
-    <Card data-testid={testId}>
-      <CardHeader>
-        <div className="flex flex-wrap items-center gap-2">
-          <Lock className="size-4" aria-hidden />
-          <CardTitle className="text-lg">{title}</CardTitle>
-          <Badge variant="secondary">Upgrade</Badge>
-        </div>
-        <CardDescription>{detail}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Button type="button" onClick={onUpgrade} data-testid={`${testId}-upgrade`}>
+    <div data-testid={testId}>
+      <SectionCard
+        icon={<Lock />}
+        title={
+          <span className="flex flex-wrap items-center gap-2">
+            {title}
+            <Badge variant="brand">Upgrade</Badge>
+          </span>
+        }
+        description={detail}
+      >
+        <Button type="button" variant="accent" onClick={onUpgrade} data-testid={`${testId}-upgrade`}>
           Upgrade to {planName}
         </Button>
-      </CardContent>
-    </Card>
+      </SectionCard>
+    </div>
   );
 }
 
-function SaveMenu({
+/** Back and Next at the foot of each step. */
+function StepNav({ start, end }: { start?: ReactNode; end?: ReactNode }) {
+  return (
+    <div className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4">
+      <div className="flex flex-wrap items-center gap-2">{start}</div>
+      <div className="ml-auto flex flex-wrap items-center gap-2">{end}</div>
+    </div>
+  );
+}
+
+function PresetMenu({
   presets,
   saving,
-  dirty,
-  blocked,
-  onSave,
   onSavePreset,
   onLoadPreset,
   onDeletePreset,
-  menuLabel,
-  allowPresets = true,
 }: {
   presets: BrandingPreset[];
   saving: boolean;
-  dirty: boolean;
-  blocked: boolean;
-  onSave: () => void;
   onSavePreset: () => void;
   onLoadPreset: (preset: BrandingPreset) => void;
   onDeletePreset: (preset: BrandingPreset) => void;
-  menuLabel: string;
-  allowPresets?: boolean;
 }) {
   return (
-    <ButtonGroup>
-      <Button
-        type="button"
-        variant="accent"
-        disabled={!dirty || saving}
-        aria-describedby={blocked ? "design-save-blocked" : undefined}
-        onClick={onSave}
-        data-testid="design-save"
-      >
-        {saving ? <Loader2 data-icon="inline-start" /> : null}
-        Save changes
-      </Button>
-      {allowPresets ? <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            type="button"
-            variant="accent"
-            size="icon"
-            className={newUi ? "border-l border-white/35" : undefined}
-            aria-label={menuLabel}
-            data-testid="design-save-menu"
-          >
-            <ChevronDown />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-64">
-          <DropdownMenuGroup>
-            <DropdownMenuItem onClick={onSavePreset}>Save as preset…</DropdownMenuItem>
-          </DropdownMenuGroup>
-          <DropdownMenuSeparator />
-          <DropdownMenuLabel>Saved presets</DropdownMenuLabel>
-          <DropdownMenuGroup>
-            {presets.length ? (
-              presets.map((preset) => (
-                <DropdownMenuItem key={preset.id} onClick={() => onLoadPreset(preset)}>
-                  <span className="min-w-0 flex-1 truncate">{preset.name}</span>
-                  <span className="text-xs text-muted-foreground">Load</span>
-                  <button
-                    type="button"
-                    aria-label={`Delete preset ${preset.name}`}
-                    title="Delete preset"
-                    data-testid="design-preset-delete"
-                    disabled={saving}
-                    className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    onClick={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      if (window.confirm(`Delete the preset "${preset.name}"? Your live branding is not changed.`))
-                        onDeletePreset(preset);
-                    }}
-                    onKeyDown={(event) => event.stopPropagation()}
-                  >
-                    <Trash2 className="size-4" aria-hidden="true" />
-                  </button>
-                </DropdownMenuItem>
-              ))
-            ) : (
-              <DropdownMenuItem disabled>No saved presets yet</DropdownMenuItem>
-            )}
-          </DropdownMenuGroup>
-        </DropdownMenuContent>
-      </DropdownMenu> : null}
-    </ButtonGroup>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button type="button" variant="outline" data-testid="design-save-menu">
+          <Bookmark aria-hidden />
+          Presets
+          <ChevronDown className="text-muted-foreground" aria-hidden />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-72 p-1.5">
+        <DropdownMenuGroup>
+          <DropdownMenuItem onClick={onSavePreset} className="gap-2 font-medium">
+            <Plus className="size-4 text-brand" aria-hidden />
+            Save as preset…
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="px-eyebrow">Saved presets</DropdownMenuLabel>
+        <DropdownMenuGroup className="max-h-64 overflow-y-auto">
+          {presets.length ? (
+            presets.map((preset) => (
+              <DropdownMenuItem
+                key={preset.id}
+                onClick={() => onLoadPreset(preset)}
+                className="group/preset gap-2 py-1.5 pr-1"
+              >
+                <span className="min-w-0 flex-1 truncate">{preset.name}</span>
+                <span className="text-xs font-medium text-muted-foreground group-data-[highlighted]/preset:text-brand">
+                  Load
+                </span>
+                <button
+                  type="button"
+                  aria-label={`Delete preset ${preset.name}`}
+                  title="Delete preset"
+                  data-testid="design-preset-delete"
+                  disabled={saving}
+                  className="grid size-8 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (window.confirm(`Delete the preset "${preset.name}"? Your live branding is not changed.`))
+                      onDeletePreset(preset);
+                  }}
+                  onKeyDown={(event) => event.stopPropagation()}
+                >
+                  <Trash2 className="size-4" aria-hidden="true" />
+                </button>
+              </DropdownMenuItem>
+            ))
+          ) : (
+            <p className="px-2 py-3 text-sm text-muted-foreground">
+              No presets yet. Save this setup to reuse it later.
+            </p>
+          )}
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -381,10 +457,21 @@ export function DesignPageView({
   const confirmRef = useRef<HTMLLabelElement>(null);
   // A blocked Save used to be a greyed-out button with no reason shown.
   // Now it stays clickable, jumps to the required checkbox, and the parent explains why.
+  const [nudge, setNudge] = useState(0);
   const handleSave = () => {
-    if (saveBlocked) confirmRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (saveBlocked) {
+      confirmRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setNudge((count) => count + 1);
+    }
     onSave();
   };
+  // Steps slide in from the side you are travelling to.
+  const tabIndex = TABS.findIndex((item) => item.id === tab);
+  const lastTabIndex = useRef(tabIndex);
+  const direction = tabIndex >= lastTabIndex.current ? 1 : -1;
+  useEffect(() => {
+    lastTabIndex.current = tabIndex;
+  }, [tabIndex]);
   const pageRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
   const [barHeight, setBarHeight] = useState(96);
@@ -449,100 +536,58 @@ export function DesignPageView({
     setMinHeight(Math.max(visible - pageTop, 0));
   }, [dirty, reserve]);
 
-  const saveMenu = (
-    <SaveMenu
-      presets={presets}
-      saving={saving}
-      dirty={dirty}
-      blocked={saveBlocked}
-      onSave={handleSave}
-      onSavePreset={() => setPresetOpen(true)}
-      onLoadPreset={onLoadPreset}
-      onDeletePreset={onDeletePreset}
-      menuLabel="Save options"
-      allowPresets={!brandingLocked}
-    />
-  );
+  const steps = TABS.map((item) => ({
+    id: item.id,
+    label: item.label,
+    hint: item.hint,
+    done: tabChecked(item.id, tab, draft),
+    locked: brandingLocked && (item.id === "style" || item.id === "advanced"),
+  }));
+  const busy = loading || saving;
 
   return (
     <div
       ref={pageRef}
-      className="box-border flex min-w-0 flex-col gap-4"
+      className="box-border flex min-w-0 flex-col gap-6"
       style={dirty ? { paddingBottom: reserve, minHeight } : undefined}
       data-testid="design-page"
     >
       <PageHeader
         title={newUi ? "Branding" : "Design"}
-        subtitle="Brand colors, Client Hub layouts, widgets, and advanced branding for your sub-accounts."
+        subtitle="Make HighLevel look like your own product. Work through the four steps and watch the preview update."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Badge
-              variant="outline"
+              variant={dirty ? "warning" : "success"}
               data-testid="design-dirty"
-              className={cn(
-                "max-w-full gap-1.5 whitespace-normal",
-                dirty
-                  ? "border-amber-500/50 bg-amber-500/10 text-amber-800 dark:text-amber-200"
-                  : "border-success/40 bg-success/10 text-success",
-              )}
+              className="max-w-full gap-1.5 whitespace-normal py-1"
             >
               {dirty ? (
-                <span className="size-1.5 rounded-full bg-amber-600" aria-hidden />
+                <span className="size-1.5 shrink-0 rounded-full bg-warning" aria-hidden />
               ) : (
-                <Check className="size-3" aria-hidden />
+                <Check className="size-3 shrink-0" aria-hidden />
               )}
               {status}
             </Badge>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={!dirty || saving}
-              onClick={onDiscard}
-              data-testid="design-discard"
-            >
-              Discard
-            </Button>
-            {saveMenu}
+            {brandingLocked ? null : (
+              <PresetMenu
+                presets={presets}
+                saving={saving}
+                onSavePreset={() => setPresetOpen(true)}
+                onLoadPreset={onLoadPreset}
+                onDeletePreset={onDeletePreset}
+              />
+            )}
           </div>
         }
       />
 
       {error ? <LoadNotice error={error} onRetry={onRetry} /> : null}
 
-      <div className="grid min-w-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+      {/* Columns follow the room this page really has, so an open Copilot panel stacks them. */}
+      <div className="min-w-0 flex-1 [container-type:inline-size]">
+      <div className="grid min-w-0 gap-6 [@container(min-width:880px)]:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
         <div className="flex min-w-0 flex-col gap-4">
-          {brandingLocked ? null : (
-            <Card data-testid="design-brand-colors">
-              <CardHeader>
-                <CardTitle>Brand colors</CardTitle>
-                <CardDescription>
-                  Primary highlight and sidebar background. They update the preview and save with the
-                  rest of this page.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <ColorPicker
-                    label="Highlight color"
-                    color={draft.primaryColor}
-                    onChange={(primaryColor) => onPatch({ primaryColor })}
-                  />
-                  <ColorPicker
-                    label="Sidebar background"
-                    color={draft.sidebarBgColor}
-                    onChange={(sidebarBgColor) => onPatch({ sidebarBgColor })}
-                  />
-                </div>
-                <div className="flex justify-end">
-                  <Button type="button" variant="ghost" size="sm" onClick={onUndo}>
-                    <Undo />
-                    Undo color change
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           {themeLocked ? (
             <PlanLock
               testId="design-theme-lock"
@@ -554,26 +599,24 @@ export function DesignPageView({
           ) : installed ? (
             <Collapsible open={scriptOpen} onOpenChange={setScriptOpen}>
               <div
-                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-success/30 bg-success/10 px-3 py-2"
+                className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg border border-success/25 bg-success/10 px-4 py-2.5"
                 data-testid="design-install"
               >
-                <div className="flex min-w-0 flex-wrap items-center gap-2 text-sm">
-                  <Badge className="bg-success text-success-foreground">Installed</Badge>
-                  <span className="font-medium">Theme Customizer installed</span>
-                  <span className="text-muted-foreground">
-                    Detected in your HighLevel Custom JS
-                  </span>
+                <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-sm">
+                  <CircleCheck className="size-4 shrink-0 text-success" aria-hidden />
+                  <span className="font-medium text-foreground">Theme Customizer installed</span>
+                  <span className="hidden text-muted-foreground 2xl:inline">Detected in your HighLevel Custom JS</span>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-4">
                   <CollapsibleTrigger asChild>
-                    <Button type="button" variant="link" className="h-auto px-0">
+                    <Button type="button" variant="link" className="h-auto min-h-0 px-0 text-sm">
                       View script
                     </Button>
                   </CollapsibleTrigger>
                   <Button
                     type="button"
                     variant="link"
-                    className="h-auto px-0"
+                    className="h-auto min-h-0 px-0 text-sm"
                     onClick={() => setWhyOpen((open) => !open)}
                   >
                     Why?
@@ -590,33 +633,26 @@ export function DesignPageView({
               ) : null}
             </Collapsible>
           ) : (
-            <Card data-testid="design-install">
-              <CardHeader className="gap-2">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Required
-                  </p>
-                  <Badge
-                    variant="outline"
-                    className="border-amber-500/50 bg-amber-500/10 text-amber-800 dark:text-amber-200"
-                  >
-                    Not detected
-                  </Badge>
-                </div>
-                <CardTitle className="flex flex-wrap items-center gap-2 text-lg">
-                  Install Theme Customizer
-                  <Badge variant="secondary">Beta</Badge>
-                  <span className="text-sm font-normal text-muted-foreground">
-                    Full release Nov 1
+            <div data-testid="design-install">
+              <SectionCard
+                icon={<Code2 />}
+                title={
+                  <span className="flex flex-wrap items-center gap-2">
+                    Install Theme Customizer
+                    <Badge variant="secondary">Beta</Badge>
+                    <span className="text-sm font-normal text-muted-foreground">Full release Nov 1</span>
                   </span>
-                </CardTitle>
-                <CardDescription>
-                  Paste this script into HighLevel once. Your styles won't show in sub-accounts
-                  until it's installed.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-3">
-                <div className="grid gap-2 sm:grid-cols-3">
+                }
+                description="Paste this script into HighLevel once. Your styles won't show in sub-accounts until it's installed."
+                actions={
+                  <div className="flex items-center gap-2">
+                    <span className="px-eyebrow">Required</span>
+                    <Badge variant="warning">Not detected</Badge>
+                  </div>
+                }
+                bodyClassName="flex flex-col gap-3"
+              >
+                <ol className="grid gap-2 sm:grid-cols-3">
                   {[
                     [
                       "1",
@@ -634,64 +670,75 @@ export function DesignPageView({
                       "Refresh HighLevel. This badge turns green when we detect it.",
                     ],
                   ].map(([step, title, body]) => (
-                    <div key={step} className="rounded-lg border bg-card p-3">
-                      <span className="mb-2 inline-flex size-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
+                    <li key={step} className="rounded-md border border-border bg-muted/40 p-3">
+                      <span className="mb-2 inline-flex size-6 items-center justify-center rounded-full bg-brand-subtle text-xs font-semibold text-brand">
                         {step}
                       </span>
                       <p className="text-sm font-medium">{title}</p>
                       <p className="mt-1 text-xs text-muted-foreground">{body}</p>
-                    </div>
+                    </li>
                   ))}
-                </div>
+                </ol>
                 {scriptBlock(script, onCopyScript)}
-                <Alert className="border-amber-500/40 bg-amber-500/10">
-                  <AlertDescription className="flex flex-wrap items-center justify-between gap-2 text-amber-950 dark:text-amber-100">
+                <Collapsible open={whyOpen} onOpenChange={setWhyOpen}>
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm">
                     <span>
                       Already installed an older version? Update your HighLevel Custom JS so themes
                       save per sub-account.
                     </span>
-                    <Collapsible open={whyOpen} onOpenChange={setWhyOpen}>
-                      <CollapsibleTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="link"
-                          className="h-auto px-0 text-amber-950 dark:text-amber-100"
-                        >
-                          Why?
-                        </Button>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="basis-full pt-2">
-                        <InstallUpdateNote />
-                      </CollapsibleContent>
-                    </Collapsible>
-                  </AlertDescription>
-                </Alert>
-              </CardContent>
-            </Card>
+                    <CollapsibleTrigger asChild>
+                      <Button type="button" variant="link" className="h-auto min-h-0 px-0 text-foreground">
+                        Why?
+                      </Button>
+                    </CollapsibleTrigger>
+                  </div>
+                  <CollapsibleContent className="pt-2">
+                    <InstallUpdateNote />
+                  </CollapsibleContent>
+                </Collapsible>
+              </SectionCard>
+            </div>
           )}
 
-          {sidebarWarning ? (
-            <label
-              ref={confirmRef}
-              id="design-sidebar-confirm"
-              className="flex scroll-mt-24 items-start gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm"
-            >
-              <Checkbox
-                checked={sidebarModeConfirmed}
-                onCheckedChange={(checked) => onConfirmSidebar(checked === true)}
-                aria-required="true"
-                className="mt-0.5"
-              />
-              <span>
-                <span className="font-medium">Required before saving. </span>
-                {sidebarWarning}
-              </span>
-            </label>
-          ) : null}
+          {brandingLocked ? null : (
+            <div data-testid="design-brand-colors">
+              <SectionCard
+                icon={<Palette />}
+                title="Brand colors"
+                description="Your highlight and sidebar background. They carry through every step."
+              >
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <ColorPicker
+                    label="Highlight color"
+                    color={draft.primaryColor}
+                    onChange={(primaryColor) => onPatch({ primaryColor })}
+                  />
+                  <ColorPicker
+                    label="Sidebar background"
+                    color={draft.sidebarBgColor}
+                    onChange={(sidebarBgColor) => onPatch({ sidebarBgColor })}
+                  />
+                </div>
+                <div className="mt-2 flex justify-end">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground"
+                    onClick={onUndo}
+                  >
+                    <Undo />
+                    Undo color change
+                  </Button>
+                </div>
+              </SectionCard>
+            </div>
+          )}
 
-          <Tabs
-            value={tab}
-            onValueChange={(value) => {
+          <StudioSteps
+            steps={steps}
+            active={tab}
+            onChange={(value) => {
               if (
                 value === "style" ||
                 value === "layout" ||
@@ -700,44 +747,24 @@ export function DesignPageView({
               )
                 onTab(value);
             }}
-          >
-            <TabsList className="flex h-auto w-full items-center justify-start gap-x-4 gap-y-2 bg-transparent p-0 max-xl:!grid max-xl:!grid-cols-2 max-xl:!overflow-visible xl:!flex-wrap">
-              {TABS.map((item) => {
-                const checked = tabChecked(item.id, tab, draft);
-                const active = tab === item.id;
-                const sectionLocked =
-                  brandingLocked && (item.id === "style" || item.id === "advanced");
-                return (
-                  <div key={item.id} className="inline-flex items-center gap-2">
-                    <span
-                      className={cn(
-                        "text-sm font-bold leading-none",
-                        active ? "text-foreground" : "text-muted-foreground",
-                      )}
-                      aria-hidden
-                    >
-                      {item.step}
-                    </span>
-                    <TabsTrigger
-                      value={item.id}
-                      data-testid={`design-tab-${item.id}`}
-                      aria-label={`${item.step} ${item.label}`}
-                      className="gap-2 rounded-full px-3 font-bold data-[state=active]:bg-background"
-                    >
-                      {sectionLocked ? (
-                        <Lock className="size-3.5" aria-hidden />
-                      ) : checked ? (
-                        <Check className="size-3.5" aria-hidden />
-                      ) : null}
-                      {item.label}
-                    </TabsTrigger>
-                  </div>
-                );
-              })}
-            </TabsList>
+            label="Branding steps"
+            testIdPrefix="design-tab"
+            panelId={PANEL_ID}
+          />
 
-            <TabsContent value="style" className="mt-3">
-              {brandingLocked ? (
+          <motion.div
+            key={tab}
+            id={PANEL_ID}
+            role="tabpanel"
+            aria-labelledby={`design-tab-${tab}`}
+            custom={direction}
+            variants={slideStep}
+            initial="enter"
+            animate="center"
+            className="flex min-w-0 flex-col gap-4"
+          >
+            {tab === "style" ? (
+              brandingLocked ? (
                 <PlanLock
                   testId="design-branding-lock"
                   title="Branding tool"
@@ -746,239 +773,218 @@ export function DesignPageView({
                   onUpgrade={onUpgrade}
                 />
               ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Sidebar style</CardTitle>
-                  <CardDescription>Choose a sidebar style for your sub-accounts.</CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  <div
-                    className="grid gap-3 sm:grid-cols-2"
-                    role="radiogroup"
-                    aria-label="Sidebar style"
+                <>
+                  <SectionCard
+                    icon={<PanelLeft />}
+                    title="Sidebar style"
+                    description="Choose a sidebar style for your sub-accounts."
                   >
-                    {STYLES.map((style) => {
-                      const selected = draft.sidebarStyle === style.id;
-                      return (
-                        <Button
-                          variant="ghost"
+                    <div
+                      className="grid gap-3 sm:grid-cols-2"
+                      role="radiogroup"
+                      aria-label="Sidebar style"
+                    >
+                      {STYLES.map((style) => (
+                        <ChoiceCard
                           key={style.id}
-                          type="button"
-                          role="radio"
-                          aria-checked={selected}
-                          disabled={loading || saving}
-                          onClick={() => onPatch({ sidebarStyle: style.id })}
-                          className={cn(
-                            "h-auto flex-col items-stretch whitespace-normal overflow-hidden rounded-lg border bg-card p-0 text-left",
-                            selected ? "border-primary ring-2 ring-primary/20" : "border-border",
-                          )}
-                        >
-                          <div className="relative">
-                            <StyleThumb id={style.id} />
-                            <span
-                              className={cn(
-                                "absolute right-2 top-2 size-4 rounded-full border-2",
-                                selected
-                                  ? "border-primary bg-primary"
-                                  : "border-muted-foreground/40 bg-background",
-                              )}
+                          selected={draft.sidebarStyle === style.id}
+                          disabled={busy}
+                          onSelect={() => onPatch({ sidebarStyle: style.id })}
+                          thumb={
+                            <StyleThumb
+                              id={style.id}
+                              accent={draft.primaryColor}
+                              sidebar={draft.sidebarBgColor}
                             />
-                          </div>
-                          <div className="p-3">
-                            <p className="text-sm font-semibold">{style.name}</p>
-                            <p className="text-xs text-muted-foreground">{style.detail}</p>
-                            {savedStyle === style.id ? (
-                              <Badge className="mt-2">Applied</Badge>
-                            ) : null}
-                          </div>
-                        </Button>
-                      );
-                    })}
-                  </div>
-                  {draft.sidebarStyle === "switchyard" && <section className="space-y-4 border-t pt-4">
-                    <div className="flex items-center justify-between gap-3"><Label htmlFor="switchyard-customizer">Theme Customizer in HighLevel</Label><Switch id="switchyard-customizer" checked={draft.customizerEnabled !== false} onCheckedChange={customizerEnabled => onPatch({ customizerEnabled })} /></div>
-                    <div className="grid gap-4 sm:grid-cols-2">{SWITCHYARD_FIELDS.map(([key,label]) => <ColorPicker key={key} label={label} color={cleanSwitchyardColors(draft.switchyard)[key]} onChange={value => onPatch({ switchyard: { ...cleanSwitchyardColors(draft.switchyard), [key]: value } })} />)}</div>
-                  </section>}
-                  <FaviconControl value={draft.faviconUrl || ""} onChange={faviconUrl => onPatch({ faviconUrl })} disabled={loading || saving} />
-                  <p className="text-sm text-muted-foreground">
-                    Agency name and logo are managed in Settings.{" "}
-                    <Link
-                      to="/app/settings"
-                      className="font-medium text-foreground underline-offset-4 hover:underline"
-                    >
-                      Edit in Settings →
-                    </Link>
-                  </p>
-                </CardContent>
-                <CardFooter className="flex-wrap gap-2">
-                  {savedStyle !== null ? (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          disabled={loading || saving}
-                          data-testid="design-turn-off-branding"
-                        >
-                          Turn off branding
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This turns off sidebar branding for your sub-accounts. Login, buttons,
-                            and other customizations stay as they are.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            disabled={saving}
-                            onClick={onRemoveBranding}
-                            data-testid="design-turn-off-branding-confirm"
-                          >
-                            Turn off branding
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  ) : null}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="ml-auto"
-                    onClick={() => onTab("layout")}
-                  >
-                    Next: Layout →
-                  </Button>
-                </CardFooter>
-              </Card>
-              )}
-            </TabsContent>
-
-            <TabsContent value="layout" className="mt-3">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Client Hub layout</CardTitle>
-                  <CardDescription>
-                    Pick how the Client Hub looks inside each sub-account. Simplified Onboarding is
-                    one of the options.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div
-                    className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
-                    role="radiogroup"
-                    aria-label="Client Hub layout"
-                  >
-                    {LAYOUTS.map((layout) => {
-                      const selected = draft.layout === layout.id;
-                      return (
-                        <button
-                          key={layout.id}
-                          type="button"
-                          role="radio"
-                          aria-checked={selected}
-                          disabled={loading || saving}
-                          onClick={() => onPatch({ layout: layout.id, layoutKnown: true })}
-                          className={cn(
-                            "overflow-hidden rounded-xl border bg-card text-left",
-                            selected ? "border-primary ring-2 ring-primary/20" : "border-border",
-                          )}
-                        >
-                          <div className="relative">
-                            <LayoutThumb id={layout.id} />
-                            <span
-                              className={cn(
-                                "absolute right-2 top-2 size-4 rounded-full border-2",
-                                selected
-                                  ? "border-primary bg-primary"
-                                  : "border-muted-foreground/40 bg-background",
-                              )}
+                          }
+                          title={style.name}
+                          detail={style.detail}
+                          badge={
+                            savedStyle === style.id ? <Badge variant="success">Applied</Badge> : null
+                          }
+                        />
+                      ))}
+                    </div>
+                    {draft.sidebarStyle === "switchyard" ? (
+                      <section className="mt-4 flex flex-col gap-4 rounded-lg border border-border bg-muted/40 p-3 sm:p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <Label htmlFor="switchyard-customizer">Theme Customizer in HighLevel</Label>
+                          <Switch
+                            id="switchyard-customizer"
+                            checked={draft.customizerEnabled !== false}
+                            onCheckedChange={(customizerEnabled) => onPatch({ customizerEnabled })}
+                          />
+                        </div>
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          {SWITCHYARD_FIELDS.map(([key, label]) => (
+                            <ColorPicker
+                              key={key}
+                              label={label}
+                              color={cleanSwitchyardColors(draft.switchyard)[key]}
+                              onChange={(value) =>
+                                onPatch({
+                                  switchyard: { ...cleanSwitchyardColors(draft.switchyard), [key]: value },
+                                })
+                              }
                             />
-                          </div>
-                          <div className="p-3">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="text-sm font-semibold">{layout.name}</p>
-                              {savedLayout === layout.id ? (
-                                <Badge variant="secondary">Current</Badge>
-                              ) : null}
-                            </div>
-                            <p className="text-xs text-muted-foreground">{layout.detail}</p>
-                          </div>
-                        </button>
-                      );
-                    })}
-                    <button
-                      type="button"
-                      onClick={onOpenSimplified}
-                      className="overflow-hidden rounded-xl border border-border bg-card text-left"
-                    >
-                      <div className="flex h-20 flex-col justify-center gap-1 bg-muted p-3">
-                        <span className="size-2 rounded-full bg-success" />
-                        <span className="h-1.5 w-3/4 rounded-full bg-background" />
-                        <span className="h-1.5 w-1/2 rounded-full bg-background" />
-                      </div>
-                      <div className="p-3">
-                        <p className="text-sm font-semibold">Simplified Onboarding</p>
-                        <p className="text-xs text-muted-foreground">Step-by-step checklist</p>
-                      </div>
-                    </button>
-                  </div>
-                </CardContent>
-                <CardFooter className="justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => onTab("style")}>
-                    ← Style
-                  </Button>
-                  <Button type="button" variant="outline" onClick={() => onTab("widgets")}>
-                    Next: Widgets →
-                  </Button>
-                </CardFooter>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="widgets" className="mt-3">
-              <Card data-testid="design-widgets">
-                <CardHeader>
-                  <CardTitle>Popup & help widgets</CardTitle>
-                  <CardDescription>
-                    A chat-style launcher that opens your Client Hub. It shows up in sub-accounts
-                    that have your installation code.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium">Bottom right chat popup</p>
-                      <p className="text-xs text-muted-foreground">
-                        Floating button in the bottom-right corner of HighLevel
-                      </p>
+                          ))}
+                        </div>
+                      </section>
+                    ) : null}
+                    <div className="mt-4">
+                      <FaviconControl
+                        value={draft.faviconUrl || ""}
+                        onChange={(faviconUrl) => onPatch({ faviconUrl })}
+                        disabled={busy}
+                      />
                     </div>
-                    <Switch
-                      checked={draft.popupEnabled}
-                      onCheckedChange={(value) => onPatch({ popupEnabled: value })}
-                      aria-label="Bottom right chat popup"
-                      data-testid="design-widget-popup"
-                    />
-                  </div>
-                  <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium">Top Navigation Help Widget</p>
-                      <p className="text-xs text-muted-foreground">
-                        Help button in the HighLevel top navigation bar
-                      </p>
-                    </div>
-                    <Switch
-                      checked={draft.topNav.enabled}
-                      onCheckedChange={(value) =>
-                        onPatch({ topNav: { ...draft.topNav, enabled: value } })
+                    <p className="mt-4 text-sm text-muted-foreground">
+                      Agency name and logo are managed in Settings.{" "}
+                      <Link
+                        to="/app/settings"
+                        className="font-medium text-brand underline-offset-4 hover:underline"
+                      >
+                        Edit in Settings
+                      </Link>
+                    </p>
+                    <StepNav
+                      start={
+                        savedStyle !== null ? (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                disabled={busy}
+                                data-testid="design-turn-off-branding"
+                              >
+                                Turn off branding
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This turns off sidebar branding for your sub-accounts. Login,
+                                  buttons, and other customizations stay as they are.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  disabled={saving}
+                                  onClick={onRemoveBranding}
+                                  data-testid="design-turn-off-branding-confirm"
+                                >
+                                  Turn off branding
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        ) : null
                       }
-                      aria-label="Top navigation help widget"
-                      data-testid="design-widget-top-nav"
+                      end={
+                        <Button type="button" variant="outline" onClick={() => onTab("layout")}>
+                          Next: Layout
+                          <ArrowRight aria-hidden />
+                        </Button>
+                      }
                     />
-                  </div>
-                  {draft.topNav.enabled ? (
+                  </SectionCard>
+                </>
+              )
+            ) : null}
+
+            {tab === "layout" ? (
+              <SectionCard
+                icon={<LayoutGrid />}
+                title="Client Hub layout"
+                description="Pick how the Client Hub looks inside each sub-account."
+              >
+                <div
+                  className="grid gap-3 sm:grid-cols-2"
+                  role="radiogroup"
+                  aria-label="Client Hub layout"
+                >
+                  {LAYOUTS.map((layout) => (
+                    <ChoiceCard
+                      key={layout.id}
+                      selected={draft.layout === layout.id}
+                      disabled={busy}
+                      onSelect={() => onPatch({ layout: layout.id, layoutKnown: true })}
+                      thumb={<LayoutThumb id={layout.id} />}
+                      title={layout.name}
+                      detail={layout.detail}
+                      badge={savedLayout === layout.id ? <Badge variant="success">Current</Badge> : null}
+                    />
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={onOpenSimplified}
+                  className="group mt-3 flex w-full items-center gap-3 rounded-lg border border-dashed border-border bg-muted/40 p-3 text-left transition-colors hover:border-brand/40 hover:bg-brand-subtle/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-4"
+                >
+                  <span className="px-icon-chip shrink-0" aria-hidden>
+                    <CircleCheck className="size-5" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold text-foreground">
+                      Simplified Onboarding
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      Prefer a step-by-step checklist? It has its own page.
+                    </span>
+                  </span>
+                  <ArrowUpRight
+                    className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-brand"
+                    aria-hidden
+                  />
+                </button>
+                <StepNav
+                  start={
+                    <Button type="button" variant="ghost" onClick={() => onTab("style")}>
+                      <ArrowLeft aria-hidden />
+                      Style
+                    </Button>
+                  }
+                  end={
+                    <Button type="button" variant="outline" onClick={() => onTab("widgets")}>
+                      Next: Widgets
+                      <ArrowRight aria-hidden />
+                    </Button>
+                  }
+                />
+              </SectionCard>
+            ) : null}
+
+            {tab === "widgets" ? (
+              <div data-testid="design-widgets">
+                <SectionCard
+                  icon={<MessageCircle />}
+                  title="Popup & help widgets"
+                  description="Launchers that open your Client Hub from inside HighLevel. They show in sub-accounts that have your installation code."
+                  bodyClassName="flex flex-col gap-3"
+                >
+                  <ToggleSection
+                    icon={<MessageCircle />}
+                    title="Bottom right chat popup"
+                    detail="Floating button in the bottom-right corner of HighLevel"
+                    checked={draft.popupEnabled}
+                    onCheckedChange={(value) => onPatch({ popupEnabled: value })}
+                    switchLabel="Bottom right chat popup"
+                    switchTestId="design-widget-popup"
+                  />
+                  <ToggleSection
+                    icon={<HelpCircle />}
+                    title="Top Navigation Help Widget"
+                    detail="Help button in the HighLevel top navigation bar"
+                    checked={draft.topNav.enabled}
+                    onCheckedChange={(value) =>
+                      onPatch({ topNav: { ...draft.topNav, enabled: value } })
+                    }
+                    switchLabel="Top navigation help widget"
+                    switchTestId="design-widget-top-nav"
+                  >
                     <TopNavWidgetCard
                       email={email}
                       colors={widgetColors}
@@ -988,21 +994,27 @@ export function DesignPageView({
                         onChange: (topNav) => onPatch({ topNav }),
                       }}
                     />
-                  ) : null}
-                </CardContent>
-                <CardFooter className="justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => onTab("layout")}>
-                    ← Layout
-                  </Button>
-                  <Button type="button" variant="outline" onClick={() => onTab("advanced")}>
-                    Next: Advanced →
-                  </Button>
-                </CardFooter>
-              </Card>
-            </TabsContent>
+                  </ToggleSection>
+                  <StepNav
+                    start={
+                      <Button type="button" variant="ghost" onClick={() => onTab("layout")}>
+                        <ArrowLeft aria-hidden />
+                        Layout
+                      </Button>
+                    }
+                    end={
+                      <Button type="button" variant="outline" onClick={() => onTab("advanced")}>
+                        Next: Advanced
+                        <ArrowRight aria-hidden />
+                      </Button>
+                    }
+                  />
+                </SectionCard>
+              </div>
+            ) : null}
 
-            <TabsContent value="advanced" className="mt-3">
-              {brandingLocked ? (
+            {tab === "advanced" ? (
+              brandingLocked ? (
                 <PlanLock
                   testId="design-branding-lock"
                   title="Branding tool"
@@ -1011,198 +1023,169 @@ export function DesignPageView({
                   onUpgrade={onUpgrade}
                 />
               ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Advanced</CardTitle>
-                  <CardDescription>
-                    Optional extras. Turn one on to see its settings.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-3">
-                  <section className="rounded-lg border">
-                    <div className="flex items-center justify-between gap-3 p-3">
+                <SectionCard
+                  icon={<SlidersHorizontal />}
+                  title="Advanced"
+                  description="Optional extras. Turn one on to see its settings."
+                  bodyClassName="flex flex-col gap-3"
+                >
+                  <ToggleSection
+                    icon={<LogIn />}
+                    title="Login Page Customization"
+                    detail="Custom background, logo and styled login form"
+                    checked={draft.loginCustomEnabled}
+                    onCheckedChange={(value) => onPatch({ loginCustomEnabled: value })}
+                    switchLabel="Login page customization"
+                  >
+                    <LoginCustomizationPanel
+                      hideHeader
+                      enabled
+                      onToggle={(value) => onPatch({ loginCustomEnabled: value })}
+                      selectedBackground={draft.loginBackground}
+                      onBackgroundChange={(loginBackground) => onPatch({ loginBackground })}
+                      logoUrl={draft.loginLogoUrl}
+                      onLogoUrlChange={(loginLogoUrl) => onPatch({ loginLogoUrl })}
+                    />
+                    <ColorPicker
+                      label="Login & Top Button Color"
+                      color={draft.primaryColor}
+                      onChange={(primaryColor) => onPatch({ primaryColor })}
+                    />
+                  </ToggleSection>
+
+                  <ToggleSection
+                    icon={<MousePointerClick />}
+                    title="Top Button Customization"
+                    detail="Styled navigation buttons with gradient hover effects"
+                    checked={draft.buttonCustomEnabled}
+                    onCheckedChange={(value) => onPatch({ buttonCustomEnabled: value })}
+                    switchLabel="Top button customization"
+                  >
+                    <ButtonCustomizationPanel
+                      hideHeader
+                      enabled
+                      onToggle={(value) => onPatch({ buttonCustomEnabled: value })}
+                      primaryColor={draft.primaryColor}
+                    />
+                    <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-sm font-medium">Login Page Customization</p>
+                        <p className="text-sm font-medium">Custom top button gradient</p>
                         <p className="text-xs text-muted-foreground">
-                          Custom background, logo and styled login form
+                          Override the gradient used for active and hover states.
                         </p>
                       </div>
                       <Switch
-                        checked={draft.loginCustomEnabled}
-                        onCheckedChange={(value) => onPatch({ loginCustomEnabled: value })}
-                        aria-label="Login page customization"
+                        checked={draft.topGradientCustomEnabled}
+                        onCheckedChange={(value) => onPatch({ topGradientCustomEnabled: value })}
+                        aria-label="Custom top button gradient"
                       />
                     </div>
-                    {draft.loginCustomEnabled ? (
-                      <div className="flex flex-col gap-4 border-t p-3">
-                        <LoginCustomizationPanel
-                          hideHeader
-                          enabled
-                          onToggle={(value) => onPatch({ loginCustomEnabled: value })}
-                          selectedBackground={draft.loginBackground}
-                          onBackgroundChange={(loginBackground) => onPatch({ loginBackground })}
-                          logoUrl={draft.loginLogoUrl}
-                          onLogoUrlChange={(loginLogoUrl) => onPatch({ loginLogoUrl })}
+                    {draft.topGradientCustomEnabled ? (
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <ColorPicker
+                          label="Top Gradient Start"
+                          color={draft.topGradientStart}
+                          onChange={(topGradientStart) => onPatch({ topGradientStart })}
                         />
                         <ColorPicker
-                          label="Login & Top Button Color"
-                          color={draft.primaryColor}
-                          onChange={(primaryColor) => onPatch({ primaryColor })}
+                          label="Top Gradient End"
+                          color={draft.topGradientEnd}
+                          onChange={(topGradientEnd) => onPatch({ topGradientEnd })}
                         />
                       </div>
                     ) : null}
-                  </section>
+                  </ToggleSection>
 
-                  <section className="rounded-lg border">
-                    <div className="flex items-center justify-between gap-3 p-3">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium">Top Button Customization</p>
-                        <p className="text-xs text-muted-foreground">
-                          Styled navigation buttons with gradient hover effects
-                        </p>
-                      </div>
-                      <Switch
-                        checked={draft.buttonCustomEnabled}
-                        onCheckedChange={(value) => onPatch({ buttonCustomEnabled: value })}
-                        aria-label="Top button customization"
-                      />
-                    </div>
-                    {draft.buttonCustomEnabled ? (
-                      <div className="flex flex-col gap-4 border-t p-3">
-                        <ButtonCustomizationPanel
-                          hideHeader
-                          enabled
-                          onToggle={(value) => onPatch({ buttonCustomEnabled: value })}
-                          primaryColor={draft.primaryColor}
-                        />
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-medium">Custom top button gradient</p>
-                            <p className="text-xs text-muted-foreground">
-                              Override the gradient used for active and hover states.
-                            </p>
-                          </div>
-                          <Switch
-                            checked={draft.topGradientCustomEnabled}
-                            onCheckedChange={(value) =>
-                              onPatch({ topGradientCustomEnabled: value })
-                            }
-                            aria-label="Custom top button gradient"
-                          />
-                        </div>
-                        {draft.topGradientCustomEnabled ? (
-                          <div className="grid gap-4 sm:grid-cols-2">
-                            <ColorPicker
-                              label="Top Gradient Start"
-                              color={draft.topGradientStart}
-                              onChange={(topGradientStart) => onPatch({ topGradientStart })}
-                            />
-                            <ColorPicker
-                              label="Top Gradient End"
-                              color={draft.topGradientEnd}
-                              onChange={(topGradientEnd) => onPatch({ topGradientEnd })}
-                            />
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </section>
-
-                  <section className="rounded-lg border">
-                    <div className="flex items-center justify-between gap-3 p-3">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-sm font-medium">Mobile Branding</p>
-                          <Badge variant="secondary">Beta</Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Full-screen branded menu, full-width pages, smoother scrolling and zoom
-                          controls on mobile
-                        </p>
-                      </div>
-                      <Switch
-                        checked={draft.mobileEnabled}
-                        onCheckedChange={(value) => onPatch({ mobileEnabled: value })}
-                        aria-label="Mobile branding"
-                      />
-                    </div>
-                    {draft.mobileEnabled ? (
-                      <div className="border-t p-3">
-                        <MobileBrandingCard
-                          email={email}
-                          colors={widgetColors}
-                          hideChrome
-                          controlled={{
-                            enabled: draft.mobileEnabled,
-                            menuColor: draft.mobileMenuColor,
-                            zoomEnabled: draft.mobileZoomEnabled,
-                            onChange: (next) =>
-                              onPatch({
-                                mobileEnabled: next.enabled,
-                                mobileMenuColor: next.menuColor,
-                                mobileZoomEnabled: next.zoomEnabled,
-                              }),
-                          }}
-                        />
-                      </div>
-                    ) : null}
-                  </section>
+                  <ToggleSection
+                    icon={<Smartphone />}
+                    title="Mobile Branding"
+                    badge={<Badge variant="secondary">Beta</Badge>}
+                    detail="Full-screen branded menu, full-width pages, smoother scrolling and zoom controls on mobile"
+                    checked={draft.mobileEnabled}
+                    onCheckedChange={(value) => onPatch({ mobileEnabled: value })}
+                    switchLabel="Mobile branding"
+                  >
+                    <MobileBrandingCard
+                      email={email}
+                      colors={widgetColors}
+                      hideChrome
+                      controlled={{
+                        enabled: draft.mobileEnabled,
+                        menuColor: draft.mobileMenuColor,
+                        zoomEnabled: draft.mobileZoomEnabled,
+                        onChange: (next) =>
+                          onPatch({
+                            mobileEnabled: next.enabled,
+                            mobileMenuColor: next.menuColor,
+                            mobileZoomEnabled: next.zoomEnabled,
+                          }),
+                      }}
+                    />
+                  </ToggleSection>
 
                   <Collapsible open={sidebarDetails} onOpenChange={setSidebarDetails}>
-                    <div className="rounded-lg border">
-                      <CollapsibleTrigger className="flex w-full items-center justify-between gap-3 p-3 text-left">
-                        <div>
-                          <p className="text-sm font-medium">Sidebar details</p>
-                          <p className="text-xs text-muted-foreground">Font, icons, and motion</p>
-                        </div>
+                    <div className="rounded-lg border border-border bg-card">
+                      <CollapsibleTrigger className="flex w-full items-center gap-3 rounded-lg p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-4">
+                        <span className="px-icon-chip hidden shrink-0 sm:inline-grid" aria-hidden>
+                          <PanelLeft className="size-5" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-semibold">Sidebar details</span>
+                          <span className="block text-xs text-muted-foreground">
+                            Font, icons, and motion
+                          </span>
+                        </span>
                         <ChevronDown
                           className={cn(
-                            "size-4 text-muted-foreground",
+                            "size-4 shrink-0 text-muted-foreground transition-transform duration-200",
                             sidebarDetails && "rotate-180",
                           )}
+                          aria-hidden
                         />
                       </CollapsibleTrigger>
-                      <CollapsibleContent className="flex flex-col gap-4 border-t p-3">
-                        <FontSelector
-                          selectedFont={draft.font}
-                          onSelectFont={(font) => onPatch({ font })}
-                        />
-                        <div className="flex flex-col gap-2">
-                          <Label htmlFor="branding-icons">Icon style</Label>
-                          <Select
-                            value={draft.iconPack}
-                            onValueChange={(iconPack) => onPatch({ iconPack })}
-                          >
-                            <SelectTrigger id="branding-icons">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {[
-                                ["default", "Original HighLevel"],
-                                ["lucide", "Lucide"],
-                                ["phosphor", "Phosphor"],
-                                ["tabler", "Tabler"],
-                                ["phosphor-duotone", "Phosphor duotone"],
-                              ].map(([value, label]) => (
-                                <SelectItem key={value} value={value}>
-                                  {label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                      <CollapsibleContent className="flex flex-col gap-4 border-t border-border p-3 sm:p-4">
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <FontSelector
+                            selectedFont={draft.font}
+                            onSelectFont={(font) => onPatch({ font })}
+                          />
+                          <div className="flex flex-col gap-2">
+                            <Label htmlFor="branding-icons">Icon style</Label>
+                            <Select
+                              value={draft.iconPack}
+                              onValueChange={(iconPack) => onPatch({ iconPack })}
+                            >
+                              <SelectTrigger id="branding-icons">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {[
+                                  ["default", "Original HighLevel"],
+                                  ["lucide", "Lucide"],
+                                  ["phosphor", "Phosphor"],
+                                  ["tabler", "Tabler"],
+                                  ["phosphor-duotone", "Phosphor duotone"],
+                                ].map(([value, label]) => (
+                                  <SelectItem key={value} value={value}>
+                                    {label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <Label htmlFor="branding-motion">Navigation animations</Label>
                           <Switch
                             id="branding-motion"
                             checked={draft.motion}
                             onCheckedChange={(motion) => onPatch({ motion })}
                           />
-                          <Label htmlFor="branding-motion">Navigation animations</Label>
                         </div>
                         {draft.sidebarStyle === "v2" ? (
                           <div className="flex flex-col gap-3">
                             <div className="flex items-center justify-between gap-3">
-                              <div>
+                              <div className="min-w-0">
                                 <p className="text-sm font-medium">Simple sidebar gradient</p>
                                 <p className="text-xs text-muted-foreground">
                                   Override the gradient used for active sidebar buttons.
@@ -1235,92 +1218,136 @@ export function DesignPageView({
                       </CollapsibleContent>
                     </div>
                   </Collapsible>
-                </CardContent>
-                <CardFooter className="justify-end">
-                  <Button type="button" variant="outline" onClick={() => onTab("widgets")}>
-                    ← Widgets
-                  </Button>
-                </CardFooter>
-              </Card>
-              )}
-            </TabsContent>
-          </Tabs>
+                  <StepNav
+                    start={
+                      <Button type="button" variant="ghost" onClick={() => onTab("widgets")}>
+                        <ArrowLeft aria-hidden />
+                        Widgets
+                      </Button>
+                    }
+                  />
+                </SectionCard>
+              )
+            ) : null}
+          </motion.div>
 
           {dirty ? null : (
             <Button
               type="button"
               variant="ghost"
-              className="self-start"
+              className="self-start text-muted-foreground"
               onClick={onBack}
               data-testid="design-back"
             >
+              <ArrowLeft aria-hidden />
               Back
             </Button>
           )}
         </div>
 
-        <div className="min-w-0 lg:sticky lg:top-4 lg:self-start">
-          <Card>
-            <CardContent className="pt-6">
-              <DesignPreview
-                draft={draft}
-                surface={surface}
-                device={device}
-                onSurface={onSurface}
-                onDevice={onDevice}
-              />
-            </CardContent>
-          </Card>
+        <div className="min-w-0 [@container(min-width:880px)]:sticky [@container(min-width:880px)]:top-4 [@container(min-width:880px)]:self-start">
+          <div className="px-surface p-4 sm:p-6">
+            <DesignPreview
+              draft={draft}
+              surface={surface}
+              device={device}
+              onSurface={onSurface}
+              onDevice={onDevice}
+            />
+          </div>
         </div>
+      </div>
       </div>
 
       {dirty ? (
-        <div
+        <motion.div
           ref={barRef}
-          className="pointer-events-none fixed left-0 right-0 z-40 flex flex-col items-start gap-2 px-3 pb-3 md:pr-24 md:left-[var(--sidebar-width)] md:w-[calc(100%-var(--sidebar-width))] lg:w-[calc(100%-var(--sidebar-width)-var(--copilot-dock-offset,0px))]"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: DURATION.slow, ease: EASE_OUT }}
+          className="pointer-events-none fixed left-0 right-0 z-40 px-3 pb-3 md:left-[var(--sidebar-width)] md:w-[calc(100%-var(--sidebar-width))] md:pr-24 lg:w-[calc(100%-var(--sidebar-width)-var(--copilot-dock-offset,0px))]"
           style={{ bottom: noticeOffset }}
           data-testid="design-save-bar"
         >
-          <Button
-            type="button"
-            variant="outline"
-            className="pointer-events-auto bg-background shadow-sm"
-            onClick={onBack}
-            data-testid="design-back"
-          >
-            Back
-          </Button>
-          <div className="pointer-events-auto mx-auto flex w-full max-w-[1400px] flex-col gap-2 rounded-xl bg-foreground px-3 py-2.5 text-background sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-4">
-            <p className="min-w-0 text-sm leading-5 sm:truncate">
-              {bar}
-              {saveBlocked ? (
-                <span id="design-save-blocked" className="font-semibold">
-                  {" "}
-                  — tick the “Required before saving” box at the top first.
-                </span>
+          <div className="pointer-events-auto mx-auto w-full max-w-[1400px] overflow-hidden rounded-xl border border-border bg-card shadow-dialog">
+            {sidebarWarning ? (
+                <motion.label
+                  key={nudge}
+                  ref={confirmRef}
+                  id="design-sidebar-confirm"
+                  initial={nudge ? { x: 0 } : false}
+                  animate={nudge ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }}
+                  transition={{ duration: DURATION.page, ease: EASE_OUT }}
+                  className={cn(
+                    "flex cursor-pointer items-start gap-3 border-b px-4 py-3 text-sm transition-colors",
+                    sidebarModeConfirmed
+                      ? "border-success/20 bg-success/10"
+                      : "border-warning/25 bg-warning/10",
+                  )}
+                >
+                  <Checkbox
+                    checked={sidebarModeConfirmed}
+                    onCheckedChange={(checked) => onConfirmSidebar(checked === true)}
+                    aria-required="true"
+                    className="mt-0.5"
+                  />
+                  <span className="min-w-0">
+                    <span className="font-semibold">Required before saving. </span>
+                    {sidebarWarning}
+                  </span>
+                </motion.label>
               ) : null}
-            </p>
-            <div className="flex shrink-0 items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="border-background/30 bg-transparent text-background hover:bg-background/10"
-                onClick={onDiscard}
-                disabled={saving}
-              >
-                Discard
-              </Button>
-              <Button
-                type="button"
-                className="bg-background text-foreground hover:bg-background/90"
-                onClick={handleSave}
-                disabled={saving}
-              >
-                Save changes
-              </Button>
+            <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-start gap-2.5 pr-14 sm:items-center md:pr-0">
+                <span
+                  className="mt-1.5 size-2 shrink-0 rounded-full bg-warning sm:mt-0"
+                  aria-hidden
+                />
+                <p className="min-w-0 text-sm leading-5 text-foreground sm:truncate">
+                  {bar}
+                  {saveBlocked ? (
+                    <span id="design-save-blocked" className="block font-semibold text-warning sm:inline">
+                      <span className="hidden sm:inline"> </span>
+                      Tick the box above to save.
+                    </span>
+                  ) : null}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="mr-auto text-muted-foreground sm:mr-0"
+                  onClick={onBack}
+                  data-testid="design-back"
+                >
+                  <ArrowLeft aria-hidden />
+                  Back
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onDiscard}
+                  disabled={saving}
+                  data-testid="design-discard"
+                >
+                  Discard
+                </Button>
+                <Button
+                  type="button"
+                  variant="accent"
+                  onClick={handleSave}
+                  disabled={saving}
+                  aria-describedby={saveBlocked ? "design-save-blocked" : undefined}
+                  data-testid="design-save"
+                >
+                  {saving ? <Loader2 className="animate-spin" aria-hidden /> : null}
+                  Save changes
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       ) : null}
 
       <Dialog open={presetOpen} onOpenChange={setPresetOpen}>
@@ -1339,6 +1366,11 @@ export function DesignPageView({
               onChange={(event) => setPresetName(event.target.value)}
               placeholder="Name this preset"
             />
+            {draft.sidebarStyle ? null : (
+              <p className="text-xs text-muted-foreground">
+                Choose a sidebar style first, then save it as a preset.
+              </p>
+            )}
           </div>
           <DialogFooter>
             <Button variant="accent"
@@ -1362,7 +1394,7 @@ export function DesignPageView({
 function InstallUpdateNote() {
   return (
     <div
-      className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm"
+      className="rounded-md border border-warning/30 bg-warning/10 p-3 text-sm"
       role="status"
     >
       <p className="font-medium">Update your HighLevel Custom JS</p>
@@ -1389,7 +1421,8 @@ function scrollParent(node: HTMLElement): HTMLElement {
 
 function scriptBlock(script: string, onCopy: () => void) {
   return (
-    <div className="flex items-center gap-2 rounded-lg bg-foreground px-3 py-2 text-background">
+    <div className="flex items-center gap-2 rounded-md bg-foreground py-1.5 pl-3 pr-1.5 text-background">
+      <Code2 className="size-4 shrink-0 opacity-60" aria-hidden />
       <code className="min-w-0 flex-1 truncate font-mono text-xs">
         {script || "Your agency id is still loading."}
       </code>

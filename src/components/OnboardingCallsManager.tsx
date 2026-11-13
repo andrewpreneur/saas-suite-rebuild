@@ -1,6 +1,10 @@
 import LocationList from "@/components/highlevel/LocationList";
 import { useGhl } from "@/components/highlevel/useGhl";
 import { PageHeader } from "@/components/platform/PageHeader";
+import { SectionCard } from "@/components/premium/SectionCard";
+import { OfferCard } from "@/components/premium/support/OfferCard";
+import NumberTicker from "@/components/premium/21st/number-ticker";
+import { Tag } from "@/components/ui/tag";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import {
@@ -311,38 +315,79 @@ const OnboardingCallsManager = () => {
   ];
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-6 max-w-5xl mx-auto">
       <PageHeader
+        eyebrow="Done for you"
         title="Onboarding Calls"
-        subtitle="Book a 1-on-1 onboarding session for a client. $60 per call, or one call from your balance when Auto-Pay is on."
+        subtitle="We run a live 1-on-1 onboarding session with your client, so you don't have to."
       />
 
-      {/* Deployment Setup */}
-      <Card className={!deployConfigured ? "border-primary/50 shadow-glow" : ""}>
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <CardTitle className="text-base flex items-center gap-2">
-                {!deployConfigured && (
-                  <Badge variant="default" className="text-[10px]">
-                    Suggested
-                  </Badge>
-                )}
-                Deploy Onboarding Calls
-              </CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                Choose how to deploy onboarding calls before your users can start
-                using them.
-              </p>
-            </div>
-            {deployConfigured && (
-              <Badge variant="secondary" className="gap-1">
-                <CheckCircle className="w-3 h-3" /> Configured
-              </Badge>
+      {loadError && <LoadNotice error={loadError} onRetry={() => void fetchWallet()} />}
+
+      <OfferCard
+        title="A 1-on-1 onboarding call for your client"
+        description="Buy a call, share the booking link, and we take your client through their account live."
+        features={[
+          "One live session per call, booked by your client",
+          "The call lands in your balance the moment you pay",
+          "We send you the booking link",
+          "Buy as many calls as you need, any time",
+        ]}
+        price="$60"
+        priceUnit="per call"
+        priceNote={
+          <span className="flex flex-wrap items-center gap-2">
+            {loading ? (
+              <span className="px-skeleton inline-block h-5 w-28" />
+            ) : (
+              <span className="font-medium text-foreground">
+                <NumberTicker
+                  key={wallet}
+                  from={0}
+                  target={wallet}
+                  transition={{ duration: 0.8, type: "tween", ease: [0.16, 1, 0.3, 1] }}
+                />{" "}
+                {wallet === 1 ? "call" : "calls"} in your balance
+              </span>
             )}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
+            <Tag tone={access && wallet > 0 ? "success" : "neutral"}>
+              {access && wallet > 0 ? "Active" : "Inactive"}
+            </Tag>
+          </span>
+        }
+        action={
+          <Button
+            variant="accent"
+            size="lg"
+            className="h-auto min-h-11 gap-2 whitespace-normal"
+            onClick={() => {
+              setCompleted(false);
+              setCheckoutOpen(true);
+            }}
+          >
+            <ShoppingCart aria-hidden="true" />
+            Buy an onboarding call
+          </Button>
+        }
+        footnote="Each booked call uses one call from your balance."
+      />
+
+      {/* Who can book */}
+      <SectionCard
+        icon={<Users />}
+        title="Who can book a call"
+        description="Choose which clients see onboarding calls. Nobody can book until you save this."
+        actions={
+          deployConfigured ? (
+            <Tag tone="success">
+              <CheckCircle aria-hidden="true" /> Saved
+            </Tag>
+          ) : (
+            <Tag tone="warning">Needs setup</Tag>
+          )
+        }
+        bodyClassName="space-y-4"
+      >
           <div className="grid sm:grid-cols-3 gap-3">
             {[
               {
@@ -371,17 +416,19 @@ const OnboardingCallsManager = () => {
                   key={opt.id}
                   type="button"
                   onClick={() => setDeployMode(opt.id)}
-                  className={`text-left p-4 rounded-lg border-2 transition-colors ${
+                  aria-pressed={selected}
+                  className={`relative cursor-pointer rounded-lg border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
                     selected
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/40"
+                      ? "border-brand bg-brand-subtle"
+                      : "border-border hover:bg-muted/60"
                   }`}
                 >
-                  <div className="flex items-center gap-2 mb-1">
-                    <Icon className="w-4 h-4 text-primary" />
-                    <span className="font-semibold text-sm">{opt.title}</span>
+                  <div className="mb-1 flex items-center gap-2">
+                    <Icon className={`size-4 ${selected ? "text-brand" : "text-muted-foreground"}`} aria-hidden="true" />
+                    <span className="text-sm font-semibold">{opt.title}</span>
+                    {selected ? <Check className="ml-auto size-4 text-brand" aria-label="Selected" /> : null}
                   </div>
-                  <p className="text-xs text-muted-foreground">{opt.desc}</p>
+                  <p className="text-sm text-muted-foreground">{opt.desc}</p>
                 </button>
               );
             })}
@@ -398,10 +445,11 @@ const OnboardingCallsManager = () => {
                       key={p.id}
                       type="button"
                       onClick={() => togglePlan(p.id)}
-                      className={`rounded-md border px-3 py-1.5 text-sm transition-colors ${
+                      aria-pressed={on}
+                      className={`inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border px-3 text-sm font-medium transition-colors ${
                         on
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "bg-background hover:bg-accent"
+                          ? "border-brand bg-brand-subtle text-brand"
+                          : "border-border bg-card text-muted-foreground hover:bg-muted"
                       }`}
                     >
                       {p.label}
@@ -532,71 +580,32 @@ const OnboardingCallsManager = () => {
 
           <div className="flex justify-end">
             <Button onClick={saveDeployment} disabled={savingDeploy} className="gap-2">
-              <Save className="w-4 h-4" />
-              {savingDeploy ? "Saving…" : "Save Deployment"}
+              <Save aria-hidden="true" />
+              {savingDeploy ? "Saving…" : "Save who can book"}
             </Button>
           </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Calls Available
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-end gap-3">
-              <span className="text-5xl font-bold">{loading ? "…" : wallet}</span>
-              {loadError && (
-                <LoadNotice error={loadError} onRetry={() => void fetchWallet()} />
-              )}
-              <Badge variant={access && wallet > 0 ? "default" : "secondary"} className="mb-2">
-                {access && wallet > 0 ? "Active" : "Inactive"}
-              </Badge>
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              Each call you book is automatically deducted from your wallet.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Buy More Calls
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">$60<span className="text-base font-normal text-muted-foreground"> / call</span></p>
-            <Button
-              className="mt-3 h-auto w-full gap-2 whitespace-normal"
-              onClick={() => {
-                setCompleted(false);
-                setCheckoutOpen(true);
-              }}
-            >
-              <ShoppingCart className="w-4 h-4" />
-              Purchase Onboarding Call
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      </SectionCard>
 
       {email && <OnboardingAutopayCard ownerEmail={email.trim().toLowerCase()} />}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">How it works</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground space-y-2">
-          <p>1. Purchase an onboarding call — your wallet increases instantly.</p>
-          <p>2. Book your call using the link our team will send you.</p>
-          <p>3. When the call is booked, 1 credit is automatically deducted.</p>
-          <p>4. Repeat any time — buy as many calls as you need.</p>
-        </CardContent>
-      </Card>
+      <SectionCard title="How it works" description="Four steps, repeated for each client.">
+        <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            ["Buy a call", "Your balance goes up right away."],
+            ["Get the link", "Our team sends you the booking link."],
+            ["Client books", "One call leaves your balance when they book."],
+            ["Repeat", "Buy more whenever you need them."],
+          ].map(([title, text], index) => (
+            <li key={title} className="rounded-lg bg-muted/50 p-4">
+              <span className="flex size-6 items-center justify-center rounded-full bg-brand-subtle text-xs font-semibold text-brand">
+                {index + 1}
+              </span>
+              <p className="mt-2 text-sm font-semibold text-foreground">{title}</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">{text}</p>
+            </li>
+          ))}
+        </ol>
+      </SectionCard>
 
       {email && (
         <OnboardingCallRecorder
@@ -613,7 +622,7 @@ const OnboardingCallsManager = () => {
         >
           <div className="flex items-center justify-between px-4 py-3 border-b">
             <h3 className="font-semibold text-lg">
-              {completed ? "Payment Successful" : "Purchase Onboarding Call — $60"}
+              {completed ? "Payment received" : "Buy an onboarding call · $60"}
             </h3>
             <Button variant="ghost" size="icon" onClick={handleClose} aria-label="Close">
               <X className="h-4 w-4" />
@@ -622,8 +631,8 @@ const OnboardingCallsManager = () => {
           <div className="p-4">
             {completed ? (
               <div className="text-center py-8">
-                <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                <h3 className="text-2xl font-bold mb-2">Thank you!</h3>
+                <CheckCircle className="mx-auto mb-4 size-14 text-success" aria-hidden="true" />
+                <h3 className="text-h3 mb-2">Payment received</h3>
                 <p className="text-muted-foreground mb-6">
                   Your onboarding call has been added to your wallet.
                 </p>

@@ -3,10 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { requestPasswordCode, submitPasswordCode } from "@/lib/authAccount";
 import { attachKitPurchases } from "@/lib/kitPurchases";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Eye, EyeOff } from "lucide-react";
+import { Field, FormMessage, PasswordField, SubmitButton } from "@/components/premium/entry/fields";
+import { TextShimmer } from "@/components/premium/21st/text-shimmer";
 
 export function PasswordCodeForm({
   email,
@@ -82,63 +80,48 @@ export function PasswordCodeForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" data-testid="password-code-form">
-      <Alert>
-        <AlertDescription>
-          {sending
-            ? "Sending a one-time code..."
-            : sent
-              ? `Enter the code we emailed to ${email}.`
-              : "Request a new code, or open the sign-in link from your kit email."}
-        </AlertDescription>
-      </Alert>
-      <div className="space-y-2">
-        <Label htmlFor="password-code">One-time code</Label>
-        <Input
-          id="password-code"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          value={code}
-          onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
-          placeholder="6-digit code"
-          required
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="new-password">Password</Label>
-        <div className="relative">
-          <Input
-            id="new-password"
-            type={showPassword ? "text" : "password"}
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-            minLength={6}
-            placeholder="Create a password (minimum 6 characters)"
-            autoFocus
-            className="pr-16"
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword((current) => !current)}
-            className="absolute inset-y-0 right-0 flex items-center px-3 text-xs font-medium text-muted-foreground hover:text-foreground"
-            aria-label={showPassword ? "Hide password" : "Show password"}
-          >
-            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
-        </div>
-      </div>
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-      <Button type="submit" className="w-full" disabled={loading || sending}>
-        {loading ? "Setting password..." : "Set password"}
-      </Button>
+      <FormMessage tone={sent ? "success" : "info"}>
+        {sending ? (
+          <TextShimmer as="span" className="text-small">Sending a one-time code...</TextShimmer>
+        ) : sent ? (
+          `Enter the code we emailed to ${email}.`
+        ) : (
+          "Request a new code, or open the sign-in link from your kit email."
+        )}
+      </FormMessage>
+      <Field
+        id="password-code"
+        label="One-time code"
+        inputMode="numeric"
+        autoComplete="one-time-code"
+        value={code}
+        onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+        placeholder="6-digit code"
+        required
+        className="font-mono tracking-[0.3em] placeholder:font-sans placeholder:tracking-normal"
+      />
+      <PasswordField
+        id="new-password"
+        label="Password"
+        autoComplete="new-password"
+        visible={showPassword}
+        onToggleVisible={() => setShowPassword((current) => !current)}
+        value={password}
+        onChange={(event) => setPassword(event.target.value)}
+        required
+        minLength={6}
+        placeholder="At least 6 characters"
+        hint="Use 6 or more characters."
+        autoFocus
+      />
+      {error && <FormMessage>{error}</FormMessage>}
+      <SubmitButton type="submit" loading={loading} loadingLabel="Setting your password" disabled={sending}>
+        Set password
+      </SubmitButton>
       <Button
         type="button"
-        variant="outline"
-        className="w-full"
+        variant="ghost"
+        className="h-11 w-full text-muted-foreground hover:text-foreground"
         disabled={sending}
         onClick={() => {
           setSending(true);

@@ -6,7 +6,8 @@ import { ChatInput } from './ChatInput';
 import { ChatSuggestions } from './ChatSuggestions';
 import { useChatCoPilot } from '@/hooks/useChatCoPilot';
 import { PendingSuggestions } from './PendingSuggestions';
-import { Bot, Sparkles, UserCheck } from 'lucide-react';
+import { UserCheck } from 'lucide-react';
+import { CopilotMark, ThinkingRow } from '@/components/premium/copilot/CopilotBits';
 import { useUiSounds } from '@/hooks/useUiSounds';
 import {
   humanThreadIsQuiet,
@@ -71,23 +72,16 @@ function ChatCoPilotContent({ preloadedPrompt, onExchangeCountChange, hideHeader
   const handleSuggestionClick = (suggestion: string) => handleSend(suggestion);
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="px-canvas flex h-full flex-col">
       {/* Header (hidden when the shell renders its own) */}
       {!hideHeader && (
-      <div className="flex items-center gap-2 md:gap-3 p-3 md:p-4 border-b">
-        <div className="w-7 h-7 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
-          <Bot className="w-3.5 h-3.5 md:w-5 md:h-5 text-white" />
+        <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+          <CopilotMark size="md" />
+          <div className="min-w-0">
+            <h2 className="truncate text-base font-semibold text-foreground">SaaSSuite Copilot</h2>
+            <p className="truncate text-caption text-muted-foreground">Your setup assistant</p>
+          </div>
         </div>
-        <div>
-          <h2 className="font-semibold text-sm md:text-lg flex items-center gap-1.5 md:gap-2">
-            SaaSSuite CoPilot
-            <Sparkles className="w-3 h-3 md:w-4 md:h-4 text-yellow-500" />
-          </h2>
-          <p className="text-[10px] md:text-xs text-muted-foreground">
-            AI-powered configuration assistant
-          </p>
-        </div>
-      </div>
       )}
 
       {/* Pending suggestions from webhook */}
@@ -102,28 +96,15 @@ function ChatCoPilotContent({ preloadedPrompt, onExchangeCountChange, hideHeader
           {contextMessages.map((message) => (
             <ChatMessage key={message.id} message={message} />
           ))}
-          {isLoading && (
-            <div className="flex gap-2 md:gap-3 justify-start">
-              <div className="flex-shrink-0 w-6 h-6 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
-                <Bot className="w-3 h-3 md:w-4 md:h-4 text-white" />
-              </div>
-              <div className="bg-muted rounded-2xl rounded-tl-sm px-3 py-2 md:px-4 md:py-3">
-                <div className="flex gap-1">
-                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                </div>
-              </div>
-            </div>
-          )}
+          {isLoading && <ThinkingRow name="Copilot" />}
         </div>
       </ScrollArea>
 
       {/* Suggestions and Input. Handover never removes the reply box. */}
-      <div className="border-t p-4 space-y-3">
+      <div className="space-y-3 border-t border-border bg-card/60 p-3 sm:p-4">
         {waitingNote && (
-          <div data-testid="help-chat-waiting-note" className="flex items-center gap-2 p-3 rounded-lg bg-muted text-muted-foreground text-sm">
-            <UserCheck className="w-4 h-4 text-green-500 flex-shrink-0" />
+          <div data-testid="help-chat-waiting-note" className="flex items-center gap-2 rounded-md bg-muted p-3 text-sm text-muted-foreground">
+            <UserCheck className="h-4 w-4 flex-shrink-0 text-success" />
             <span>AI replies are paused for human support. You can leave a message here or text our team.</span>
           </div>
         )}

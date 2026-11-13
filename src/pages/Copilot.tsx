@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, Menu, PenSquare, Trash2, Pencil, Check, MessageCircle, ExternalLink, Package, Lock, Calendar, Maximize2, Minimize2, X } from "lucide-react";
+import { ArrowLeft, PanelLeft, PenSquare, Trash2, Pencil, Check, MessageCircle, ExternalLink, Package, Lock, Calendar, Maximize2, Minimize2, X, LayoutDashboard, Palette, EyeOff, LifeBuoy, CreditCard, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -48,6 +48,39 @@ import {
 import { withDeadline } from "@/lib/loadSettle";
 import { KitReturnLink } from "@/components/dashboard/KitReturnLink";
 import { currentKitReturn } from "@/lib/kitReturn";
+import {
+  AssistantMessage, COPILOT_PROSE, CopilotCard, CopilotGreeting, CopilotMark, PromptChips, ThinkingRow, UserBubble,
+  type CopilotPrompt,
+} from "@/components/premium/copilot/CopilotBits";
+
+/** Suggested prompts on the empty state. Tapping one sends it. */
+const STARTER_PROMPTS: CopilotPrompt[] = [
+  { label: "Set up my Client Hub", prompt: "Help me set up my Client Hub", icon: LayoutDashboard },
+  { label: "Brand my login page", prompt: "Help me brand my login page", icon: Palette },
+  { label: "Hide menu links for new clients", prompt: "How do I hide menu links for new clients?", icon: EyeOff },
+  { label: "Turn on client support", prompt: "Help me turn on support for my clients", icon: LifeBuoy },
+];
+
+const firstNameOf = (user: { user_metadata?: Record<string, unknown> } | null | undefined) => {
+  const full = user?.user_metadata?.full_name ?? user?.user_metadata?.name;
+  return typeof full === "string" ? full.trim().split(/\s+/)[0] || null : null;
+};
+
+const threadWhen = (iso: string) => {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  const sameDay = date.toDateString() === new Date().toDateString();
+  return sameDay
+    ? date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
+    : date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+};
+
+const iconButton =
+  "inline-grid size-10 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground " +
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 sm:size-9";
+const navRow =
+  "flex min-h-10 w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm font-normal text-foreground transition-colors hover:bg-muted " +
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40";
 
 type Msg = { id: string; role: "user" | "assistant"; content: string };
 type Thread = { id: string; title: string; kind: string; updated_at: string };
@@ -162,10 +195,10 @@ function useWorkspaceAccount(email: string | null) {
 type Account = ReturnType<typeof useWorkspaceAccount>;
 
 /* --------------------------------- chat ---------------------------------- */
-function ChatView({ threadId, kind, account, onVoice, runIntro, onTouched, focus }: {
-  threadId: string; kind: string; account: Account; onVoice: () => void; runIntro?: boolean; onTouched: (title?: string) => void; focus: CopilotFocus | null;
+function ChatView({ threadId, kind, account, onVoice, runIntro, onTouched, focus, compact }: {
+  threadId: string; kind: string; account: Account; onVoice: () => void; runIntro?: boolean; onTouched: (title?: string) => void; focus: CopilotFocus | null; compact?: boolean;
 }) {
-  const { email, plan } = useUser();
+  const { email, plan, user } = useUser();
   const location = useLocation();
   const sourcePage = copilotSourcePath(location.state?.copilotSource);
   const [msgs, setMsgs] = useState<Msg[]>([]);
@@ -477,11 +510,11 @@ function ChatView({ threadId, kind, account, onVoice, runIntro, onTouched, focus
       case "menu_removal_setup":
         return <MenuRemovalSetupCard key={key} agencyId={account.agencyId} onHelp={() => setHelpOpen(true)} onConnect={() => void say(GHL_INSTRUCTIONS)} onUpgrade={() => void say("Choose a plan to review.\n[[widget:upgrade]]")} />;
       case "connect_apps":
-        return <div key={key}><ConnectApps agencyId={account.agencyId} email={email} slackConnected={account.slackConnected} ghlConnected={account.ghl.connected}
+        return <div key={key} className="space-y-2"><ConnectApps agencyId={account.agencyId} email={email} slackConnected={account.slackConnected} ghlConnected={account.ghl.connected}
           onSlackDone={async () => { const on = await account.refreshSlack(); toast[on ? "success" : "message"](on ? "Slack connected" : "Slack isn't showing as connected yet. Finish the Slack screen, then try again."); }}
-          onGhlAuthorize={() => (account.ghl.connected ? continueToAI("HighLevel is already connected. Let's keep going.") : say(GHL_INSTRUCTIONS))} />{account.ghl.connected && <Button variant="outline" disabled={!live || busy} onClick={() => continueToAI("HighLevel is connected. Continue setup; Slack can wait.")}>Continue setup</Button>}<Button variant="ghost" disabled={!live || busy} onClick={skipSetup}>Skip for now</Button></div>;
+          onGhlAuthorize={() => (account.ghl.connected ? continueToAI("HighLevel is already connected. Let's keep going.") : say(GHL_INSTRUCTIONS))} /><div className="flex flex-wrap gap-2">{account.ghl.connected && <Button size="sm" variant="outline" disabled={!live || busy} onClick={() => continueToAI("HighLevel is connected. Continue setup; Slack can wait.")}>Continue setup</Button>}<Button size="sm" variant="ghost" disabled={!live || busy} onClick={skipSetup}>Skip for now</Button></div></div>;
       case "slack_connect":
-        return <div key={key} className="mt-3"><SlackCard agencyId={account.agencyId} email={email} connected={account.slackConnected} onDone={() => void account.refreshSlack()} /></div>;
+        return <div key={key}><SlackCard agencyId={account.agencyId} email={email} connected={account.slackConnected} onDone={() => void account.refreshSlack()} /></div>;
       case "ghl_connect":
         return <GhlConnectForm key={key} agencyId={account.agencyId} connected={account.ghl.connected} disabled={busy}
           showSkip={!msgs.some((message) => message.content.includes("[[widget:connect_apps]]"))}
@@ -494,7 +527,7 @@ function ChatView({ threadId, kind, account, onVoice, runIntro, onTouched, focus
       case "human_help":
         return <Button key={key} variant="outline" size="sm" onClick={() => setHelpOpen(true)}><MessageCircle className="h-4 w-4" />Text us for human help</Button>;
       case "menu_link":
-        return <div key={key}><MenuLinkStep agencyId={account.agencyId} connected={account.ghl.connected} installed={account.menuLinkInstalled}
+        return <div key={key} className="space-y-2"><MenuLinkStep agencyId={account.agencyId} connected={account.ghl.connected} installed={account.menuLinkInstalled}
           onConnect={() => say(GHL_INSTRUCTIONS)}
           onCreated={async () => {
             account.setMenuLinkInstalled(true);
@@ -502,7 +535,7 @@ function ChatView({ threadId, kind, account, onVoice, runIntro, onTouched, focus
             await persist("user", "I installed the menu link.");
             await say("Your menu link is installed. Paste your account’s CSS and JavaScript in HighLevel’s Agency Settings > Company > White Label on desktop to finish installation.");
             await say(priorityQuestion);
-          }} /><Button variant="ghost" disabled={!live || busy} onClick={skipSetup}>Skip installation for now</Button></div>;
+          }} /><Button size="sm" variant="ghost" disabled={!live || busy} onClick={skipSetup}>Skip installation for now</Button></div>;
       case "videos":
         return <VideosPicker key={key} disabled={!live || busy} onSubmit={(p) => sendUser(p.length ? `Teach them these videos: ${p.join(", ")}` : "No extra videos for now")} />;
       default:
@@ -514,57 +547,58 @@ function ChatView({ threadId, kind, account, onVoice, runIntro, onTouched, focus
     <div className="flex flex-1 min-h-0 min-w-0 flex-col">
       <TextUsDialog open={helpOpen} onOpenChange={setHelpOpen} title="Need a hand?" description="Text our team for help with setup, billing, or anything you're stuck on." message={`I need help with SaaSSuite Copilot. My agency is ${account.agencyId || "still loading"}.`} />
       <Conversation className="flex-1 min-h-0">
-        <ConversationContent className="mx-auto w-full max-w-3xl px-4 py-5 gap-3">
-          {loaded && msgs.length === 0 && !typing && (
-            <div className="pt-[18vh] text-center">
-              <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">What can I set up for you?</h1>
-              <p className="mt-2 text-muted-foreground">Ask about onboarding, support, branding or your HighLevel install.</p>
+        <ConversationContent className={cn("mx-auto w-full max-w-3xl gap-4 px-4", compact ? "py-4" : "py-6")}>
+          {loaded && msgs.length === 0 && !typing && !draftReply && (
+            <CopilotGreeting firstName={firstNameOf(user)} assistantName={account.assistantName} heading={compact ? "h2" : "h1"} compact={compact} className={compact ? "pt-8" : "pt-[12vh]"}>
+              <PromptChips prompts={STARTER_PROMPTS} disabled={busy} onPick={(prompt) => void onComposerSend(prompt)} />
+            </CopilotGreeting>
+          )}
+          {!loaded && (
+            <div className="space-y-3 pt-2" aria-hidden="true">
+              <div className="px-skeleton ml-auto h-10 w-2/3 rounded-lg" />
+              <div className="px-skeleton h-20 w-5/6 rounded-lg" />
             </div>
           )}
           {msgs.map((m, i) => {
-            if (m.role === "user") {
-              return (
-                <div key={m.id} className="flex justify-end">
-                  <div className="max-w-[85%] rounded-3xl bg-foreground px-4 py-2.5 text-background whitespace-pre-wrap break-words">{m.content}</div>
-                </div>
-              );
-            }
+            if (m.role === "user") return <UserBubble key={m.id}>{m.content}</UserBubble>;
             const { text, widgets: parsedWidgets } = parseAssistant(m.content);
             const widgets = withoutDuplicateSkip(parsedWidgets);
             const live = i === lastAssistantIdx && lastIsAssistant;
             return (
-              <div key={m.id} className="text-foreground animate-fade-in">
-                {text && <MessageResponse className="prose prose-sm sm:prose-base max-w-none dark:prose-invert leading-normal [&_p]:my-2 [&_ul]:my-2 [&_li]:my-0">{text}</MessageResponse>}
-                {widgets.map((w, n) => renderWidget(w, live, `${m.id}-${n}`))}
-              </div>
+              <AssistantMessage key={m.id} name={account.assistantName} showName={i === 0 || msgs[i - 1].role !== "assistant"}
+                after={widgets.length ? widgets.map((w, n) => renderWidget(w, live, `${m.id}-${n}`)) : undefined}>
+                {text ? <MessageResponse className={COPILOT_PROSE}>{text}</MessageResponse> : null}
+              </AssistantMessage>
             );
           })}
           {draftReply && splitReply(draftReply).map((part, i) => {
             const safeText = parseAssistant(part.replace(/\[\[[\s\S]*$/, "")).text;
-            return safeText ? <MessageResponse key={`draft-${i}`} isAnimating={busy} className="prose prose-sm sm:prose-base max-w-none dark:prose-invert leading-normal [&_p]:my-2 [&_ul]:my-2 [&_li]:my-0">{safeText}</MessageResponse> : null;
+            return safeText ? (
+              <AssistantMessage key={`draft-${i}`} name={account.assistantName} showName={i === 0 && !lastIsAssistant}>
+                <MessageResponse isAnimating={busy} className={COPILOT_PROSE}>{safeText}</MessageResponse>
+              </AssistantMessage>
+            ) : null;
           })}
-          {replyError && <p role="alert" className="text-sm text-destructive">{replyError}</p>}
-          {checkout && <div className="space-y-2 rounded-lg border border-border p-3">
-            <p className="text-sm">Review your {checkout.name} upgrade in Stripe. Confirming charges immediately, prorated where applicable. Access changes only after payment is confirmed.</p>
-            <Button size="sm" asChild><a href={checkout.url}>Review upgrade in Stripe<ExternalLink className="h-4 w-4" /></a></Button>
-            <Button size="sm" variant="ghost" disabled={busy} onClick={() => sendUser("I completed my upgrade. Please refresh my saved plan and limits before continuing setup.")}>I've paid — check my plan</Button>
-          </div>}
-          {typing && (
-            <div className="flex gap-1.5 py-2" aria-label={`${account.assistantName} is typing`} role="status">
-              {[0, 150, 300].map((d) => (
-                <span key={d} className="h-2 w-2 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: `${d}ms` }} />
-              ))}
-            </div>
+          {replyError && <p role="alert" className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">{replyError}</p>}
+          {checkout && (
+            <CopilotCard icon={<CreditCard />} title={`Review your ${checkout.name} upgrade`}
+              description="Confirming in Stripe charges immediately, prorated where applicable. Access changes only after payment is confirmed.">
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="accent" asChild><a href={checkout.url}>Review upgrade in Stripe<ExternalLink className="h-4 w-4" /></a></Button>
+                <Button size="sm" variant="ghost" disabled={busy} onClick={() => sendUser("I completed my upgrade. Please refresh my saved plan and limits before continuing setup.")}>I've paid, check my plan</Button>
+              </div>
+            </CopilotCard>
           )}
+          {typing && <ThinkingRow name={account.assistantName} label={draftReply ? "Working on it…" : "Thinking…"} />}
         </ConversationContent>
         <ConversationScrollButton />
       </Conversation>
       <div className="mx-auto w-full max-w-3xl px-3 pb-[max(12px,env(safe-area-inset-bottom))] pt-2">
-        <Composer placeholder={composerPlaceholder(account.assistantName)} disabled={busy} onSend={onComposerSend} onVoice={onVoice} initialValue={readUnsentDraft()} />
-        <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
-          <Button size="sm" variant="ghost" onClick={() => setHelpOpen(true)}><MessageCircle className="h-4 w-4" />Text us</Button>
-          <Button size="sm" variant="ghost" disabled={busy} onClick={() => void say("Choose a plan to review your upgrade.\n[[widget:upgrade]]")}>Plans & upgrades</Button>
-        </div>
+        <Composer placeholder={composerPlaceholder(account.assistantName)} disabled={busy} onSend={onComposerSend} onVoice={onVoice} initialValue={readUnsentDraft()}
+          leading={<>
+            <Button size="sm" variant="ghost" className="h-9 px-2.5 text-muted-foreground" onClick={() => setHelpOpen(true)} title="Text our team"><MessageCircle className="h-4 w-4" />Text us</Button>
+            <Button size="sm" variant="ghost" className="h-9 px-2.5 text-muted-foreground" disabled={busy} title="Plans and upgrades" onClick={() => void say("Choose a plan to review your upgrade.\n[[widget:upgrade]]")}><Sparkles className="h-4 w-4" />Plans</Button>
+          </>} />
       </div>
     </div>
   );
@@ -584,7 +618,7 @@ export default function CopilotPage({
   onCollapse?: () => void;
   onClose?: () => void;
 } = {}) {
-  const { email, plan, isLoading, initialQuestionsCompleted } = useUser();
+  const { email, plan, isLoading, initialQuestionsCompleted, user } = useUser();
   const location = useLocation();
   const navigate = useNavigate();
   const { setDockNavOpen } = useCoPilot();
@@ -672,7 +706,8 @@ export default function CopilotPage({
   }, [email, initialQuestionsCompleted, account.owner, loadThreads, navigate]);
 
   const firstTimeThread = findReusableThread(threads, FIRST_TIME_CHAT_TITLE, "first_time");
-  const visibleThreads = dedupeQuickActionThreads(threads);
+  // One row per chat, even if a list refresh and a new chat land in the same moment.
+  const visibleThreads = dedupeQuickActionThreads(threads).filter((t, i, all) => all.findIndex((x) => x.id === t.id) === i);
 
   const routeThreadId = route.kind === "thread" ? route.threadId : "";
   useEffect(() => {
@@ -849,47 +884,58 @@ export default function CopilotPage({
   };
 
   const renderSidebar = () => (
-    <div className="flex h-full w-full min-h-0 min-w-0 flex-col gap-1 overflow-hidden p-3">
-      {!embedded && !currentKitReturn(location.search) && <Link to="/app" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted"><ArrowLeft className="h-4 w-4" /> Back to SaaSSuite</Link>}
-      <button onClick={openNewChat} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"><PenSquare className="h-4 w-4" /> New chat</button>
+    <div className="flex h-full w-full min-h-0 min-w-0 flex-col overflow-hidden p-3">
+      {!embedded && !currentKitReturn(location.search) && <Link to="/app" className={cn(navRow, "mb-2 text-muted-foreground")}><ArrowLeft className="h-4 w-4" /> Back to SaaSSuite</Link>}
+      <Button variant="outline" onClick={openNewChat} className="w-full justify-start gap-2.5 px-3"><PenSquare className="h-4 w-4 text-brand" /> New chat</Button>
+      <p className="px-eyebrow mb-1 mt-5 px-3">Shortcuts</p>
       <FirstTimeMenu onResume={() => { setSheetOpen(false); setExplicitNewChat(false); setShowSlides(false); if (route.onCopilotPath) navigate("/app/copilot/first-time"); else navigate(navigateWithParams("/app/copilot/first-time")); }} onRestart={restartFirstTime} />
-      <Button variant="ghost" className="justify-start px-3 font-normal" onClick={() => { setSheetOpen(false); void openSnapshot(); }}><Package className="h-4 w-4" />Snapshot{!/^(BASIC|ADVANCED|PREMIUM|ENHANCED)$/i.test(plan || "") && <Lock className="h-3 w-3" />}</Button>
-      <Button asChild variant="ghost" className="justify-start px-3 font-normal"><Link to="/book"><Calendar className="h-4 w-4" />Book a call</Link></Button>
-      <p className="mt-4 px-3 text-xs font-medium text-muted-foreground">Chats</p>
-      <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain">
+      <button type="button" className={navRow} onClick={() => { setSheetOpen(false); void openSnapshot(); }}><Package className="h-4 w-4 text-muted-foreground" />Snapshot{!/^(BASIC|ADVANCED|PREMIUM|ENHANCED)$/i.test(plan || "") && <Lock className="ml-auto h-3.5 w-3.5 text-muted-foreground" aria-label="Needs a paid plan" />}</button>
+      <Link to="/book" className={navRow}><Calendar className="h-4 w-4 text-muted-foreground" />Book a call</Link>
+      <p className="px-eyebrow mb-1 mt-5 px-3">Recent chats</p>
+      <div className="min-h-0 min-w-0 flex-1 space-y-0.5 overflow-x-hidden overflow-y-auto overscroll-contain">
         {threadListError && (
-          <div className="px-3 py-2">
+          <div className="px-3 py-2" role="alert">
             <p className="text-sm text-destructive">{threadListError}</p>
-            <button type="button" className="mt-1 text-sm underline" onClick={() => void loadThreads()}>Try again</button>
+            <button type="button" className="mt-1 text-sm font-medium text-brand underline-offset-4 hover:underline" onClick={() => void loadThreads()}>Try again</button>
           </div>
         )}
-        {visibleThreads.map((t) => (
-          <div key={t.id} className={cn("group flex w-full min-w-0 items-center overflow-hidden rounded-lg", t.id === activeId && "bg-muted")}>
-            <Button variant="ghost" onClick={() => selectThread(t.id)} title={t.title || "New chat"} className="flex-1 min-w-0 justify-start px-3 py-2 text-left text-sm font-normal text-foreground"><span className="min-w-0 truncate">{t.title || "New chat"}</span></Button>
-            <Button variant="ghost" size="icon-sm" onClick={() => deleteThread(t.id)} aria-label={`Delete ${t.title}`} className="shrink-0 text-muted-foreground opacity-60 hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100"><Trash2 className="h-4 w-4" /></Button>
-          </div>
-        ))}
-        {threadsLoaded && !threadListError && visibleThreads.length === 0 && <p className="px-3 py-2 text-sm text-muted-foreground">No chats yet.</p>}
+        {!threadsLoaded && <div className="space-y-2 px-3 py-1" aria-hidden="true"><div className="px-skeleton h-9 w-full" /><div className="px-skeleton h-9 w-4/5" /></div>}
+        {visibleThreads.map((t) => {
+          const current = t.id === activeId;
+          return (
+            <div key={t.id} className={cn("group relative flex w-full min-w-0 items-center overflow-hidden rounded-md transition-colors", current ? "bg-brand-subtle" : "hover:bg-muted")}>
+              {current && <span aria-hidden="true" className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-brand" />}
+              <button type="button" onClick={() => selectThread(t.id)} title={t.title || "New chat"} aria-current={current ? "page" : undefined}
+                className="min-w-0 flex-1 rounded-md px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand/40">
+                <span className={cn("block truncate text-sm", current ? "font-medium text-brand" : "text-foreground")}>{t.title || "New chat"}</span>
+                <span className="block truncate text-caption font-normal text-muted-foreground">{threadWhen(t.updated_at)}</span>
+              </button>
+              <Button variant="ghost" size="icon-sm" onClick={() => deleteThread(t.id)} aria-label={`Delete ${t.title}`} title="Delete chat" className="mr-1 shrink-0 text-muted-foreground opacity-60 hover:bg-transparent hover:text-destructive hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100"><Trash2 className="h-4 w-4" /></Button>
+            </div>
+          );
+        })}
+        {threadsLoaded && !threadListError && visibleThreads.length === 0 && <p className="px-3 py-2 text-sm text-muted-foreground">No chats yet. Ask anything to start one.</p>}
       </div>
-      <div className="border-t border-border pt-2">
+      <div className="mt-2 border-t border-border pt-2">
         {renaming ? (
           <form className="flex gap-2 px-1" onSubmit={async (e) => { e.preventDefault(); await account.rename(nameDraft); setRenaming(false); toast.success("Name updated"); }}>
             <Input value={nameDraft} onChange={(e) => setNameDraft(e.target.value)} maxLength={40} aria-label="Assistant name" autoFocus />
-            <Button size="icon" type="submit" aria-label="Save name"><Check className="h-4 w-4" /></Button>
+            <Button size="icon" variant="accent" type="submit" aria-label="Save name"><Check className="h-4 w-4" /></Button>
           </form>
         ) : (
-          <button onClick={() => { setNameDraft(account.assistantName); setRenaming(true); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted"><Pencil className="h-4 w-4" /> Rename {account.assistantName}</button>
+          <button type="button" onClick={() => { setNameDraft(account.assistantName); setRenaming(true); }} className={cn(navRow, "text-muted-foreground")}><Pencil className="h-4 w-4" /> <span className="min-w-0 truncate">Rename {account.assistantName}</span></button>
         )}
       </div>
     </div>
   // eslint-disable-next-line react-hooks/exhaustive-deps
   );
 
+  const activeTitle = activeId ? threads.find((t) => t.id === activeId)?.title || (activeKind === "first_time" ? "First-time setup" : "New chat") : "New chat";
   const showHistoryColumn = !embedded || presentation === "expanded";
   if (!email) return null;
   if (isFirstTimeRoute && showSlides) {
     return (
-      <div className={cn("bg-background text-foreground", embedded ? "h-full min-h-0 overflow-auto" : "min-h-[100dvh]")}>
+      <div className={cn("px-canvas text-foreground", embedded ? "h-full min-h-0 overflow-auto" : "min-h-[100dvh]")}>
         <IntroSlides onDone={startFirstTime} />
       </div>
     );
@@ -898,68 +944,76 @@ export default function CopilotPage({
   return (
     <div
       data-copilot-nav={docked ? (menuOpen ? "open" : "closed") : undefined}
-      className={cn("relative flex min-h-0 flex-1 overflow-hidden bg-background text-foreground", embedded ? "h-full" : "h-[100dvh]")}
+      className={cn("px-canvas relative flex min-h-0 flex-1 overflow-hidden text-foreground", embedded ? "h-full" : "h-[100dvh]")}
     >
-      {showHistoryColumn && <aside className="hidden h-full min-h-0 w-64 shrink-0 border-r border-border bg-muted/30 md:flex">{renderSidebar()}</aside>}
+      {showHistoryColumn && <aside className="hidden h-full min-h-0 w-64 shrink-0 border-r border-border bg-card md:flex">{renderSidebar()}</aside>}
       {docked && menuOpen && (
-        <aside data-copilot-sidebar="inline" className="flex h-full min-h-0 w-[224px] shrink-0 flex-col border-r border-border bg-muted/30">
+        <aside data-copilot-sidebar="inline" className="flex h-full min-h-0 w-[224px] shrink-0 flex-col border-r border-border bg-card">
           {renderSidebar()}
         </aside>
       )}
       {!docked && (
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-          <SheetContent side="left" className="w-72 p-0"><SheetTitle className="sr-only">Chats</SheetTitle>{renderSidebar()}</SheetContent>
+          <SheetContent side="left" className="z-[70] w-72 bg-card p-0 pt-10"><SheetTitle className="sr-only">Chats</SheetTitle>{renderSidebar()}</SheetContent>
         </Sheet>
       )}
       <main className="flex min-w-0 flex-1 flex-col">
         <KitReturnLink placement="copilot" className="px-3 pt-[max(8px,env(safe-area-inset-top))]" />
-        <header className="flex items-center gap-2 px-3 py-2">
+        <header className="px-glass flex h-14 shrink-0 items-center gap-1 border-b border-border/70 px-2 sm:px-3">
           <button
             type="button"
-            className={cn("rounded-lg p-2 hover:bg-muted", !docked && showHistoryColumn && "md:hidden")}
+            className={cn(iconButton, !docked && showHistoryColumn && "md:hidden", docked && menuOpen && "bg-brand-subtle text-brand hover:bg-brand-subtle hover:text-brand")}
             onClick={() => {
               if (docked) setMenuOpen((open) => !open);
               else setSheetOpen(true);
             }}
             aria-expanded={docked ? menuOpen : undefined}
             aria-label={docked && menuOpen ? "Close chats and shortcuts" : "Open chats and shortcuts"}
+            title={docked && menuOpen ? "Hide chats" : "Chats and shortcuts"}
           >
-            <Menu className="h-5 w-5" />
+            <PanelLeft className="h-[18px] w-[18px]" />
           </button>
-          <span className="min-w-0 flex-1 truncate text-base font-medium">{account.assistantName}</span>
+          <CopilotMark size="sm" className="ml-1" />
+          <div className="ml-1.5 min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold leading-5 text-foreground">{account.assistantName}</p>
+            <p className="truncate text-caption font-normal text-muted-foreground">{activeTitle}</p>
+          </div>
+          {!activeId && !embedded && <Button size="sm" variant="ghost" onClick={() => setHelpOpen(true)}><MessageCircle className="h-4 w-4" />Text us</Button>}
           {embedded && presentation === "dock" && (
-            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onExpand} aria-label="Expand Copilot" title="Expand">
+            <button type="button" className={iconButton} onClick={onExpand} aria-label="Expand Copilot" title="Expand to full view">
               <Maximize2 className="h-4 w-4" />
-            </Button>
+            </button>
           )}
           {embedded && presentation === "expanded" && (
-            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onCollapse} aria-label="Collapse Copilot to the side" title="Collapse to side">
+            <button type="button" className={iconButton} onClick={onCollapse} aria-label="Collapse Copilot to the side" title="Dock to the side">
               <Minimize2 className="h-4 w-4" />
-            </Button>
+            </button>
           )}
           {embedded && (
-            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onClose} aria-label="Close Copilot" title="Close">
+            <button type="button" className={iconButton} onClick={onClose} aria-label="Close Copilot" title="Close">
               <X className="h-4 w-4" />
-            </Button>
+            </button>
           )}
-          {!activeId && !embedded && <Button size="sm" variant="ghost" onClick={() => setHelpOpen(true)}><MessageCircle className="h-4 w-4" />Text us</Button>}
         </header>
         {activeId ? (
-          <ChatView key={activeId} threadId={activeId} kind={activeKind} account={account} focus={focus} onVoice={() => setVoice(true)}
+          <ChatView key={activeId} threadId={activeId} kind={activeKind} account={account} focus={focus} onVoice={() => setVoice(true)} compact={docked}
             runIntro={!!routeFocus || (isFirstTimeRoute && activeId === introThread)} onTouched={(title) => touch(activeId, title)} />
         ) : (
-          <div className="flex flex-1 flex-col items-center justify-center px-4 pb-[max(16px,env(safe-area-inset-bottom))]">
-            <h1 className="mb-6 text-2xl sm:text-3xl font-semibold text-center">What can I set up for you?</h1>
-            <div className="w-full max-w-3xl">
-              <Composer placeholder={composerPlaceholder(account.assistantName)} onSend={newChatFromComposer} onVoice={() => setVoice(true)} initialValue={readUnsentDraft()} />
-              {heldPromptText && <p className="mt-3 text-center text-sm text-muted-foreground">Got it. I'll send that as soon as this chat is ready.</p>}
-            </div>
+          <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-6 pb-[max(16px,env(safe-area-inset-bottom))]">
+            <CopilotGreeting firstName={firstNameOf(user)} assistantName={account.assistantName} heading={docked ? "h2" : "h1"} compact={docked}>
+              <div className="space-y-4 text-left">
+                <Composer placeholder={composerPlaceholder(account.assistantName)} onSend={newChatFromComposer} onVoice={() => setVoice(true)} initialValue={readUnsentDraft()} />
+                {heldPromptText
+                  ? <p className="text-center text-sm text-muted-foreground">Got it. I'll send that as soon as this chat is ready.</p>
+                  : <PromptChips prompts={STARTER_PROMPTS} onPick={(prompt) => void newChatFromComposer(prompt)} />}
+              </div>
+            </CopilotGreeting>
           </div>
         )}
       </main>
       <TextUsDialog open={helpOpen} onOpenChange={setHelpOpen} title="Need a hand?" description="Text our team for help with setup, billing, or anything you're stuck on." />
       {voice && (
-        <div className={cn("z-50 bg-background", embedded ? "absolute inset-0" : "fixed inset-0")}>
+        <div className={cn("px-canvas z-50", embedded ? "absolute inset-0" : "fixed inset-0")}>
           <CoPilotVoiceMode onExit={() => setVoice(false)} playOpener={false} />
         </div>
       )}

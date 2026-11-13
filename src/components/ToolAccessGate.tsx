@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Eye, Lock } from "lucide-react";
+import { EmptyState } from "@/components/premium/21st/empty-state";
 import { TOOL_AREA, useTeamAccess } from "@/hooks/useTeamAccess";
 
 /** Hides a tool for admins with no access, and makes it read-only for view-only admins. */
@@ -17,18 +18,26 @@ export default function ToolAccessGate({ tool, children }: { tool: string; child
 
   if (level === "none") {
     return (
-      <div className="flex flex-col items-center justify-center text-center py-24 text-muted-foreground gap-3">
-        <Lock className="w-10 h-10 opacity-50" />
-        <p className="font-medium text-foreground">You don't have access to this area</p>
-        <p className="text-sm">Ask the account owner to give you access in Settings → Admins → Permissions.</p>
-      </div>
+      <EmptyState
+        className="py-16"
+        icon={
+          <span className="px-icon-chip">
+            <Lock className="size-5" aria-hidden="true" />
+          </span>
+        }
+        title="You don't have access to this area"
+        description="Ask the account owner to give you access in Settings → Admins → Permissions."
+      />
     );
   }
   if (level === "view") {
     return (
       <div className="space-y-3">
-        <div className="flex items-center gap-2 rounded-md border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
-          <Eye className="w-4 h-4" /> View only — the account owner hasn't given you edit access here.
+        <div role="status" className="flex items-start gap-2 rounded-lg border border-info/30 bg-blue-50 px-3 py-2 text-small text-foreground">
+          <Eye className="mt-0.5 size-4 shrink-0 text-info" aria-hidden="true" />
+          <p>
+            <strong className="font-semibold">View only.</strong> The account owner hasn't given you edit access here.
+          </p>
         </div>
         <fieldset disabled className="contents [&_button]:pointer-events-none [&_button]:opacity-70">
           {children}

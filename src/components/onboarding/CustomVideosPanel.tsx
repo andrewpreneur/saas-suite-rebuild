@@ -305,9 +305,9 @@ const CustomVideosPanel = ({ standalone = false, selectedPlanAgencyId, agencyVer
   return (
     <div className="space-y-4">
       {/* Info banner about custom videos being shared */}
-      <Alert className="bg-amber-500/10 border-amber-500/20">
-        <Info className="h-4 w-4 text-amber-600" />
-        <AlertDescription className="text-amber-700 text-sm">
+      <Alert className="bg-muted border-border">
+        <Info className="h-4 w-4 text-warning" />
+        <AlertDescription className="text-foreground text-sm">
           Custom videos are shared across all plans. Use the tier toggles below to control which plans can see each video.
         </AlertDescription>
       </Alert>
@@ -345,8 +345,8 @@ const CustomVideosPanel = ({ standalone = false, selectedPlanAgencyId, agencyVer
                         className="relative inline-flex items-center"
                         title="Transcribed and added to training document"
                       >
-                        <Mic className="w-5 h-5 text-green-600" />
-                        <CircleCheck className="w-3 h-3 text-green-600 absolute -bottom-1 -right-1 bg-white rounded-full" />
+                        <Mic className="w-5 h-5 text-success" />
+                        <CircleCheck className="w-3 h-3 text-success absolute -bottom-1 -right-1 bg-card rounded-full" />
                       </span>
                     )}
                     {video.transcription_status === "processing" && (
@@ -404,7 +404,7 @@ const CustomVideosPanel = ({ standalone = false, selectedPlanAgencyId, agencyVer
                           type="checkbox"
                           checked={(video.tiers || []).includes(tier)}
                           onChange={(e) => toggleVideoTier(video.id, tier, e.target.checked)}
-                          className="rounded border-gray-300"
+                          className="rounded border-input"
                           disabled={isDisabled}
                         />
                         <span className={isDisabled ? 'text-muted-foreground' : ''}>

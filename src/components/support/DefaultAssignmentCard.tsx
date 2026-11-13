@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUser } from "@/contexts/UserContext";
-import { Card, CardContent } from "@/components/ui/card";
+import { SectionCard } from "@/components/premium/SectionCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -106,15 +106,12 @@ export default function DefaultAssignmentCard() {
   );
 
   return (
-    <Card>
-      <CardContent className="p-4 space-y-4">
-        <div className="flex items-start gap-3">
-          <UserCog className="w-5 h-5 text-muted-foreground mt-0.5" />
-          <div>
-            <p className="text-sm font-semibold">Assign chats & tickets by default</p>
-            <p className="text-xs text-muted-foreground">New chats and tickets are assigned right away. Once a customer has someone, they keep that person until it's changed by hand.</p>
-          </div>
-        </div>
+    <SectionCard
+      icon={<UserCog />}
+      title="Default assignment"
+      description="Who gets a new chat or ticket. A client keeps the same person until you change it by hand."
+      bodyClassName="space-y-4"
+    >
 
         {managed ? (
           <p className="text-sm text-muted-foreground">Our team handles your chats and tickets (We Handle & Respond), so default assignment doesn't apply.</p>
@@ -163,11 +160,10 @@ export default function DefaultAssignmentCard() {
               <p className="text-xs text-muted-foreground">Invite admins in Settings → Admins to assign to other people.</p>
             )}
             {canEdit
-              ? <Button variant="accent" onClick={save} disabled={saving}>Save</Button>
+              ? <div><Button onClick={save} disabled={saving}>{saving ? "Saving…" : "Save assignment"}</Button></div>
               : <p className="text-xs text-muted-foreground">Only the account owner can change this.</p>}
           </>
         )}
-      </CardContent>
-    </Card>
+    </SectionCard>
   );
 }

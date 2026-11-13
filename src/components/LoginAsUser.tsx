@@ -107,74 +107,79 @@ export const LoginAsUser = () => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
-          <UserCog className="h-4 w-4" />
+        <Button variant="outline" size="sm" className="gap-2" aria-label="Login As">
+          <UserCog aria-hidden="true" />
           <span className="hidden sm:inline">Login As</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <UserCog className="h-5 w-5" />
+          <DialogTitle className="flex items-center gap-3 text-h4">
+            <span className="px-icon-chip shrink-0">
+              <UserCog className="size-5" aria-hidden="true" />
+            </span>
             Login As User
           </DialogTitle>
           <DialogDescription>
             View the app as another user to help them with their account. Only available for admin.
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-4">
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="search-user">Search User</Label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
               <Input
                 id="search-user"
                 placeholder="Search by email, name, or agency..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
+                className="h-11 pl-9"
+                autoComplete="off"
               />
             </div>
           </div>
 
-          <div className="border rounded-lg max-h-[300px] overflow-y-auto">
+          <div className="max-h-[300px] overflow-y-auto rounded-lg border border-border" aria-live="polite">
             {loading ? (
-              <div className="p-4 text-center text-sm text-muted-foreground">
-                Loading users...
+              <div className="space-y-2 p-3" role="status" aria-label="Loading users">
+                <div className="px-skeleton h-11 rounded-md" />
+                <div className="px-skeleton h-11 rounded-md" />
+                <div className="px-skeleton h-11 rounded-md" />
               </div>
             ) : searchQuery.length < 2 ? (
-              <div className="p-4 text-center text-sm text-muted-foreground">
+              <div className="p-6 text-center text-small text-muted-foreground">
                 Type at least 2 characters to search
               </div>
             ) : filteredUsers.length === 0 ? (
-              <div className="p-4 text-center text-sm text-muted-foreground">
-                No users found
+              <div className="p-6 text-center text-small text-muted-foreground">
+                No users found. Try the email address instead.
               </div>
             ) : (
-              <div className="divide-y">
+              <div className="divide-y divide-border">
                 {filteredUsers.map((user) => (
                   <button
                     key={`${user.email}:${user.owner_email || ''}`}
                     onClick={() => handleLoginAs(user.owner_email || user.email)}
-                    className="w-full px-4 py-3 text-left hover:bg-muted/50 transition-colors flex items-center justify-between group"
+                    className="group flex min-h-11 w-full cursor-pointer items-center justify-between px-4 py-3 text-left transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none"
                   >
                     <div className="min-w-0 flex-1">
-                      <div className="font-medium truncate">
+                      <div className="truncate text-small font-medium">
                         {user.full_name || user.email}
                       </div>
                       {user.full_name && (
-                        <div className="text-sm text-muted-foreground truncate">
+                        <div className="truncate text-small text-muted-foreground">
                           {user.email}
                         </div>
                       )}
                       {user.agency_name && (
-                        <div className="text-xs text-muted-foreground truncate">
+                        <div className="truncate text-caption font-normal text-muted-foreground">
                           {user.owner_email ? `Team admin → opens ${user.agency_name}` : user.agency_name}
                         </div>
                       )}
                     </div>
-                    <LogIn className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2" />
+                    <LogIn className="ml-2 size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" aria-hidden="true" />
                   </button>
                 ))}
               </div>

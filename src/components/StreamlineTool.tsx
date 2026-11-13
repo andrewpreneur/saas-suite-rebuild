@@ -10,7 +10,12 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sparkles, ArrowRight, RefreshCw, Brain, MousePointer, ChevronLeft, Check, Trash2, Copy, Pause, Play, Pencil, CheckCircle, X, AlertTriangle, ExternalLink, Zap, Webhook, ChevronDown, ChevronRight, FolderOpen, Folder } from "lucide-react";
+import { Sparkles, ArrowRight, RefreshCw, Brain, MousePointer, ChevronLeft, Check, Trash2, Copy, Pause, Play, Pencil, CheckCircle, X, AlertTriangle, ExternalLink, Zap, Webhook, ChevronDown, ChevronRight, FolderOpen, Folder, EyeOff } from "lucide-react";
+import { motion } from "framer-motion";
+import { SectionCard } from "@/components/premium/SectionCard";
+import AnimatedTabs from "@/components/premium/21st/animated-tabs";
+import { EmptyState, EmptyStateIllustration } from "@/components/premium/21st/empty-state";
+import { DURATION, EASE_OUT } from "@/lib/motion";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/platform/PageHeader";
 import { LoadNotice } from "@/components/platform/LoadNotice";
@@ -512,7 +517,7 @@ const StreamlineTool = ({
       <div className="space-y-6">
         <PageHeader
           title="Menu link removal"
-          subtitle="Choose which HighLevel menu links your clients should not see."
+          subtitle="Hide the HighLevel menu links your clients don't need, for every sub-account or only the ones you pick."
         />
         <LoadNotice
           loading={isLoading}
@@ -526,319 +531,348 @@ const StreamlineTool = ({
 
   // ===== DYNAMIC MODE =====
   if (dynamicInstallation) {
+    const groups = [
+      { id: "main" as const, label: "Main navigation", links: highlevelFeatures },
+      { id: "settings" as const, label: "Settings navigation", links: SETTINGS_NAV_LINKS },
+    ].map((group) => ({
+      ...group,
+      count: group.links.filter((link) => selectedLinks.includes(link.tabId)).length,
+    }));
+    const activeGroup = groups.find((group) => group.id === navTab) ?? groups[0];
+    const presetGroups = groupRulesByPreset(menuRules);
+    const presetCount = Object.keys(presetGroups).length;
     return (
-      <div className="space-y-6">
+      <div className="flex flex-col gap-6">
         <PageHeader
           title="Menu link removal"
-          subtitle="Choose which HighLevel menu links your clients should not see."
+          subtitle="Hide the HighLevel menu links your clients don't need, for every sub-account or only the ones you pick."
           actions={
             <>
               <Button variant="outline" className="gap-2" onClick={() => setTrainingVideoOpen(true)} aria-label="Play menu link removal walkthrough video">
                 <Play className="h-4 w-4" />
-                Menu Removal Walkthrough
+                Watch walkthrough
               </Button>
               <MenuRemovalVideoDialog open={trainingVideoOpen} onOpenChange={setTrainingVideoOpen} />
               <SitesTopNavOptions agencyId={agencyId} />
             </>
           }
         />
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Left side: Feature Cards */}
-          <div className="flex-1">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  {editingRule ? (
-                    <>
-                      <Pencil className="w-5 h-5" />
-                      Editing Rule {editingRule.sub_account_id ? `(${editingRule.sub_account_id})` : '(All)'}
-                    </>
-                  ) : (
-                    "Select Menu Links to Remove"
-                  )}
-                </CardTitle>
-                <CardDescription>
-                  Click on menu links you want to hide from your GHL platform
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div data-tip-target="menu-manual-links">
-                <div role="tablist" aria-label="Navigation type" className="inline-flex rounded-lg border p-1 bg-muted">
-                  {([["main", "Main Navigation"], ["settings", "Settings Navigation"]] as const).map(([k, l]) => {
-                    const count = selectedLinks.filter(id => (k === "settings") === SETTINGS_NAV_LINKS.some(f => f.tabId === id)).length;
-                    return (
-                      <button key={k} type="button" role="tab" aria-selected={navTab === k} onClick={() => setNavTab(k)}
-                        className={`px-3 py-1.5 text-sm rounded-md transition-colors ${navTab === k ? "bg-background shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"}`}>
-                        {l}{count > 0 && <span className="ml-1.5 text-xs text-destructive">({count})</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {(navTab === "main" ? highlevelFeatures : SETTINGS_NAV_LINKS).map(feature => (
-                    <div
-                      key={feature.id}
-                      onClick={() => toggleLink(feature.tabId)}
-                      className={`p-3 border-2 rounded-lg cursor-pointer transition-all text-center ${
-                        selectedLinks.includes(feature.tabId)
-                          ? 'border-destructive bg-destructive/10 shadow-sm'
-                          : 'border-border bg-card hover:border-destructive/50'
-                      }`}
+        <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+          {/* Left side: links to hide */}
+          <SectionCard
+            icon={editingRule ? <Pencil /> : <EyeOff />}
+            title={
+              editingRule
+                ? `Editing rule ${editingRule.sub_account_id ? `(${editingRule.sub_account_id})` : "(all sub-accounts)"}`
+                : "Choose links to hide"
+            }
+            description="Switch a link on to hide it. Hiding a link does not change HighLevel permissions."
+            className="min-w-0"
+            bodyClassName="flex flex-col gap-6"
+          >
+            <div data-tip-target="menu-manual-links" className="flex flex-col gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <AnimatedTabs
+                  variant="segment"
+                  activeTab={navTab}
+                  onChange={(id) => setNavTab(id === "settings" ? "settings" : "main")}
+                  tabs={groups.map((group) => ({
+                    id: group.id,
+                    label: group.count ? `${group.label} (${group.count})` : group.label,
+                  }))}
+                  className="max-w-full [&_button]:whitespace-nowrap [&_button]:px-3 [&_button]:py-1.5"
+                />
+                <p className="text-xs text-muted-foreground" aria-live="polite">
+                  {activeGroup.count} of {activeGroup.links.length} hidden
+                </p>
+              </div>
+              <motion.ul
+                key={activeGroup.id}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: DURATION.slow, ease: EASE_OUT }}
+                aria-label={activeGroup.label}
+                className="grid gap-x-4 sm:grid-cols-2"
+              >
+                {activeGroup.links.map((feature, index) => {
+                  const hidden = selectedLinks.includes(feature.tabId);
+                  const switchId = `menu-link-${activeGroup.id}-${index}`;
+                  return (
+                    <li key={feature.id} className="border-b border-border/70">
+                      <label
+                        htmlFor={switchId}
+                        className="flex min-h-[44px] cursor-pointer items-center justify-between gap-3 rounded-md px-2 py-2 transition-colors hover:bg-muted/60"
+                      >
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span
+                            className={`truncate text-sm font-medium ${hidden ? "text-muted-foreground line-through decoration-muted-foreground/50" : "text-foreground"}`}
+                          >
+                            {feature.name}
+                          </span>
+                          {hidden ? <Badge variant="brand" className="shrink-0">Hidden</Badge> : null}
+                        </span>
+                        <Switch
+                          id={switchId}
+                          checked={hidden}
+                          onCheckedChange={() => toggleLink(feature.tabId)}
+                          aria-label={`Hide ${feature.name}`}
+                        />
+                      </label>
+                    </li>
+                  );
+                })}
+              </motion.ul>
+            </div>
+
+            {selectedLinks.includes('#sb_AI Agents') && (
+              <div className="flex items-start gap-3 rounded-md border border-warning/30 bg-warning/10 p-3">
+                <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-warning" />
+                <div className="text-sm">
+                  <p className="font-medium text-foreground">AI Agents must also be turned off in HighLevel</p>
+                  <p className="mt-1 text-muted-foreground">
+                    Hiding the menu link won't fully disable AI Agents. Also turn them off in{' '}
+                    <a
+                      href="https://app.gohighlevel.com/settings/ai-employees"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 font-medium text-foreground underline underline-offset-4"
                     >
-                      <h4 className="font-medium text-sm">{feature.name}</h4>
-                      {selectedLinks.includes(feature.tabId) && (
-                        <Badge variant="destructive" className="text-xs mt-1">Will Remove</Badge>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                </div>
-                {selectedLinks.includes('#sb_AI Agents') && (
-                  <div className="flex items-start gap-3 p-3 rounded-lg border border-yellow-500/50 bg-yellow-500/10">
-                    <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
-                    <div className="text-sm">
-                      <p className="font-medium text-yellow-600 dark:text-yellow-400">AI Agents must also be disabled manually</p>
-                      <p className="text-muted-foreground mt-1">
-                        Hiding the menu link won't fully disable AI Agents. You must also turn them off at{' '}
-                        <a
-                          href="https://app.gohighlevel.com/settings/ai-employees"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-yellow-600 dark:text-yellow-400 underline hover:text-yellow-700"
-                        >
-                          GHL AI Employee Settings <ExternalLink className="w-3 h-3" />
-                        </a>
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Preset Name */}
-                <div data-tip-target="menu-manual-preset" className="border-t pt-4 space-y-2">
-                  <Label className="text-sm font-medium">Preset Name <span className="text-destructive">*</span></Label>
-                  <Input
-                    placeholder="e.g., Basic Plan, Pro Plan"
-                    value={presetName}
-                    onChange={e => setPresetName(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Name this preset to organize rules and use with auto-remove automations
+                      GHL AI Employee Settings <ExternalLink className="h-3 w-3" />
+                    </a>
                   </p>
                 </div>
+              </div>
+            )}
 
-                {/* Sub Account */}
-                <div data-tip-target="menu-manual-scope" className="border-t pt-4 space-y-3">
-                  <div className="flex items-center space-x-3">
-                    <Switch
-                      id="dynamic-sub-account"
-                      checked={isSubAccountSpecific}
-                      onCheckedChange={setIsSubAccountSpecific}
+            {/* Preset Name */}
+            <div data-tip-target="menu-manual-preset" className="flex flex-col gap-2">
+              <Label htmlFor="menu-preset-name">Preset name</Label>
+              <Input
+                id="menu-preset-name"
+                placeholder="e.g., Basic Plan, Pro Plan"
+                value={presetName}
+                onChange={e => setPresetName(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Groups your rules and lets automations apply them by name.
+              </p>
+            </div>
+
+            {/* Sub Account */}
+            <div data-tip-target="menu-manual-scope" className="flex flex-col gap-3 rounded-lg border border-border bg-muted/40 p-3 sm:p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <Label htmlFor="dynamic-sub-account" className="text-sm font-medium">
+                    Only for specific sub-accounts
+                  </Label>
+                  <p className="mt-0.5 text-xs text-muted-foreground">Off means every sub-account.</p>
+                </div>
+                <Switch
+                  id="dynamic-sub-account"
+                  checked={isSubAccountSpecific}
+                  onCheckedChange={setIsSubAccountSpecific}
+                />
+              </div>
+              {isSubAccountSpecific && (
+                <div className="flex flex-col gap-2">
+                  <Label className="text-sm font-medium">
+                    {editingRule ? "Sub-account ID" : "Sub-accounts (pick one or more)"}
+                  </Label>
+                  {editingRule ? (
+                    <SubAccountPicker agencyId={agencyId} value={subAccountId} onChange={setSubAccountId} savedIds={savedSubAccounts} />
+                  ) : (
+                    <SubAccountPicker
+                      agencyId={agencyId}
+                      value={subAccountId}
+                      onChange={setSubAccountId}
+                      savedIds={savedSubAccounts}
+                      values={subAccountIds}
+                      onToggle={(id) => setSubAccountIds((cur) => cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id])}
                     />
-                    <Label htmlFor="dynamic-sub-account" className="text-sm font-medium">
-                      Apply to specific sub account only
-                    </Label>
-                  </div>
-                  {isSubAccountSpecific && (
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">
-                        {editingRule ? "Sub Account ID" : "Sub Accounts (pick one or more)"} <span className="text-destructive">*</span>
-                      </Label>
-                      {editingRule ? (
-                        <SubAccountPicker agencyId={agencyId} value={subAccountId} onChange={setSubAccountId} savedIds={savedSubAccounts} />
-                      ) : (
-                        <SubAccountPicker
-                          agencyId={agencyId}
-                          value={subAccountId}
-                          onChange={setSubAccountId}
-                          savedIds={savedSubAccounts}
-                          values={subAccountIds}
-                          onToggle={(id) => setSubAccountIds((cur) => cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id])}
-                        />
-                      )}
-                    </div>
                   )}
                 </div>
+              )}
+            </div>
 
-                {/* Apply / Cancel buttons */}
-                <div data-tip-target="menu-manual-apply" className="flex gap-3">
-                  <Button
-                    onClick={applyRules}
-                    disabled={selectedLinks.length === 0 || isApplying}
-                    className="flex-1"
-                  >
-                    {isApplying ? (
-                      <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Applying...</>
-                    ) : editingRule ? (
-                      <><Check className="w-4 h-4 mr-2" />Update Rule</>
-                    ) : (
-                      <><Check className="w-4 h-4 mr-2" />Apply ({selectedLinks.length} links)</>
-                    )}
+            {/* Apply / Cancel buttons */}
+            <div data-tip-target="menu-manual-apply" className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+              <p className="text-sm text-muted-foreground">
+                {selectedLinks.length === 0
+                  ? "No links selected yet."
+                  : `${selectedLinks.length} link${selectedLinks.length === 1 ? "" : "s"} will be hidden.`}
+              </p>
+              <div className="flex items-center gap-2">
+                {editingRule && (
+                  <Button variant="outline" onClick={cancelEdit}>
+                    <X className="h-4 w-4" />Cancel
                   </Button>
-                  {editingRule && (
-                    <Button variant="outline" onClick={cancelEdit}>
-                      <X className="w-4 h-4 mr-2" />Cancel
-                    </Button>
+                )}
+                <Button variant="accent" onClick={applyRules} disabled={isApplying}>
+                  {isApplying ? (
+                    <><RefreshCw className="h-4 w-4 animate-spin" />Saving…</>
+                  ) : editingRule ? (
+                    <><Check className="h-4 w-4" />Update rule</>
+                  ) : (
+                    <><EyeOff className="h-4 w-4" />{selectedLinks.length ? `Hide ${selectedLinks.length} link${selectedLinks.length === 1 ? "" : "s"}` : "Hide links"}</>
                   )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                </Button>
+              </div>
+            </div>
+          </SectionCard>
 
           {/* Right side: Rules organized by Preset Folders */}
-          <div data-tip-target="menu-manual-rules" className="flex-1">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-primary" />
-                  Active Menu Link Removals
-                </CardTitle>
-                <CardDescription>
-                  {menuRules.length === 0
-                    ? "No menu link removals applied yet"
-                    : `${menuRules.length} rule${menuRules.length > 1 ? 's' : ''} across ${Object.keys(groupRulesByPreset(menuRules)).length} preset${Object.keys(groupRulesByPreset(menuRules)).length > 1 ? 's' : ''}`
-                  }
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {menuRules.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <p className="text-sm">Select menu links on the left and click Apply to create your first rule.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {Object.entries(groupRulesByPreset(menuRules))
-                      .sort(([a], [b]) => {
-                        if (a === '__other__') return 1;
-                        if (b === '__other__') return -1;
-                        return a.localeCompare(b);
-                      })
-                      .map(([presetKey, presetRules]) => {
-                        const isOpen = openPresets.has(presetKey);
-                        const displayName = presetKey === '__other__' ? 'Other' : presetKey;
-                        const activeCount = presetRules.filter(r => r.is_active).length;
-                        const allActive = presetRules.every(r => r.is_active);
-                        const allPaused = presetRules.every(r => !r.is_active);
+          <div data-tip-target="menu-manual-rules" className="min-w-0 lg:sticky lg:top-4 lg:self-start">
+            <SectionCard
+              icon={<CheckCircle />}
+              title="Active rules"
+              description={
+                menuRules.length === 0
+                  ? "Nothing is hidden yet."
+                  : `${menuRules.length} rule${menuRules.length > 1 ? 's' : ''} across ${presetCount} preset${presetCount > 1 ? 's' : ''}`
+              }
+            >
+              {menuRules.length === 0 ? (
+                <EmptyState
+                  icon={<EmptyStateIllustration><EyeOff className="size-6 text-brand" aria-hidden /></EmptyStateIllustration>}
+                  title="No rules yet"
+                  description="Pick the links to hide, name the preset, then save. Your rules show up here."
+                  className="py-8"
+                />
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {Object.entries(presetGroups)
+                    .sort(([a], [b]) => {
+                      if (a === '__other__') return 1;
+                      if (b === '__other__') return -1;
+                      return a.localeCompare(b);
+                    })
+                    .map(([presetKey, presetRules]) => {
+                      const isOpen = openPresets.has(presetKey);
+                      const displayName = presetKey === '__other__' ? 'Other' : presetKey;
+                      const activeCount = presetRules.filter(r => r.is_active).length;
+                      const allActive = presetRules.every(r => r.is_active);
+                      const allPaused = presetRules.every(r => !r.is_active);
 
-                        return (
-                          <div key={presetKey} className="border rounded-lg overflow-hidden">
-                            {/* Folder Header */}
-                            <div
-                              className="flex items-center justify-between p-3 bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
-                              onClick={() => {
-                                setOpenPresets(prev => {
-                                  const next = new Set(prev);
-                                  if (next.has(presetKey)) next.delete(presetKey);
-                                  else next.add(presetKey);
-                                  return next;
-                                });
-                              }}
-                            >
-                              <div className="flex items-center gap-2">
-                                {isOpen ? (
-                                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                                ) : (
-                                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                                )}
-                                {isOpen ? (
-                                  <FolderOpen className="w-4 h-4 text-primary" />
-                                ) : (
-                                  <Folder className="w-4 h-4 text-primary" />
-                                )}
-                                <span className="font-semibold text-sm">{displayName}</span>
-                                <Badge variant="secondary" className="text-xs">
-                                  {presetRules.length} rule{presetRules.length > 1 ? 's' : ''}
-                                </Badge>
-                                {allPaused && (
-                                  <Badge variant="outline" className="text-xs text-muted-foreground">Paused</Badge>
-                                )}
-                                {!allActive && !allPaused && (
-                                  <Badge variant="outline" className="text-xs">{activeCount} active</Badge>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                                {presetKey !== '__other__' && <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`Set up automation for ${displayName}`} title="Set up automation" onClick={() => { setAutomationPreset(presetKey); document.querySelector('[data-tip-target="menu-automation-removal"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}><Webhook className="h-4 w-4" /></Button>}
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7"
-                                  onClick={() => togglePresetActive(presetKey, presetRules)}
-                                  title={allActive ? "Pause All" : "Resume All"}
-                                >
-                                  {allActive ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7 text-destructive hover:text-destructive"
-                                  onClick={() => deletePreset(presetRules)}
-                                  title="Delete All Rules in Preset"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </Button>
-                              </div>
+                      return (
+                        <div key={presetKey} className="overflow-hidden rounded-lg border border-border">
+                          {/* Folder Header */}
+                          <div
+                            className="flex cursor-pointer items-center justify-between gap-2 bg-muted/40 p-3 transition-colors hover:bg-muted/70"
+                            onClick={() => {
+                              setOpenPresets(prev => {
+                                const next = new Set(prev);
+                                if (next.has(presetKey)) next.delete(presetKey);
+                                else next.add(presetKey);
+                                return next;
+                              });
+                            }}
+                          >
+                            <div className="flex min-w-0 flex-wrap items-center gap-2">
+                              <ChevronRight className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${isOpen ? "rotate-90" : ""}`} />
+                              {isOpen ? (
+                                <FolderOpen className="h-4 w-4 shrink-0 text-brand" />
+                              ) : (
+                                <Folder className="h-4 w-4 shrink-0 text-brand" />
+                              )}
+                              <span className="truncate text-sm font-semibold">{displayName}</span>
+                              <Badge variant="secondary" className="text-xs">
+                                {presetRules.length} rule{presetRules.length > 1 ? 's' : ''}
+                              </Badge>
+                              {allPaused && (
+                                <Badge variant="outline" className="text-xs text-muted-foreground">Paused</Badge>
+                              )}
+                              {!allActive && !allPaused && (
+                                <Badge variant="outline" className="text-xs">{activeCount} active</Badge>
+                              )}
                             </div>
+                            <div className="flex shrink-0 items-center gap-1" onClick={e => e.stopPropagation()}>
+                              {presetKey !== '__other__' && <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`Set up automation for ${displayName}`} title="Set up automation" onClick={() => { setAutomationPreset(presetKey); document.querySelector('[data-tip-target="menu-automation-removal"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}><Webhook className="h-4 w-4" /></Button>}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => togglePresetActive(presetKey, presetRules)}
+                                title={allActive ? "Pause All" : "Resume All"}
+                                aria-label={allActive ? `Pause all rules in ${displayName}` : `Resume all rules in ${displayName}`}
+                              >
+                                {allActive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                                onClick={() => deletePreset(presetRules)}
+                                title="Delete All Rules in Preset"
+                                aria-label={`Delete all rules in ${displayName}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
 
-                            {/* Folder Content */}
-                            {isOpen && (
-                              <div className="divide-y">
-                                {presetRules
-                                  .sort((a, b) => {
-                                    if (!a.sub_account_id && b.sub_account_id) return -1;
-                                    if (a.sub_account_id && !b.sub_account_id) return 1;
-                                    return (a.sub_account_id || '').localeCompare(b.sub_account_id || '');
-                                  })
-                                  .map(rule => (
-                                    <div key={rule.id} className={`p-3 space-y-2 ${!rule.is_active ? 'opacity-50' : ''}`}>
-                                      <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-xs font-medium text-muted-foreground">
-                                            {rule.sub_account_id || <Badge variant="secondary" className="text-xs">All Sub Accounts</Badge>}
-                                          </span>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleRuleActive(rule)} title={rule.is_active ? "Pause" : "Resume"}>
-                                            {rule.is_active ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                                          </Button>
-                                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => startEdit(rule)} title="Edit">
-                                            <Pencil className="w-3.5 h-3.5" />
-                                          </Button>
-                                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setCopyTarget(rule); setShowCopyDialog(true); }} title="Copy">
-                                            <Copy className="w-3.5 h-3.5" />
-                                          </Button>
-                                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => deleteRule(rule.id)} title="Delete">
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                          </Button>
-                                        </div>
-                                      </div>
-                                      <div className="flex flex-wrap gap-1">
-                                        {rule.hidden_links.map(link => (
-                                          <Badge key={link} variant="outline" className="text-xs">
-                                            {getFeatureName(link)}
-                                          </Badge>
-                                        ))}
+                          {/* Folder Content */}
+                          {isOpen && (
+                            <div className="divide-y divide-border">
+                              {presetRules
+                                .sort((a, b) => {
+                                  if (!a.sub_account_id && b.sub_account_id) return -1;
+                                  if (a.sub_account_id && !b.sub_account_id) return 1;
+                                  return (a.sub_account_id || '').localeCompare(b.sub_account_id || '');
+                                })
+                                .map(rule => (
+                                  <div key={rule.id} className={`flex flex-col gap-2 p-3 ${!rule.is_active ? 'opacity-50' : ''}`}>
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span className="min-w-0 truncate text-xs font-medium text-muted-foreground">
+                                        {rule.sub_account_id || <Badge variant="secondary" className="text-xs">All sub-accounts</Badge>}
+                                      </span>
+                                      <div className="flex shrink-0 items-center gap-1">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleRuleActive(rule)} title={rule.is_active ? "Pause" : "Resume"} aria-label={rule.is_active ? "Pause rule" : "Resume rule"}>
+                                          {rule.is_active ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(rule)} title="Edit" aria-label="Edit rule">
+                                          <Pencil className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setCopyTarget(rule); setShowCopyDialog(true); }} title="Copy" aria-label="Copy rule">
+                                          <Copy className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" onClick={() => deleteRule(rule.id)} title="Delete" aria-label="Delete rule">
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
                                       </div>
                                     </div>
-                                  ))}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                                    <div className="flex flex-wrap gap-1">
+                                      {rule.hidden_links.map(link => (
+                                        <Badge key={link} variant="outline" className="text-xs font-medium">
+                                          {getFeatureName(link)}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </SectionCard>
           </div>
         </div>
 
-        <section className="space-y-6 border-t border-border pt-8">
-          <h2 className="flex items-center gap-2 text-xl font-semibold"><Zap className="h-5 w-5 text-primary" />Auto-Remove Menu Links</h2>
-          <div data-tip-target="menu-automation-connection" className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-6">
-            <div className="space-y-1"><h3 className="font-semibold">Before you start: HighLevel connection</h3><p className="text-sm text-muted-foreground">Connect in Settings → HighLevel. Include custom-menu-link.write permission for onboarding-link assignment.</p></div>
-            <Button variant="outline" onClick={() => navigate('/app/highlevel')}><ExternalLink className="h-4 w-4 mr-2" />HighLevel Settings</Button>
+        <section className="flex flex-col gap-6 border-t border-border pt-8">
+          <div className="flex items-start gap-3">
+            <span className="px-icon-chip shrink-0" aria-hidden="true"><Zap className="h-5 w-5" /></span>
+            <div className="min-w-0">
+              <h2 className="text-h4 text-foreground">Auto-remove menu links</h2>
+              <p className="mt-0.5 text-sm text-muted-foreground">Apply a preset automatically when a sub-account is created or changes plan.</p>
+            </div>
           </div>
-          <MenuAutomationPanel agencyId={agencyId} presetName={automationPreset} presets={Object.keys(groupRulesByPreset(menuRules)).filter((k) => k !== '__other__')} />
+          <div data-tip-target="menu-automation-connection" className="px-surface flex flex-wrap items-center justify-between gap-4 p-4 sm:p-6">
+            <div className="min-w-0 space-y-1"><h3 className="text-sm font-semibold">Before you start: HighLevel connection</h3><p className="text-sm text-muted-foreground">Connect in Settings → HighLevel. Include custom-menu-link.write permission for onboarding-link assignment.</p></div>
+            <Button variant="outline" onClick={() => navigate('/app/highlevel')}><ExternalLink className="h-4 w-4" />HighLevel Settings</Button>
+          </div>
+          <MenuAutomationPanel agencyId={agencyId} presetName={automationPreset} presets={Object.keys(presetGroups).filter((k) => k !== '__other__')} />
         </section>
 
         <Dialog open={showCopyDialog} onOpenChange={setShowCopyDialog}>
@@ -915,11 +949,11 @@ const StreamlineTool = ({
     <div className="space-y-8">
       <PageHeader
         title="Menu link removal"
-        subtitle="Choose which HighLevel menu links your clients should not see."
+        subtitle="Hide the HighLevel menu links your clients don't need, for every sub-account or only the ones you pick."
         actions={<SitesTopNavOptions agencyId={agencyId} />}
       />
       {currentStep === 0 && (
-        <Card className="mb-8 border-2 border-border shadow-lg">
+        <Card className="mb-8 border border-border shadow-card">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
@@ -931,15 +965,15 @@ const StreamlineTool = ({
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 gap-4">
-              <Button onClick={() => { setWorkflowType("ai"); setCurrentStep(1); }} variant="outline" className="h-auto p-4 sm:p-6 flex flex-col items-center space-y-2 sm:space-y-3 hover:border-green-400 hover:bg-green-50" size="lg">
-                <Brain className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
+              <Button onClick={() => { setWorkflowType("ai"); setCurrentStep(1); }} variant="outline" className="h-auto p-4 sm:p-6 flex flex-col items-center space-y-2 sm:space-y-3 hover:border-success/50 hover:bg-success/10" size="lg">
+                <Brain className="w-6 h-6 sm:w-8 sm:h-8 text-success" />
                 <div className="text-center">
                   <h3 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2 whitespace-normal leading-tight">Let AI Determine What Menu Links to Keep</h3>
                   <p className="text-xs sm:text-sm text-muted-foreground whitespace-normal leading-tight">Describe your business and AI will suggest which features to keep</p>
                 </div>
               </Button>
-              <Button onClick={() => { setWorkflowType("manual"); setCurrentStep(2); }} variant="outline" className="h-auto p-4 sm:p-6 flex flex-col items-center space-y-2 sm:space-y-3 hover:border-red-400 hover:bg-red-50" size="lg">
-                <MousePointer className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
+              <Button onClick={() => { setWorkflowType("manual"); setCurrentStep(2); }} variant="outline" className="h-auto p-4 sm:p-6 flex flex-col items-center space-y-2 sm:space-y-3 hover:border-destructive/50 hover:bg-destructive/10" size="lg">
+                <MousePointer className="w-6 h-6 sm:w-8 sm:h-8 text-destructive" />
                 <div className="text-center">
                   <h3 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2 whitespace-normal leading-tight">Pick Menu Links to Remove Manually</h3>
                   <p className="text-xs sm:text-sm text-muted-foreground whitespace-normal leading-tight">Manually select which features you want to hide</p>
@@ -951,11 +985,11 @@ const StreamlineTool = ({
       )}
 
       {workflowType === "ai" && currentStep === 1 && (
-        <Card className="mb-8 border-2 border-green-200 shadow-lg">
+        <Card className="mb-8 border-2 border-success/30 shadow-lg">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
+                <div className="w-8 h-8 bg-success text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
                 <CardTitle>Describe Your SAAS</CardTitle>
               </div>
               <Button onClick={resetLegacy} variant="ghost" size="sm"><ChevronLeft className="w-4 h-4" /><span>Back</span></Button>
@@ -980,11 +1014,11 @@ const StreamlineTool = ({
       )}
 
       {currentStep === 2 && (
-        <Card className="mb-8 border-2 border-border shadow-lg">
+        <Card className="mb-8 border border-border shadow-card">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <div className={`w-8 h-8 ${workflowType === "ai" ? "bg-green-600" : "bg-red-600"} text-white rounded-full flex items-center justify-center text-sm font-bold`}>
+                <div className={`w-8 h-8 ${workflowType === "ai" ? "bg-success" : "bg-destructive"} text-white rounded-full flex items-center justify-center text-sm font-bold`}>
                   {workflowType === "ai" ? "3" : "2"}
                 </div>
                 <CardTitle>{workflowType === "ai" ? "Select Features to Keep" : "Select Features to Remove"}</CardTitle>
@@ -1000,14 +1034,14 @@ const StreamlineTool = ({
                   onClick={() => workflowType === "ai" ? toggleFeature(feature.tabId) : toggleRemoveFeature(feature.tabId)}
                   className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
                     workflowType === "ai"
-                      ? includedFeatures.includes(feature.tabId) ? 'border-green-400 bg-green-50 shadow-sm' : 'border-border bg-card hover:border-green-300'
-                      : removedFeatures.includes(feature.tabId) ? 'border-red-400 bg-red-50 shadow-sm' : 'border-border bg-card hover:border-red-300'
+                      ? includedFeatures.includes(feature.tabId) ? 'border-success bg-success/10 shadow-card' : 'border-border bg-card hover:border-success/50'
+                      : removedFeatures.includes(feature.tabId) ? 'border-destructive bg-destructive/10 shadow-card' : 'border-border bg-card hover:border-destructive/50'
                   }`}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <h4 className="font-semibold">{feature.name}</h4>
-                    {workflowType === "ai" && feature.recommended && <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">AI Suggested</Badge>}
-                    {workflowType === "manual" && removedFeatures.includes(feature.tabId) && <Badge variant="secondary" className="text-xs bg-red-100 text-red-700">Will Remove</Badge>}
+                    {workflowType === "ai" && feature.recommended && <Badge variant="secondary" className="text-xs bg-success/10 text-success">AI Suggested</Badge>}
+                    {workflowType === "manual" && removedFeatures.includes(feature.tabId) && <Badge variant="secondary" className="text-xs bg-destructive/10 text-destructive">Will Remove</Badge>}
                   </div>
                   <p className="text-sm text-muted-foreground mb-2">{feature.description}</p>
                   <code className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">{feature.tabId}</code>
@@ -1040,11 +1074,11 @@ const StreamlineTool = ({
       )}
 
       {currentStep === 3 && generatedCSS && (
-        <Card className="border-2 border-border shadow-lg">
+        <Card className="border border-border shadow-card">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <div className={`w-8 h-8 ${workflowType === "ai" ? "bg-green-600" : "bg-red-600"} text-white rounded-full flex items-center justify-center text-sm font-bold`}>
+                <div className={`w-8 h-8 ${workflowType === "ai" ? "bg-success" : "bg-destructive"} text-white rounded-full flex items-center justify-center text-sm font-bold`}>
                   {workflowType === "ai" ? "4" : "3"}
                 </div>
                 <CardTitle>Your Custom CSS Code</CardTitle>
@@ -1058,9 +1092,9 @@ const StreamlineTool = ({
             <div className="flex space-x-4">
               <Button onClick={resetLegacy} variant="outline" size="lg"><RefreshCw className="w-4 h-4 mr-2" />Reset & Create Another</Button>
             </div>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-semibold text-blue-900 mb-2">How to Apply This CSS:</h4>
-              <ol className="text-sm text-blue-800 space-y-1">
+            <div className="bg-muted border border-border rounded-lg p-4">
+              <h4 className="font-semibold text-foreground mb-2">How to Apply This CSS:</h4>
+              <ol className="text-sm text-muted-foreground space-y-1">
                 <li>1. Log into your HighLevel agency account</li>
                 <li>2. Go to Settings → Company → White Label → Custom CSS</li>
                 <li>3. Paste the generated CSS code above</li>

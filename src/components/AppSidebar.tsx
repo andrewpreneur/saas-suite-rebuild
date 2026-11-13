@@ -574,7 +574,7 @@ export function AppSidebar({ selectedTool, onSelectTool }: AppSidebarProps) {
             </span>
           )}
           {!collapsed && locked && (
-            <span className="ml-auto flex items-center gap-1 rounded-full bg-sidebar-accent/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-sidebar-foreground/70">
+            <span className="ml-auto flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600">
               <Lock className="h-3 w-3" aria-hidden="true" />
               Upgrade
             </span>
@@ -617,17 +617,7 @@ export function AppSidebar({ selectedTool, onSelectTool }: AppSidebarProps) {
             {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
           </Button>
         </div>
-        {!collapsed && (
-          <div className="relative w-full">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-sidebar-foreground/40" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search"
-              className="h-8 pl-8 text-sm bg-sidebar-accent/40 border-transparent focus-visible:ring-1 focus-visible:ring-sidebar-ring placeholder:text-sidebar-foreground/40"
-            />
-          </div>
-        )}
+        {/* The sidebar search box is gone: every tool now has a link, and Cmd+K in the top bar jumps anywhere. */}
         {!collapsed && <TrialCountdown />}
       </SidebarHeader>
 
@@ -672,7 +662,7 @@ export function AppSidebar({ selectedTool, onSelectTool }: AppSidebarProps) {
                           ? "sidebar-section-resources"
                           : `sidebar-section-${section.id}`)
                     }
-                    className="px-3 text-[11px] font-medium uppercase tracking-wide text-sidebar-foreground/50"
+                    className="px-eyebrow mt-3 h-7 px-3"
                   >
                     {section.label}
                   </SidebarGroupLabel>
@@ -694,7 +684,7 @@ export function AppSidebar({ selectedTool, onSelectTool }: AppSidebarProps) {
             type="button"
             data-tip-target="sidebar-profile"
             onClick={() => setAccountOpen(true)}
-            className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-sidebar-accent/60 ${collapsed ? "justify-center px-0" : ""}`}
+            className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left transition-colors hover:bg-[#17124008] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${collapsed ? "justify-center px-0" : ""}`}
           >
             <Avatar className="h-8 w-8 flex-shrink-0">
               {communityAvatar ? (

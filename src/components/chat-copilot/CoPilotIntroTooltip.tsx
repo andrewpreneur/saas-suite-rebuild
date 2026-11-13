@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, MessageSquare, Sparkles } from 'lucide-react';
+import { X, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -33,18 +33,17 @@ export function CoPilotIntroTooltip({ show, onDismiss, variant, targetRef }: CoP
         isVisible ? "opacity-100" : "opacity-0"
       )}>
         <div className={cn(
-          "bg-card border border-border rounded-2xl shadow-2xl max-w-md mx-4 p-6 transform transition-all duration-500",
+          "bg-card border border-border rounded-xl shadow-dialog max-w-md mx-4 p-6 transform transition-all duration-500",
           isVisible ? "scale-100 translate-y-0" : "scale-95 translate-y-4"
         )}>
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
-                <MessageSquare className="w-6 h-6 text-white" />
+              <div className="px-brand-fill flex h-12 w-12 items-center justify-center rounded-full">
+                <Sparkles className="h-6 w-6" />
               </div>
               <div>
                 <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
-                  Meet Your AI CoPilot
-                  <Sparkles className="w-4 h-4 text-yellow-500" />
+                  Meet your AI Copilot
                 </h3>
                 <p className="text-xs text-muted-foreground">Your personal setup assistant</p>
               </div>
@@ -56,15 +55,15 @@ export function CoPilotIntroTooltip({ show, onDismiss, variant, targetRef }: CoP
           
           <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
             The AI CoPilot can help you configure your entire platform through simple conversation — 
-            set up branding, toggle features, configure your client hub, and more. Just type what you want to do!
+            set up branding, toggle features, configure your client hub, and more. Just type what you want to do.
           </p>
           
           <p className="text-sm text-foreground font-medium mb-4">
             Try sending the pre-loaded message below to get started, or ask anything you'd like to set up.
           </p>
 
-          <Button onClick={onDismiss} className="w-full">
-            Got it, let's go!
+          <Button variant="accent" onClick={onDismiss} className="w-full">
+            Start chatting
           </Button>
         </div>
       </div>
@@ -77,12 +76,12 @@ export function CoPilotIntroTooltip({ show, onDismiss, variant, targetRef }: CoP
       "fixed z-50 transition-all duration-300",
       isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
     )} style={{ top: 60, right: 220 }}>
-      <div className="bg-card border border-border rounded-xl shadow-xl max-w-xs p-4 relative">
+      <div className="bg-card border border-border rounded-lg shadow-popover max-w-xs p-4 relative">
         {/* Arrow pointing up-right */}
         <div className="absolute -top-2 right-8 w-4 h-4 bg-card border-l border-t border-border transform rotate-45" />
         
         <p className="text-sm text-foreground font-medium mb-2">
-          You can switch to Classic Mode anytime to make changes yourself!
+          You can switch to Classic Mode anytime to make changes yourself.
         </p>
         <p className="text-xs text-muted-foreground mb-3">
           Click the "Classic Mode" button above to access all tools and settings directly.

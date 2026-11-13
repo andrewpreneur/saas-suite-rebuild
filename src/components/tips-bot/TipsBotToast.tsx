@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Lightbulb, ChevronRight, MousePointerClick } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { X, Lightbulb, ChevronLeft, ChevronRight, Compass, MousePointerClick } from 'lucide-react';
+import { popIn, SPRING_SNAPPY } from '@/lib/motion';
 import { Button } from '@/components/ui/button';
 import { useTipsBot, Tip } from './TipsBotContext';
 import { cn } from '@/lib/utils';
@@ -14,7 +16,7 @@ type Side = 'right' | 'left' | 'below' | 'above';
 type Placement = Side | 'corner';
 
 export const TipsBotToast: React.FC = () => {
-  const { isEnabled, currentTip, availableTips, dismissTip, showNextTip, isLoading, isWalkthroughMode, stopWalkthrough, executeNavigation } = useTipsBot();
+  const { isEnabled, currentTip, availableTips, dismissTip, showNextTip, showPrevTip, isLoading, isWalkthroughMode, stopWalkthrough, executeNavigation } = useTipsBot();
   // The context hands out fresh function/array identities on every render.
   // Effects read them through refs so an unrelated re-render can't cancel a
   // pending step navigation or hide the card mid-step (which froze the tour).
@@ -312,6 +314,15 @@ export const TipsBotToast: React.FC = () => {
     }, 300);
   };
 
+  const handlePrev = () => {
+    setIsExiting(true);
+    setTimeout(() => {
+      showPrevTip();
+      setIsExiting(false);
+      setIsVisible(false);
+    }, 200);
+  };
+
   const handleEndWalkthrough = () => {
     // Persist before the exit animation. A delayed write let the next auto tour
     // start, so End Tour / Finish Tour looked like it needed a second click.
@@ -332,24 +343,45 @@ export const TipsBotToast: React.FC = () => {
     }, 300);
   };
 
+  // ── Keyboard: ← → move through the tour, Esc skips it ────────────────
+  // Presentation only: each key calls the same handler as its button. Keys are
+  // ignored while typing, and Esc is left alone when a dialog is open.
+  const keyHandlersRef = useRef({ next: () => {}, prev: () => {}, skip: () => {} });
+  const total = availableTips.length;
+  const isFirst = currentIndex <= 0;
+  const isLast = currentIndex >= total - 1;
+  keyHandlersRef.current = {
+    next: () => (isLast ? handleEndWalkthrough() : handleNext()),
+    prev: () => {
+      if (!isFirst) handlePrev();
+    },
+    skip: handleEndWalkthrough,
+  };
+  const keysActive = isWalkthroughMode && !!currentTip && !!position;
+  useEffect(() => {
+    if (!keysActive) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+      const el = event.target as HTMLElement | null;
+      if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
+      if (event.key === 'Escape') {
+        if (document.querySelector('[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"]')) return;
+        keyHandlersRef.current.skip();
+      } else if (event.key === 'ArrowRight') {
+        if (el?.closest('[role="tablist"], [role="radiogroup"], [role="slider"], [role="menu"]')) return;
+        keyHandlersRef.current.next();
+      } else if (event.key === 'ArrowLeft') {
+        if (el?.closest('[role="tablist"], [role="radiogroup"], [role="slider"], [role="menu"]')) return;
+        keyHandlersRef.current.prev();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [keysActive]);
+
   if (!isEnabled || !currentTip || isLoading || !position) {
     return null;
   }
-
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case 'navigation':
-        return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
-      case 'customization':
-        return 'bg-purple-500/10 text-purple-600 border-purple-500/20';
-      case 'features':
-        return 'bg-green-500/10 text-green-600 border-green-500/20';
-      case 'content':
-        return 'bg-orange-500/10 text-orange-600 border-orange-500/20';
-      default:
-        return 'bg-muted text-muted-foreground';
-    }
-  };
 
   const getCategoryLabel = (category: string) => {
     switch (category) {
@@ -367,16 +399,16 @@ export const TipsBotToast: React.FC = () => {
   };
 
   const getArrowStyles = () => {
-    const baseStyles = "absolute w-3 h-3 bg-card border rotate-45";
+    const baseStyles = "absolute size-3 rotate-45 border-border bg-card";
     switch (placement) {
       case 'right':
-        return `${baseStyles} -left-1.5 top-1/2 -translate-y-1/2 border-l border-b border-r-0 border-t-0`;
+        return `${baseStyles} -left-1.5 top-1/2 -translate-y-1/2 border-b border-l`;
       case 'left':
-        return `${baseStyles} -right-1.5 top-1/2 -translate-y-1/2 border-r border-t border-l-0 border-b-0`;
+        return `${baseStyles} -right-1.5 top-1/2 -translate-y-1/2 border-r border-t`;
       case 'below':
-        return `${baseStyles} left-1/2 -translate-x-1/2 -top-1.5 border-t border-l border-b-0 border-r-0`;
+        return `${baseStyles} left-1/2 -top-1.5 -translate-x-1/2 border-l border-t`;
       case 'above':
-        return `${baseStyles} left-1/2 -translate-x-1/2 -bottom-1.5 border-b border-r border-t-0 border-l-0`;
+        return `${baseStyles} -bottom-1.5 left-1/2 -translate-x-1/2 border-b border-r`;
       default:
         return baseStyles;
     }
@@ -386,171 +418,180 @@ export const TipsBotToast: React.FC = () => {
     ? (targetElement?.textContent || '').trim().split('\n')[0].slice(0, 24)
     : '';
 
+  const shown = isVisible && !isExiting;
+  const stepPercent = total > 0 ? ((currentIndex + 1) / total) * 100 : 0;
+
   return (
     <>
-      {/* Only an explicit walkthrough may dim the page. Ambient tips should
-          never paint viewport-sized overlay slabs around a large target.
-          No backdrop-blur here — blurring four viewport-sized slabs on every
-          scroll frame is what made the walkthrough feel laggy. */}
+      {/* Soft spotlight, walkthrough only: one element sits on the target and
+          its spread shadow dims everything else, so the cut-out has rounded
+          corners and there is nothing viewport-sized to repaint or blur.
+          Ambient tips never dim the page. */}
       {isWalkthroughMode && targetRect && (
-        <>
-          <div className="fixed left-0 right-0 top-0 z-30 bg-background/75 pointer-events-none" style={{ height: Math.max(targetRect.top - 8, 0) }} />
-          <div className="fixed left-0 z-30 bg-background/75 pointer-events-none" style={{ top: Math.max(targetRect.top - 8, 0), width: Math.max(targetRect.left - 8, 0), height: targetRect.height + 16 }} />
-          <div className="fixed right-0 z-30 bg-background/75 pointer-events-none" style={{ top: Math.max(targetRect.top - 8, 0), left: targetRect.right + 8, height: targetRect.height + 16 }} />
-          <div className="fixed left-0 right-0 bottom-0 z-30 bg-background/75 pointer-events-none" style={{ top: targetRect.bottom + 8 }} />
-        </>
-      )}
-
-
-      {/* Keep the target ring scoped to walkthrough mode for the same reason. */}
-      {isWalkthroughMode && targetRect && (
-        <div
-          className="fixed pointer-events-none z-40 rounded-lg ring-2 ring-primary ring-offset-2 ring-offset-background animate-pulse"
+        <motion.div
+          aria-hidden="true"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: shown ? 1 : 0 }}
+          transition={{ duration: 0.2 }}
+          className="pointer-events-none fixed z-40 rounded-lg shadow-[0_0_0_200vmax_hsl(var(--foreground)/0.45)] ring-2 ring-brand"
           style={{
-            top: targetRect.top - 4,
-            left: targetRect.left - 4,
-            width: targetRect.width + 8,
-            height: targetRect.height + 8,
+            top: targetRect.top - 6,
+            left: targetRect.left - 6,
+            width: targetRect.width + 12,
+            height: targetRect.height + 12,
           }}
-        />
+        >
+          <span className="absolute -inset-1.5 rounded-xl ring-4 ring-brand/25" />
+        </motion.div>
       )}
-      
+
       <div
         ref={tooltipRef}
-        className={cn(
-          "fixed z-50 w-80 transition-all duration-300 ease-in-out",
-          isVisible && !isExiting
-            ? "opacity-100 scale-100"
-            : "opacity-0 scale-95 pointer-events-none"
-        )}
+        className={cn("fixed z-50 w-80", !shown && "pointer-events-none")}
         style={{
           top: position.top,
           left: position.left,
         }}
       >
-        <div className="relative bg-card border border-border rounded-xl shadow-xl overflow-hidden">
+        <motion.div
+          key={currentTip.id}
+          variants={popIn}
+          initial="hidden"
+          animate={shown ? 'show' : 'exit'}
+          role="dialog"
+          aria-modal="false"
+          aria-labelledby="tips-bot-title"
+          aria-describedby="tips-bot-body"
+          data-testid="tour-card"
+          className="relative rounded-xl border border-border bg-card shadow-dialog"
+        >
           {/* Arrow (omitted when the card is parked in a corner) */}
-          {placement !== 'corner' && <div className={getArrowStyles()} />}
-          
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-primary/5 border-b border-border">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-primary/10">
-                <Lightbulb className="w-4 h-4 text-primary" />
-              </div>
-              <span className="text-sm font-medium text-foreground">Product Tip</span>
-              <span className={cn(
-                "text-xs px-2 py-0.5 rounded-full border",
-                getCategoryColor(currentTip.category)
-              )}>
-                {getCategoryLabel(currentTip.category)}
-              </span>
-            </div>
-            <button
-              onClick={handleDismiss}
-              className="p-1 rounded-md hover:bg-muted transition-colors"
-              aria-label="Dismiss tip"
-            >
-              <X className="w-4 h-4 text-muted-foreground" />
-            </button>
-          </div>
+          {placement !== 'corner' && <div className={getArrowStyles()} aria-hidden="true" />}
 
-          {/* Content */}
-          <div className="px-4 py-4">
-            <h4 className="text-sm font-semibold text-foreground mb-1">
-              {currentTip.title}
-            </h4>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {currentTip.description}
-            </p>
-            {isWalkthroughMode && awaitingClick && (
-              <p className="mt-3 flex items-start gap-2 text-xs font-medium text-primary">
-                <MousePointerClick className="w-4 h-4 shrink-0 mt-px" aria-hidden="true" />
-                <span>
-                  Click the highlighted
-                  {pointerLabel ? ` "${pointerLabel}" ` : ' '}
-                  item to continue — the tour follows you there.
+          <div className="relative overflow-hidden rounded-xl">
+            {/* Header: where you are in the tour */}
+            <div className="flex items-center justify-between gap-2 px-4 pt-3">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-brand-subtle text-brand" aria-hidden="true">
+                  {isWalkthroughMode ? <Compass className="size-4" /> : <Lightbulb className="size-4" />}
                 </span>
-              </p>
+                <span className="px-eyebrow truncate" aria-live="polite">
+                  {isWalkthroughMode
+                    ? `Step ${currentIndex + 1} of ${total}`
+                    : `${getCategoryLabel(currentTip.category)} tip`}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleDismiss}
+                className="-mr-2 flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label={isWalkthroughMode ? 'Close walkthrough' : 'Dismiss tip'}
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            {isWalkthroughMode && (
+              <div
+                className="mx-4 mt-2 h-1.5 overflow-hidden rounded-full bg-muted"
+                role="progressbar"
+                aria-label="Walkthrough progress"
+                aria-valuemin={0}
+                aria-valuemax={total}
+                aria-valuenow={currentIndex + 1}
+              >
+                <motion.div
+                  className="h-full w-full origin-left rounded-full bg-brand"
+                  initial={{ scaleX: Math.max(stepPercent - 100 / Math.max(total, 1), 0) / 100 }}
+                  animate={{ scaleX: stepPercent / 100 }}
+                  transition={SPRING_SNAPPY}
+                />
+              </div>
             )}
-          </div>
 
-
-          {/* Footer */}
-          <div className="flex items-center justify-between px-4 py-3 bg-muted/30 border-t border-border">
-            <span className="text-xs text-muted-foreground">
-              {isWalkthroughMode 
-                ? `Step ${currentIndex + 1} of ${availableTips.length}`
-                : `${availableTips.length} tip${availableTips.length !== 1 ? 's' : ''} remaining`
-              }
-            </span>
-            <div className="flex items-center gap-2">
-              {isWalkthroughMode ? (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleDisableTours}
-                    className="text-xs h-7 px-2"
-                  >
-                    Don't show tours
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleEndWalkthrough}
-                    className="text-xs h-7 px-2"
-                  >
-                    End Tour
-                  </Button>
-                  {currentIndex < availableTips.length - 1 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleNext}
-                      className="text-xs h-7 px-2"
-                    >
-                      Next
-                      <ChevronRight className="w-3 h-3 ml-1" />
-                    </Button>
-                  )}
-                  {currentIndex === availableTips.length - 1 && (
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={handleEndWalkthrough}
-                      className="text-xs h-7 px-2"
-                    >
-                      Finish Tour
-                    </Button>
-                  )}
-                </>
-              ) : (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleDismiss}
-                    className="text-xs h-7 px-2"
-                  >
-                    Dismiss Tip
-                  </Button>
-                  {availableTips.length > 1 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleNext}
-                      className="text-xs h-7 px-2"
-                    >
-                      Next
-                      <ChevronRight className="w-3 h-3 ml-1" />
-                    </Button>
-                  )}
-                </>
+            {/* Content */}
+            <div className="px-4 pb-4 pt-3">
+              <h4 id="tips-bot-title" className="text-base font-semibold text-foreground">
+                {currentTip.title}
+              </h4>
+              <p id="tips-bot-body" className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                {currentTip.description}
+              </p>
+              {isWalkthroughMode && awaitingClick && (
+                <p className="mt-3 flex items-start gap-2 rounded-md bg-brand-subtle p-2 text-xs font-medium text-brand">
+                  <MousePointerClick className="mt-px size-4 shrink-0" aria-hidden="true" />
+                  <span>
+                    Click the highlighted
+                    {pointerLabel ? ` "${pointerLabel}" ` : ' '}
+                    item to continue. The tour follows you there.
+                  </span>
+                </p>
               )}
             </div>
+
+            {/* Footer */}
+            {isWalkthroughMode ? (
+              <div className="border-t border-border bg-muted/40 px-4 py-3">
+                <div className="flex items-center justify-between gap-2">
+                  <Button variant="ghost" size="sm" onClick={handleEndWalkthrough} className="-ml-2 h-9 px-2 text-muted-foreground">
+                    Skip tour
+                  </Button>
+                  <div className="flex items-center gap-2">
+                    {!isFirst && (
+                      <Button variant="outline" size="sm" onClick={handlePrev} className="h-9 px-3">
+                        <ChevronLeft />
+                        Back
+                      </Button>
+                    )}
+                    {isLast ? (
+                      <Button variant="accent" size="sm" onClick={handleEndWalkthrough} className="h-9 px-3">
+                        Finish tour
+                      </Button>
+                    ) : (
+                      <Button variant="accent" size="sm" onClick={handleNext} className="h-9 px-3">
+                        Next
+                        <ChevronRight />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <button
+                    type="button"
+                    onClick={handleDisableTours}
+                    className="whitespace-nowrap rounded-sm underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    Don't show tours again
+                  </button>
+                  <span className="hidden shrink-0 items-center gap-1 whitespace-nowrap sm:flex" aria-hidden="true">
+                    <kbd className="rounded-sm border border-border bg-card px-1 font-sans">←</kbd>
+                    <kbd className="rounded-sm border border-border bg-card px-1 font-sans">→</kbd>
+                    move
+                    <kbd className="ml-1 rounded-sm border border-border bg-card px-1 font-sans">Esc</kbd>
+                    skip
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between gap-2 border-t border-border bg-muted/40 px-4 py-3">
+                <span className="text-xs text-muted-foreground">
+                  {`${total} tip${total !== 1 ? 's' : ''} remaining`}
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm" onClick={handleDismiss} className="h-9 px-2">
+                    Dismiss tip
+                  </Button>
+                  {total > 1 && (
+                    <Button variant="outline" size="sm" onClick={handleNext} className="h-9 px-3">
+                      Next
+                      <ChevronRight />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
-        </div>
+        </motion.div>
       </div>
     </>
   );

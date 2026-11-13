@@ -29,18 +29,19 @@ const fonts: Font[] = [
 
 const FontSelector = ({ selectedFont, onSelectFont, className }: FontSelectorProps) => {
   return (
-    <div className={cn("space-y-2", className)}>
-      <Label>Select Font Family</Label>
+    <div className={cn("flex flex-col gap-2", className)}>
+      <Label htmlFor="branding-font">Sidebar font</Label>
       <Select value={selectedFont} onValueChange={onSelectFont}>
-        <SelectTrigger className="w-full">
+        <SelectTrigger id="branding-font" className="w-full">
           <SelectValue placeholder="Choose a font..." />
         </SelectTrigger>
         <SelectContent>
           {fonts.map((font) => (
             <SelectItem key={font.name} value={font.name}>
               <span style={{ fontFamily: font.family }}>
-                {font.name} ({font.type})
+                {font.name}
               </span>
+              <span className="ml-2 text-xs text-muted-foreground">{font.type}</span>
             </SelectItem>
           ))}
         </SelectContent>

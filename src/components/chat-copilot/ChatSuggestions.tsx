@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
 import { getRandomSuggestions } from '@/constants/copilotSuggestions';
 import { RefreshCw } from 'lucide-react';
+import { PromptChips } from '@/components/premium/copilot/CopilotBits';
 
 interface ChatSuggestionsProps {
   onSuggestionClick: (suggestion: string) => void;
@@ -22,31 +22,26 @@ export function ChatSuggestions({ onSuggestionClick, disabled }: ChatSuggestions
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">Suggestions</span>
-        <Button
-          variant="ghost"
-          size="sm"
+        <span className="px-eyebrow">Try asking</span>
+        <button
+          type="button"
           onClick={refreshSuggestions}
           disabled={disabled}
-          className="h-6 w-6 p-0"
+          aria-label="Show other suggestions"
+          title="Show other suggestions"
+          className="inline-grid size-8 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 disabled:opacity-50"
         >
-          <RefreshCw className="w-3 h-3" />
-        </Button>
+          <RefreshCw className="size-3.5" />
+        </button>
       </div>
-      <div className="flex flex-wrap gap-2">
-        {suggestions.map((suggestion, index) => (
-          <Button
-            key={index}
-            variant="outline"
-            size="sm"
-            onClick={() => onSuggestionClick(suggestion)}
-            disabled={disabled}
-            className="text-xs h-auto py-1.5 px-3 whitespace-normal text-left"
-          >
-            {suggestion}
-          </Button>
-        ))}
-      </div>
+      <PromptChips
+        key={suggestions.join('|')}
+        align="start"
+        scroll
+        prompts={suggestions.map((label) => ({ label }))}
+        onPick={onSuggestionClick}
+        disabled={disabled}
+      />
     </div>
   );
 }

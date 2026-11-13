@@ -3,9 +3,10 @@ import { useUser } from "@/contexts/UserContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Banner } from "@/components/ui/banner";
+import { Tag } from "@/components/ui/tag";
+import { SectionCard } from "@/components/premium/SectionCard";
+import { Field, SectionFooter } from "@/components/premium/settings/Field";
 import { useToast } from "@/hooks/use-toast";
 import { Globe, Loader2, CheckCircle2, Clock, ExternalLink } from "lucide-react";
 
@@ -62,24 +63,27 @@ export function CustomDomainPanel() {
   };
 
   if (loading) {
-    return <div className="py-12 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
+    return (
+      <div className="space-y-3" aria-busy="true" aria-label="Loading custom domain">
+        <div className="px-skeleton h-24 rounded-lg" />
+        <div className="px-skeleton h-40 rounded-lg" />
+      </div>
+    );
   }
 
   if (!state?.custom_domain_access) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Globe className="w-5 h-5" /> Custom Domain</CardTitle>
-          <CardDescription>This upgrade hasn't been purchased on your account yet.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button asChild>
-            <a href="https://link.saassuite.ai/payment-link/6a3af2039f7c6c76d1f86d4c" target="_blank" rel="noreferrer">
-              Purchase Custom Domain <ExternalLink className="w-4 h-4 ml-2" />
-            </a>
-          </Button>
-        </CardContent>
-      </Card>
+      <SectionCard
+        icon={<Globe />}
+        title="Custom Domain"
+        description="This upgrade hasn't been purchased on your account yet."
+      >
+        <Button asChild variant="accent" className="h-11 sm:h-10">
+          <a href="https://link.saassuite.ai/payment-link/6a3af2039f7c6c76d1f86d4c" target="_blank" rel="noreferrer">
+            Purchase Custom Domain <ExternalLink className="w-4 h-4 ml-2" />
+          </a>
+        </Button>
+      </SectionCard>
     );
   }
 
@@ -88,58 +92,63 @@ export function CustomDomainPanel() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold mb-1 flex items-center gap-2"><Globe className="w-5 h-5" /> Custom Domain</h3>
-        <p className="text-sm text-muted-foreground">
-          Replace <span className="font-mono">yoursoftwareonboarding.com</span> with your own domain or subdomain across your SaaS experience.
-        </p>
-      </div>
-
       {isLive && (
-        <Alert className="border-green-300 bg-green-50">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-800">
-            Your custom domain <span className="font-mono font-semibold">{state.custom_domain}</span> is <strong>live</strong>.
-          </AlertDescription>
-        </Alert>
+        <Banner tone="success" title="Your domain is live.">
+          <span className="break-all font-mono">{state.custom_domain}</span> now serves your SaaS experience.
+        </Banner>
       )}
 
       {isPending && (
-        <Alert className="border-amber-300 bg-amber-50">
-          <Clock className="h-4 w-4 text-amber-600" />
-          <AlertDescription className="text-amber-800">
-            <strong>Request received!</strong> We've got <span className="font-mono">{state.custom_domain}</span> in the queue.
-            You'll be notified once it's live. Need to change it? Update below and re-submit.
-          </AlertDescription>
-        </Alert>
+        <Banner tone="warning" title="Request received.">
+          <span className="break-all font-mono">{state.custom_domain}</span> is in the queue. We'll notify you once
+          it's live. Need to change it? Update it below and submit again.
+        </Banner>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Your Domain</CardTitle>
-          <CardDescription>
-            Enter the root domain (e.g. <span className="font-mono">yoursite.com</span>) or subdomain (e.g. <span className="font-mono">app.yoursite.com</span>) you want to use.
-            After you submit, our team will wire it up and notify you the moment it goes live.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="domain">Domain or subdomain</Label>
-            <Input
-              id="domain"
-              value={domainInput}
-              onChange={(e) => setDomainInput(e.target.value)}
-              placeholder="app.yoursite.com"
-              className="font-mono"
-              disabled={submitting}
-            />
-          </div>
-          <Button onClick={handleSubmit} disabled={submitting || !domainInput.trim()}>
+      <SectionCard
+        icon={<Globe />}
+        title="Custom Domain"
+        description={
+          <>
+            Replace <span className="break-all font-mono">yoursoftwareonboarding.com</span> with your own domain or
+            subdomain across your SaaS experience.
+          </>
+        }
+        actions={
+          isLive ? (
+            <Tag tone="success"><CheckCircle2 aria-hidden="true" />Live</Tag>
+          ) : isPending ? (
+            <Tag tone="warning"><Clock aria-hidden="true" />Pending</Tag>
+          ) : undefined
+        }
+      >
+        <Field
+          label="Domain or subdomain"
+          htmlFor="domain"
+          hint={
+            <>
+              Use a root domain (<span className="font-mono">yoursite.com</span>) or a subdomain (
+              <span className="font-mono">app.yoursite.com</span>). After you submit, our team wires it up and
+              notifies you the moment it goes live.
+            </>
+          }
+        >
+          <Input
+            id="domain"
+            value={domainInput}
+            onChange={(e) => setDomainInput(e.target.value)}
+            placeholder="app.yoursite.com"
+            className="font-mono sm:max-w-md"
+            disabled={submitting}
+          />
+        </Field>
+        <SectionFooter note={!domainInput.trim() ? "Enter a domain to submit it." : undefined}>
+          <Button variant="accent" onClick={handleSubmit} disabled={submitting || !domainInput.trim()}>
             {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            {isPending || isLive ? "Update Domain" : "Submit Domain"}
+            {isPending || isLive ? "Update domain" : "Submit domain"}
           </Button>
-        </CardContent>
-      </Card>
+        </SectionFooter>
+      </SectionCard>
     </div>
   );
 }

@@ -11,9 +11,9 @@ const folderCardVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-gradient-to-br from-purple-50/50 to-purple-100/50 dark:from-purple-950/50 dark:to-purple-900/50 border-purple-200/50 dark:border-purple-800/50",
-        project: "bg-gradient-to-br from-fuchsia-50/50 to-fuchsia-100/50 dark:from-fuchsia-950/50 dark:to-fuchsia-900/50 border-fuchsia-200/50 dark:border-fuchsia-800/50",
-        system: "bg-gradient-to-br from-cyan-50/50 to-cyan-100/50 dark:from-cyan-950/50 dark:to-cyan-900/50 border-cyan-200/50 dark:border-cyan-800/50",
+        default: "px-brand-wash border-[#D3CAFB]",
+        project: "bg-card border-border shadow-card",
+        system: "bg-muted border-border",
       },
     },
     defaultVariants: {

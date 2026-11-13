@@ -409,11 +409,11 @@ const OnboardingChecklistPanel = ({ selectedPlanAgencyId }: OnboardingChecklistP
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-        <AlertCircle className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-        <div className="text-sm text-blue-600">
+      <div className="flex items-start gap-2 p-3 rounded-lg bg-muted">
+        <AlertCircle className="w-4 h-4 text-info mt-0.5 flex-shrink-0" />
+        <div className="text-sm text-foreground">
           <p className="font-medium">Onboarding Checklist</p>
-          <p className="text-xs mt-1 text-blue-500">
+          <p className="text-xs mt-1 text-muted-foreground">
             Create a custom onboarding checklist for your clients. These items will appear on their home page 
             and they can check them off as they complete each step. Optionally link items to URLs or videos.
           </p>

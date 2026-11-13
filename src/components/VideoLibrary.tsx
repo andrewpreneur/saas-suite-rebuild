@@ -173,25 +173,17 @@ const VideoLibrary = () => {
     setExpandedCategory(expandedCategory === index ? null : index);
   };
 
-  const getColorClasses = (color: string) => {
-    const colorMap = {
-      blue: "bg-blue-50 border-blue-200 text-blue-800",
-      purple: "bg-purple-50 border-purple-200 text-purple-800",
-      green: "bg-green-50 border-green-200 text-green-800",
-      orange: "bg-orange-50 border-orange-200 text-orange-800",
-      red: "bg-red-50 border-red-200 text-red-800"
-    };
-    return colorMap[color as keyof typeof colorMap] || colorMap.blue;
-  };
+  // One brand tile for every group: the icon tells them apart, not the color.
+  const getColorClasses = (_color: string) => "bg-brand-subtle text-brand";
 
   return (
-    <div className="py-16 bg-gradient-to-br from-gray-50 to-white">
+    <div className="px-canvas py-16">
       <div className="max-w-4xl mx-auto px-6">
         <div className="text-center mb-12 animate-fade-in">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-h2 text-foreground mb-3">
             Complete Video Library
           </h2>
-          <p className="text-xl text-gray-600">
+          <p className="text-body-lg text-muted-foreground">
             20+ professional training videos to help your clients master every feature
           </p>
         </div>
@@ -200,12 +192,12 @@ const VideoLibrary = () => {
           {videoLibraryData.map((category, categoryIndex) => (
             <Card
               key={categoryIndex}
-              className={`overflow-hidden transition-all duration-300 hover:shadow-lg ${
-                expandedCategory === categoryIndex ? 'shadow-xl' : 'shadow-sm'
+              className={`px-surface overflow-hidden border-0 transition-shadow duration-200 ${
+                expandedCategory === categoryIndex ? 'shadow-raised' : ''
               }`}
             >
               <div
-                className="p-6 cursor-pointer hover:bg-gray-50 transition-colors duration-200"
+                className="cursor-pointer p-4 transition-colors duration-200 hover:bg-muted/40 sm:p-6"
                 onClick={() => toggleCategory(categoryIndex)}
               >
                 <div className="flex items-center justify-between">
@@ -214,7 +206,7 @@ const VideoLibrary = () => {
                       {category.icon}
                     </div>
                     <div>
-                      <h3 className="text-xl font-semibold text-gray-900">
+                      <h3 className="text-base font-semibold text-foreground sm:text-lg">
                         {category.name}
                       </h3>
                       <Badge variant="secondary" className="mt-1">
@@ -223,7 +215,7 @@ const VideoLibrary = () => {
                     </div>
                   </div>
                   <ChevronDown
-                    className={`w-6 h-6 text-gray-400 transition-transform duration-300 ${
+                    className={`w-5 h-5 text-muted-foreground transition-transform duration-300 ${
                       expandedCategory === categoryIndex ? 'rotate-180' : ''
                     }`}
                   />
@@ -243,25 +235,25 @@ const VideoLibrary = () => {
                     {category.videos.map((video, videoIndex) => (
                       <div
                         key={video.id}
-                        className="flex items-start space-x-4 p-4 bg-white rounded-lg border border-gray-100 hover:border-gray-200 transition-colors duration-200 hover:shadow-sm"
+                        className="flex items-start space-x-4 p-4 rounded-lg border border-border bg-card transition-colors duration-200 hover:border-brand/40"
                       >
                         <div className="flex-shrink-0">
-                          <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                            <span className="text-sm font-semibold text-primary">
+                          <div className="w-8 h-8 bg-brand-subtle rounded-full flex items-center justify-center">
+                            <span className="text-sm font-semibold text-brand">
                               {video.id}
                             </span>
                           </div>
                         </div>
                         <div className="flex-1">
-                          <h4 className="font-semibold text-gray-900 mb-1">
+                          <h4 className="text-sm font-semibold text-foreground mb-1">
                             {video.title}
                           </h4>
-                          <p className="text-sm text-gray-600 leading-relaxed hidden md:block">
+                          <p className="text-sm text-muted-foreground leading-relaxed hidden md:block">
                             {video.description}
                           </p>
                         </div>
                         <div className="flex-shrink-0">
-                          <Play className="w-5 h-5 text-gray-400 hover:text-primary transition-colors duration-200" />
+                          <Play className="w-5 h-5 text-muted-foreground hover:text-brand transition-colors duration-200" />
                         </div>
                       </div>
                     ))}
@@ -277,7 +269,7 @@ const VideoLibrary = () => {
           <Button 
             size="lg" 
             variant="outline"
-            className="text-lg px-8 py-3 border-2 border-black text-black hover:bg-black hover:text-white"
+            className="h-12 px-6 text-base"
             onClick={() => window.open('https://yoursoftwareonboarding.com/lite', '_blank')}
           >
             Free LITE Onboarding Tool
@@ -286,7 +278,7 @@ const VideoLibrary = () => {
         </div>
 
         <div className="text-center">
-          <div className="inline-flex items-center space-x-2 text-sm text-gray-600 bg-white px-4 py-2 rounded-full border border-gray-200">
+          <div className="inline-flex items-center space-x-2 text-sm text-muted-foreground bg-card px-4 py-2 rounded-full border border-border">
             <Play className="w-4 h-4" />
             <span>All videos are brand-free and ready for white-label use</span>
           </div>

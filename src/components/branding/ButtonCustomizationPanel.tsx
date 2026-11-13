@@ -34,26 +34,24 @@ const ButtonCustomizationPanel = ({
         )}
 
         {enabled && (
-          <div className="pt-2 border-t border-border">
-            <div className="p-3 bg-muted rounded-lg space-y-2 mt-3">
+          <div className={hideHeader ? "" : "border-t border-border pt-4"}>
+            <div className="flex flex-col gap-3 rounded-md bg-muted/60 p-3">
               <p className="text-sm text-muted-foreground">
-                This will add a polished gradient style to your top navigation buttons using your primary color.
+                Adds a polished gradient to your top navigation buttons, using your highlight color.
               </p>
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-muted-foreground">Preview:</span>
-                <div className="flex gap-2">
-                  <span
-                    className="px-3 py-1.5 rounded text-xs font-medium text-white shadow-md"
-                    style={{
-                      background: `linear-gradient(270deg, ${primaryColor} 0%, ${darkenColor(primaryColor, 0.35)} 100%)`,
-                    }}
-                  >
-                    Active Tab
-                  </span>
-                  <span className="px-3 py-1.5 rounded text-xs font-medium bg-background border border-border shadow-sm">
-                    Normal Tab
-                  </span>
-                </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-eyebrow mr-1">Preview</span>
+                <span
+                  className="rounded-md px-3 py-1.5 text-xs font-medium text-white shadow-card"
+                  style={{
+                    background: `linear-gradient(270deg, ${primaryColor} 0%, ${darkenColor(primaryColor, 0.35)} 100%)`,
+                  }}
+                >
+                  Active tab
+                </span>
+                <span className="rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium shadow-card">
+                  Normal tab
+                </span>
               </div>
             </div>
           </div>

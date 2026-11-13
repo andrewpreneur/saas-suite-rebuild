@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle } from "lucide-react";
+import { CreditCard } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ChromeStrip } from "@/components/premium/entry/chrome";
 import { useUser } from "@/contexts/UserContext";
 import { supabase } from "@/integrations/supabase/client";
+
+// Same billing portal the past-due and cancel notices open.
+const STRIPE_PORTAL = "https://billing.stripe.com/p/login/bIY04697i9jzghy4gg";
 
 const PaymentGraceBanner = () => {
   const { email, approval } = useUser();
@@ -47,16 +52,19 @@ const PaymentGraceBanner = () => {
   });
 
   return (
-    <div className="sticky top-0 z-40 w-full border-b border-yellow-300 bg-yellow-100 text-yellow-900 dark:bg-yellow-900/30 dark:text-yellow-100 dark:border-yellow-700">
-      <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2 text-sm">
-        <AlertTriangle className="h-4 w-4 shrink-0" />
-        <div className="flex-1">
-          <strong className="font-semibold">Your last payment failed.</strong>{" "}
-          Please update your card by <strong>{formatted}</strong> ({daysLeft} day
-          {daysLeft === 1 ? "" : "s"} left) to keep your account active.
-        </div>
-      </div>
-    </div>
+    <ChromeStrip
+      tone="warning"
+      title="Your last payment failed."
+      actions={
+        <Button size="sm" variant="outline" onClick={() => window.open(STRIPE_PORTAL, "_blank")}>
+          <CreditCard aria-hidden="true" />
+          Update card
+        </Button>
+      }
+    >
+      Update your card by <strong className="font-semibold">{formatted}</strong> ({daysLeft} day
+      {daysLeft === 1 ? "" : "s"} left) to keep your account active.
+    </ChromeStrip>
   );
 };
 

@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Copy, CheckCircle2 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { TriangleAlert } from "lucide-react";
+import { popIn } from "@/lib/motion";
+import { StepHeading } from "@/components/premium/onboarding/OnboardingShell";
+import { CheckDot, CopyField } from "@/components/premium/onboarding/pieces";
 import { toast } from "sonner";
 import { useSessionTracker } from "@/contexts/SessionTrackerContext";
 import { useHubUrls } from "@/lib/hubUrl";
@@ -20,76 +24,106 @@ const MenuLinksStep = ({ agencyId }: MenuLinksStepProps) => {
   const copyToClipboard = async (text: string, which: "sub") => {
     try {
       await navigator.clipboard.writeText(text);
-      toast.success("Copied to clipboard!");
+      toast.success("Link copied");
       setCopiedSub(true);
       trackEvent("menu_link_copied", `Copied ${which} menu link`, { url: text, which });
     } catch (err) {
-      toast.error("Failed to copy");
+      toast.error("Could not copy. Select the link and copy it by hand.");
+      return false;
     }
   };
 
   const markInstalled = (which: "sub") => {
     setInstalledSub(true);
     trackEvent("menu_link_installed", `Marked ${which} menu link installed`, { which });
-    toast.success("Awesome — menu link installed!");
+    toast.success("Menu link installed");
   };
 
+  const STEPS = [
+    <>
+      In HighLevel, open a sub-account, then{" "}
+      <strong className="font-semibold text-foreground">Settings</strong> and{" "}
+      <strong className="font-semibold text-foreground">Custom Menu Link</strong>.
+    </>,
+    <>Create a new menu link and paste the link above as its URL.</>,
+    <>Name it "Onboarding" or "Training".</>,
+    <>Save, then refresh the page.</>,
+  ];
+
   return (
-    <div className="space-y-8">
-      <div>
-        <h2 className="text-2xl font-bold text-foreground">Add Your Menu Link</h2>
-        <p className="text-muted-foreground mt-2">
-          Add this URL to your HighLevel sub accounts to connect your SaaS Suite.
-        </p>
-      </div>
+    <div>
+      <StepHeading
+        title="Add your menu link"
+        subtitle="This link opens your Client Hub inside HighLevel. Add it to every sub-account, or to one demo account to test first."
+      />
 
-      <div className="space-y-4">
-        <div className="bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-lg p-5">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold text-sm flex-shrink-0">
-              1
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-foreground">Sub Account Menu Link (Client Hub)</h3>
-              <p className="text-sm text-muted-foreground mt-1 mb-3">
-                Add this link to <strong>all sub accounts</strong> (or just a demo account for testing). This is what your clients will see.
-              </p>
+      <div className="px-surface p-4 sm:p-6">
+        <p className="px-eyebrow mb-2">Your Client Hub link</p>
+        <CopyField
+          value={v2Url}
+          label="Copy your Client Hub link"
+          onCopy={() => copyToClipboard(v2Url, "sub")}
+        />
 
-              <div className="flex items-center gap-2 bg-white dark:bg-background p-3 rounded-lg border">
-                <code className="text-sm flex-1 truncate font-mono">{v2Url}</code>
-                <Button variant="outline" size="sm" onClick={() => copyToClipboard(v2Url, "sub")}>
-                  <Copy className="w-4 h-4" />
+        {!agencyId && (
+          <p className="mt-3 flex items-center gap-1.5 text-small font-medium text-foreground">
+            <TriangleAlert className="size-4 shrink-0 text-warning" aria-hidden="true" />
+            Go back and add your agency name to get your real link.
+          </p>
+        )}
+
+        <ol className="mt-6 space-y-3">
+          {STEPS.map((text, i) => (
+            <li key={i} className="flex items-start gap-3">
+              <span
+                aria-hidden="true"
+                className="grid size-6 shrink-0 place-items-center rounded-full bg-brand-subtle text-caption font-semibold text-brand"
+              >
+                {i + 1}
+              </span>
+              <span className="text-body text-muted-foreground">{text}</span>
+            </li>
+          ))}
+        </ol>
+
+        <div className="mt-6 flex min-h-[2.75rem] items-center border-t border-border pt-4">
+          <AnimatePresence mode="wait" initial={false}>
+            {installedSub ? (
+              <motion.p
+                key="done"
+                variants={popIn}
+                initial="hidden"
+                animate="show"
+                className="flex items-center gap-2 text-body font-medium text-foreground"
+              >
+                <CheckDot checked />
+                Menu link installed
+              </motion.p>
+            ) : copiedSub ? (
+              <motion.div
+                key="confirm"
+                variants={popIn}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+              >
+                <Button variant="outline" onClick={() => markInstalled("sub")}>
+                  I have added the link
                 </Button>
-              </div>
-
-              {!agencyId && (
-                <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">
-                  ⚠️ Complete the branding step to generate your unique agency URL.
-                </p>
-              )}
-
-              <div className="mt-3 text-sm text-muted-foreground">
-                <strong>Steps:</strong>
-                <ol className="list-decimal ml-5 mt-1 space-y-1">
-                  <li>Go to a Sub Account → Settings → Custom Menu Link</li>
-                  <li>Create a new menu link with the URL above</li>
-                  <li>Title it "Onboarding" or "Training"</li>
-                  <li>Save and refresh the page</li>
-                </ol>
-              </div>
-
-              {copiedSub && !installedSub && (
-                <Button className="mt-3" size="sm" onClick={() => markInstalled("sub")}>
-                  <CheckCircle2 className="w-4 h-4 mr-1" /> I've installed it
-                </Button>
-              )}
-              {installedSub && (
-                <p className="mt-3 text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
-                  <CheckCircle2 className="w-4 h-4" /> Installed
-                </p>
-              )}
-            </div>
-          </div>
+              </motion.div>
+            ) : (
+              <motion.p
+                key="hint"
+                variants={popIn}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+                className="text-small text-muted-foreground"
+              >
+                Copy the link to get started. You can also do this later from the install checklist.
+              </motion.p>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>

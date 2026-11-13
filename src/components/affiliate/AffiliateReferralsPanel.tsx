@@ -241,21 +241,35 @@ export default function AffiliateReferralsPanel({
     pendingPayout: showSignupList ? fallbackPending : null,
   };
   const showRateEditor = mode === "admin" && snapshot?.affiliates?.length === 1 && snapshot.commissionRate != null;
+  const activeDays = range?.from && range?.to
+    ? Math.round((endOfLocalDay(range.to).getTime() - range.from.getTime()) / 86400000)
+    : 0;
   const rangeControl = (
     <div className="flex flex-wrap items-center gap-2">
-      {DAY_OPTIONS.map((option) => (
-        <Button key={option} type="button" size="sm" variant="outline" className="h-10" onClick={() => setRange(lastDays(option))}>
-          {option}d
-        </Button>
-      ))}
+      <div className="inline-flex rounded-md border border-border bg-muted/50 p-0.5" role="group" aria-label="Quick date range">
+        {DAY_OPTIONS.map((option) => (
+          <button
+            key={option}
+            type="button"
+            aria-pressed={activeDays === option}
+            onClick={() => setRange(lastDays(option))}
+            className={
+              "h-10 min-w-11 rounded-sm px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-8 " +
+              (activeDays === option ? "bg-card text-foreground shadow-card" : "text-muted-foreground hover:text-foreground")
+            }
+          >
+            {option}d
+          </button>
+        ))}
+      </div>
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" className="h-10 gap-2 rounded-lg border border-border/60 bg-background/70 px-3 text-xs font-medium text-primary hover:bg-primary/10 hover:text-primary">
-            <CalendarIcon className="h-3.5 w-3.5" />
+          <Button variant="outline" size="sm" className="h-11 gap-2 font-medium sm:h-9">
+            <CalendarIcon className="size-4 text-muted-foreground" aria-hidden="true" />
             {range?.from ? `${format(range.from, "MMM d")} – ${format(range.to ?? range.from, "MMM d, yyyy")}` : "Select date range"}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto rounded-2xl p-0" align="start">
+        <PopoverContent className="w-auto rounded-xl p-0" align="end">
           <Calendar
             mode="range"
             selected={range}
@@ -269,8 +283,8 @@ export default function AffiliateReferralsPanel({
   );
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col gap-3 empty:hidden sm:flex-row sm:items-end">
         {mode === "admin" && !affiliateId ? (
           <div className="space-y-1 flex-1">
             <Label>Affiliate</Label>
@@ -301,7 +315,7 @@ export default function AffiliateReferralsPanel({
       ) : null}
 
       {showRateEditor ? (
-        <div className="flex flex-col sm:flex-row sm:items-end gap-2 rounded-md border p-3">
+        <div className="px-surface flex flex-col gap-3 p-4 sm:flex-row sm:items-end">
           <div className="space-y-1">
             <Label htmlFor="affiliate-commission-rate">Commission rate for new referrals</Label>
             <Input
@@ -324,7 +338,7 @@ export default function AffiliateReferralsPanel({
         <p className="text-sm text-muted-foreground">Updating referral status…</p>
       ) : null}
       {!waitingForChoice && updatedLabel ? (
-        <p className="text-xs text-muted-foreground">Last updated {updatedLabel}</p>
+        <p className="-mb-2 text-xs text-muted-foreground">Last updated {updatedLabel}</p>
       ) : null}
 
       {!waitingForChoice && loading && !hasVisibleData ? (

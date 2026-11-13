@@ -9,7 +9,16 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowDown, ArrowUp, Copy, ExternalLink, Save, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, Library, Link2, ListVideo, Plus, Save, Trash2, Type, Video } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { SPRING_SOFT } from "@/lib/motion";
+import { SectionCard } from "@/components/premium/SectionCard";
+import { Reveal, RevealItem } from "@/components/premium/Reveal";
+import AnimatedTabs from "@/components/premium/21st/animated-tabs";
+import { EmptyState } from "@/components/premium/21st/empty-state";
+import { HubEmptyIcon } from "@/components/premium/hub/HubBits";
+import { HubLinkBar } from "@/components/premium/hub/HubLinkBar";
+import { HubListSkeleton, HubRow } from "@/components/premium/hub/HubBits";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useUser } from "@/contexts/UserContext";
@@ -279,159 +288,216 @@ const SimpleOnboardingManager = () => {
     return !!agencyVersions.elite_id;
   });
 
+  const [libraryTab, setLibraryTab] = useState<"standard" | "custom">("standard");
+
+  const planSelect =
+    availablePlans.length > 1 ? (
+      <Select value={selectedPlan} onValueChange={(v) => { if (v === "plan1" || (plan === "ADVANCED" && connection.connected)) setSelectedPlan(v as Plan); }}>
+        <SelectTrigger className="h-11 w-full lg:w-[150px]" aria-label="Plan you are editing"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {availablePlans.map((p) => (
+            <SelectItem key={p} value={p} disabled={p !== "plan1" && (plan !== "ADVANCED" || !connection.connected)}>{planLabel(p)}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    ) : undefined;
+
   return (
     <div className="min-w-0 space-y-6">
       <PageHeader
+        eyebrow="Client Hub"
         title="Simplified Onboarding"
-        subtitle='A single page with just the videos you choose. The default header is "Software Onboarding".'
+        subtitle="One page with only the videos you pick. Use it instead of Hub Pages when a client just needs to watch a few videos, without Home or Support."
       />
-
-      {availablePlans.length > 1 && (
-        <div className="flex items-center gap-2">
-          <Label className="text-sm">Editing:</Label>
-          <Select value={selectedPlan} onValueChange={(v) => { if (v === "plan1" || (plan === "ADVANCED" && connection.connected)) setSelectedPlan(v as Plan); }}>
-            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {availablePlans.map((p) => (
-                <SelectItem key={p} value={p} disabled={p !== "plan1" && (plan !== "ADVANCED" || !connection.connected)}>{planLabel(p)}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
 
       {!connection.connected && <MultiPlanConnectionNotice />}
 
       {!currentAgencyId ? (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            Create an agency URL first in the Client Hub to use Simplified Onboarding.
-          </CardContent>
-        </Card>
+        <div className="px-surface">
+          <EmptyState
+            icon={<HubEmptyIcon><Link2 className="size-6" /></HubEmptyIcon>}
+            title="Create your hub link first"
+            description="Simplified Onboarding uses the same link as your hub. Set it up in Hub Pages, then come back."
+            action={
+              <Button
+                variant="accent"
+                onClick={() => window.dispatchEvent(new CustomEvent("tipbot-select-tool", { detail: { tool: "client-hub" } }))}
+              >
+                Open Hub Pages
+              </Button>
+            }
+          />
+        </div>
       ) : (
         <>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Public Page</CardTitle>
-              <CardDescription>Share this link with your clients.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex min-w-0 flex-col gap-2 md:flex-row">
-              <Input value={publicUrl} readOnly className="min-w-0 w-full font-mono text-sm" />
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => { navigator.clipboard.writeText(publicUrl); toast.success("Copied"); }}>
-                  <Copy className="w-4 h-4 mr-1" /> Copy
-                </Button>
-                <Button variant="outline" onClick={() => window.open(publicUrl, "_blank")}>
-                  <ExternalLink className="w-4 h-4 mr-1" /> Open
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <HubLinkBar
+            label="Page link"
+            url={publicUrl}
+            planSelect={planSelect}
+            onCopy={() => { navigator.clipboard.writeText(publicUrl); toast.success("Copied"); }}
+            onOpen={() => window.open(publicUrl, "_blank")}
+          />
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Page Title</CardTitle>
-              <CardDescription>Leave blank to use the default "Software Onboarding".</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Input
-                value={pageTitle}
-                onChange={(e) => setPageTitle(e.target.value)}
-                placeholder="Software Onboarding"
-              />
-            </CardContent>
-          </Card>
+          <Reveal className="grid min-w-0 items-start gap-4 lg:grid-cols-2">
+            <RevealItem className="space-y-4">
+              <SectionCard
+                icon={<Type />}
+                title="Page title"
+                description='Shown at the top of the page. Leave it blank to use "Software Onboarding".'
+              >
+                <Label htmlFor="simple-page-title" className="sr-only">Page title</Label>
+                <Input
+                  id="simple-page-title"
+                  value={pageTitle}
+                  onChange={(e) => setPageTitle(e.target.value)}
+                  placeholder="Software Onboarding"
+                />
+              </SectionCard>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Videos on this page</CardTitle>
-              <CardDescription>Drag-style ordering with up/down. Add from the lists below.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {loadError ? (
-                <LoadNotice error={loadError} onRetry={() => setLoadAttempt((attempt) => attempt + 1)} />
-              ) : loading ? (
-                <p className="text-sm text-muted-foreground">Loading…</p>
-              ) : rows.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No videos added yet. Add some from below.</p>
-              ) : (
-                rows.map((r, idx) => (
-                  <div key={r.id} className="flex min-w-0 items-center gap-2 rounded-lg border bg-muted/30 p-3">
-                    <Badge variant={r.source === "custom" ? "default" : "secondary"} className="shrink-0 capitalize">{r.source}</Badge>
-                    <span className="min-w-0 flex-1 truncate text-sm">
-                      {r.source === "standard" ? moduleLabel(r.category_id, r.module_id) : customLabel(r.custom_video_id)}
+              <SectionCard
+                icon={<ListVideo />}
+                title="Videos on this page"
+                description="Clients watch them top to bottom. Use the arrows to reorder."
+                actions={
+                  !loading && !loadError && rows.length > 0 ? (
+                    <span className="text-xs tabular-nums text-muted-foreground">
+                      {rows.length} video{rows.length === 1 ? "" : "s"}
                     </span>
-                    <Button size="icon" aria-label="Move up" variant="ghost" onClick={() => move(idx, -1)} disabled={idx === 0}>
-                      <ArrowUp className="w-4 h-4" />
-                    </Button>
-                    <Button size="icon" aria-label="Move down" variant="ghost" onClick={() => move(idx, 1)} disabled={idx === rows.length - 1}>
-                      <ArrowDown className="w-4 h-4" />
-                    </Button>
-                    <Button size="icon" aria-label="Delete" variant="ghost" onClick={() => removeRow(idx)}>
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
+                  ) : null
+                }
+              >
+                {loadError ? (
+                  <LoadNotice error={loadError} onRetry={() => setLoadAttempt((attempt) => attempt + 1)} />
+                ) : loading ? (
+                  <HubListSkeleton rows={4} />
+                ) : rows.length === 0 ? (
+                  <EmptyState
+                    className="py-8"
+                    icon={<HubEmptyIcon><ListVideo className="size-6" /></HubEmptyIcon>}
+                    title="No videos yet"
+                    description="Add videos from the library and they line up here in the order clients will watch them."
+                  />
+                ) : (
+                  <ol className="space-y-2">
+                    <AnimatePresence initial={false}>
+                      {rows.map((r, idx) => (
+                        <motion.li
+                          key={r.id}
+                          layout
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.98 }}
+                          transition={SPRING_SOFT}
+                        >
+                          <HubRow
+                            leading={
+                              <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold tabular-nums text-muted-foreground">
+                                {idx + 1}
+                              </span>
+                            }
+                            title={r.source === "standard" ? (moduleLabel(r.category_id, r.module_id).split(" → ")[1] ?? moduleLabel(r.category_id, r.module_id)) : customLabel(r.custom_video_id)}
+                            meta={r.source === "custom" ? "Your video" : (moduleLabel(r.category_id, r.module_id).split(" → ")[1] ? moduleLabel(r.category_id, r.module_id).split(" → ")[0] : "Standard video")}
+                            trailing={
+                              <>
+                                <Button size="icon" aria-label="Move up" variant="ghost" className="size-9" onClick={() => move(idx, -1)} disabled={idx === 0}>
+                                  <ArrowUp className="size-4" />
+                                </Button>
+                                <Button size="icon" aria-label="Move down" variant="ghost" className="size-9" onClick={() => move(idx, 1)} disabled={idx === rows.length - 1}>
+                                  <ArrowDown className="size-4" />
+                                </Button>
+                                <Button size="icon" aria-label="Delete" variant="ghost" className="size-9 text-muted-foreground hover:text-destructive" onClick={() => removeRow(idx)}>
+                                  <Trash2 className="size-4" />
+                                </Button>
+                              </>
+                            }
+                          />
+                        </motion.li>
+                      ))}
+                    </AnimatePresence>
+                  </ol>
+                )}
+              </SectionCard>
+            </RevealItem>
 
-          <div className="grid min-w-0 gap-4 md:grid-cols-2">
-            <Card className="min-w-0">
-              <CardHeader>
-                <CardTitle className="text-base">Add Standard Videos</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 max-h-[500px] overflow-auto">
-                {VIDEO_CATEGORIES.map((cat) => (
-                  <div key={cat.id}>
-                    <h4 className="font-semibold text-sm mb-2">{cat.name}</h4>
-                    <div className="space-y-1">
-                      {cat.modules.map((m) => {
-                        const added = rows.some((r) => r.source === "standard" && r.category_id === cat.id && r.module_id === m.id);
+            <RevealItem>
+              <SectionCard
+                icon={<Library />}
+                title="Video library"
+                description="Add any video to the page. Your own videos come from Education in Hub Pages."
+              >
+                <AnimatedTabs
+                  variant="segment"
+                  layoutId="simple-onboarding-library"
+                  className="mb-3 flex w-full"
+                  activeTab={libraryTab}
+                  onChange={(id) => setLibraryTab(id as "standard" | "custom")}
+                  tabs={[
+                    { id: "standard", label: "Standard" },
+                    { id: "custom", label: `Yours (${customVideos.length})` },
+                  ]}
+                />
+                <div className="-mr-2 max-h-[520px] space-y-4 overflow-auto pr-2">
+                  {libraryTab === "standard" ? (
+                    VIDEO_CATEGORIES.map((cat) => (
+                      <div key={cat.id}>
+                        <h3 className="px-eyebrow mb-1">{cat.name}</h3>
+                        <div className="divide-y divide-border">
+                          {cat.modules.map((m) => {
+                            const added = rows.some((r) => r.source === "standard" && r.category_id === cat.id && r.module_id === m.id);
+                            return (
+                              <div key={m.id} className="flex min-h-11 min-w-0 items-center justify-between gap-2 py-1.5 text-sm">
+                                <span className="min-w-0 flex-1 truncate">{m.name}</span>
+                                <Button size="sm" className="shrink-0" variant={added ? "ghost" : "outline"} disabled={added} onClick={() => addStandard(cat.id, m.id)}>
+                                  {added ? <><Check className="size-3.5" /> Added</> : <><Plus className="size-3.5" /> Add</>}
+                                </Button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))
+                  ) : customVideos.length === 0 ? (
+                    <EmptyState
+                      className="py-8"
+                      icon={<HubEmptyIcon><Video className="size-6" /></HubEmptyIcon>}
+                      title="No videos of your own yet"
+                      description="Upload a custom video in Hub Pages, under Education, and it appears here."
+                      action={
+                        <Button
+                          variant="outline"
+                          onClick={() => window.dispatchEvent(new CustomEvent("tipbot-select-tool", { detail: { tool: "client-hub" } }))}
+                        >
+                          Open Hub Pages
+                        </Button>
+                      }
+                    />
+                  ) : (
+                    <div className="divide-y divide-border">
+                      {customVideos.map((v) => {
+                        const added = rows.some((r) => r.source === "custom" && r.custom_video_id === v.id);
                         return (
-                          <div key={m.id} className="flex min-w-0 items-center justify-between gap-2 py-1 text-sm">
-                            <span className="min-w-0 flex-1 truncate">{m.name}</span>
-                            <Button size="sm" className="shrink-0" variant={added ? "secondary" : "outline"} disabled={added} onClick={() => addStandard(cat.id, m.id)}>
-                              {added ? "Added" : "Add"}
+                          <div key={v.id} className="flex min-h-11 min-w-0 items-center justify-between gap-2 py-1.5 text-sm">
+                            <span className="min-w-0 flex-1 truncate">{v.title}</span>
+                            <Button size="sm" className="shrink-0" variant={added ? "ghost" : "outline"} disabled={added} onClick={() => addCustom(v.id)}>
+                              {added ? <><Check className="size-3.5" /> Added</> : <><Plus className="size-3.5" /> Add</>}
                             </Button>
                           </div>
                         );
                       })}
                     </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+                  )}
+                </div>
+              </SectionCard>
+            </RevealItem>
+          </Reveal>
 
-            <Card className="min-w-0">
-              <CardHeader>
-                <CardTitle className="text-base">Add Custom Videos</CardTitle>
-                <CardDescription>Uploaded via Custom Videos in Client Hub.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-1 max-h-[500px] overflow-auto">
-                {customVideos.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No custom videos yet.</p>
-                ) : (
-                  customVideos.map((v) => {
-                    const added = rows.some((r) => r.source === "custom" && r.custom_video_id === v.id);
-                    return (
-                      <div key={v.id} className="flex items-center justify-between text-sm py-1">
-                        <span className="truncate flex-1">{v.title}</span>
-                        <Button size="sm" variant={added ? "secondary" : "outline"} disabled={added} onClick={() => addCustom(v.id)}>
-                          {added ? "Added" : "Add"}
-                        </Button>
-                      </div>
-                    );
-                  })
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="flex justify-end">
-            <Button onClick={save} disabled={saving}>
-              <Save className="w-4 h-4 mr-2" />
-              {saving ? "Saving…" : "Save Changes"}
+          <div className="px-glass sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3 shadow-raised">
+            <p className="min-w-0 flex-1 basis-48 text-sm text-muted-foreground">
+              Saves the title and video order for {planLabel(selectedPlan)}.
+            </p>
+            <Button variant="accent" onClick={save} disabled={saving}>
+              <Save className="size-4" />
+              {saving ? "Saving…" : "Save changes"}
             </Button>
           </div>
         </>

@@ -27,7 +27,16 @@ import {
   Check,
   Copy,
   RefreshCw,
+  CheckCircle2,
+  ChevronDown,
 } from "lucide-react";
+import { SectionCard } from "@/components/premium/SectionCard";
+import { Reveal, RevealItem } from "@/components/premium/Reveal";
+import { EmptyState } from "@/components/premium/21st/empty-state";
+import { HubEmptyIcon } from "@/components/premium/hub/HubBits";
+import { TextShimmer } from "@/components/premium/21st/text-shimmer";
+import { CopyButton } from "@/components/premium/hub/CopyButton";
+import { HubListSkeleton, OnOffSwitch } from "@/components/premium/hub/HubBits";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/platform/PageHeader";
 import { LoadNotice } from "@/components/platform/LoadNotice";
@@ -415,38 +424,17 @@ const WorkflowsManager = () => {
   const availableTriggers = TRIGGERS.filter((t) => !rows[t.id]);
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <PageHeader
+        eyebrow="Client Hub"
         title="Workflows"
-        subtitle="Send a webhook to your automation whenever a user does something in your hub."
+        subtitle="Tell your automations when a client does something in your hub. Each trigger posts that client's details to a webhook you choose."
       />
 
-      {loginOk ? (
-        <p className="text-xs text-muted-foreground flex items-center gap-1">
-          <Check className="w-3 h-3 text-primary" /> Login method <strong>{loginWith}</strong>{" "}
-          identifies users, so triggers will work.
-        </p>
-      ) : (
-        <Alert variant="destructive">
-          <AlertTriangle className="w-4 h-4" />
-          <AlertTitle>Switch your login method</AlertTitle>
-          <AlertDescription className="space-y-2">
-            <p>
-              Triggers need Email or Email + Name login to identify users. Current:{" "}
-              <strong>{loginWith}</strong>.
-            </p>
-            <Button size="sm" variant="outline" onClick={goToLoginSettings}>
-              <SettingsIcon className="w-3 h-3 mr-1" /> Open login settings
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {availablePlans.length > 1 && (
-        <div className="flex items-center gap-2">
-          <Label className="text-sm">Editing:</Label>
+      <div className="px-surface flex min-w-0 flex-col gap-3 p-3 sm:p-4 lg:flex-row lg:items-center">
+        {availablePlans.length > 1 && (
           <Select value={selectedPlan} onValueChange={(v) => setSelectedPlan(v as Plan)}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="h-11 w-full lg:w-[150px]" aria-label="Plan you are editing">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -457,246 +445,262 @@ const WorkflowsManager = () => {
               ))}
             </SelectContent>
           </Select>
-        </div>
-      )}
+        )}
+        {loginOk ? (
+          <p className="flex min-h-11 min-w-0 flex-1 items-center gap-2 text-sm text-muted-foreground">
+            <CheckCircle2 className="size-4 shrink-0 text-success" aria-hidden="true" />
+            <span>
+              Ready. Clients sign in with <strong className="font-medium text-foreground">{loginWith === "BOTH" ? "email and name" : "email"}</strong>, so
+              every trigger knows who they are.
+            </span>
+          </p>
+        ) : (
+          <div role="alert" className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
+            <p className="flex min-w-0 flex-1 basis-64 items-start gap-2 text-sm text-foreground">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
+              <span>
+                Triggers cannot tell clients apart yet. Switch client login to Email, or Email and Name. Current:{" "}
+                <strong>{loginWith}</strong>.
+              </span>
+            </p>
+            <Button size="sm" variant="outline" onClick={goToLoginSettings}>
+              <SettingsIcon className="size-3.5" /> Open login settings
+            </Button>
+          </div>
+        )}
+      </div>
 
       {loadError && <LoadNotice error={loadError} onRetry={() => setLoadAttempt((attempt) => attempt + 1)} />}
       {!versionsLoaded || loading ? (
-        <LoadNotice loading label="Loading workflows…" />
+        <div className="px-surface p-4 sm:p-6">
+          <div className="px-skeleton mb-4 h-5 w-40 rounded-sm" />
+          <HubListSkeleton rows={3} />
+        </div>
       ) : !currentAgencyId ? (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            Create an agency URL first in Client Hub to configure workflows.
-          </CardContent>
-        </Card>
+        <div className="px-surface">
+          <EmptyState
+            icon={<HubEmptyIcon><Workflow className="size-6" /></HubEmptyIcon>}
+            title="Create your hub link first"
+            description="Workflows fire from your hub. Set up the hub link in Hub Pages, then come back."
+            action={
+              <Button variant="accent" onClick={() => navigate("/app/client-hub")}>
+                Open Hub Pages
+              </Button>
+            }
+          />
+        </div>
       ) : (
         <>
-          {activeTriggers.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              These are the triggers you can turn on. Pick one to send that user's details to your
-              webhook.
-            </p>
-          )}
-
-          <div className="grid gap-4">
-            {activeTriggers.map((t) => {
-              const row = rows[t.id];
-              const isHighlighted = highlightId === t.id;
-              return (
-                <Card
-                  key={t.id}
-                  className={`${row?.enabled ? "" : "opacity-60"} transition-all duration-300 ${row?.isNew ? "animate-scale-in" : "animate-fade-in"}`}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1">
-                        <CardTitle className="text-base">{t.label}</CardTitle>
-                        <CardDescription>{t.description}</CardDescription>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={row?.enabled ?? true}
-                          onCheckedChange={(v) => updateRow(t.id, { enabled: v })}
-                        />
-                        <Button
-                          size="icon"
-                          aria-label="Delete"
-                          variant="ghost"
-                          onClick={() => removeTrigger(t.id)}
+          <Reveal className="space-y-4">
+            <RevealItem>
+              <SectionCard
+                icon={<Workflow />}
+                title="Your triggers"
+                description="Each one sends a webhook the moment it happens."
+                actions={
+                  activeTriggers.length > 0 ? (
+                    <span className="text-xs tabular-nums text-muted-foreground">
+                      {activeTriggers.filter((t) => rows[t.id]?.enabled ?? true).length} of {activeTriggers.length} on
+                    </span>
+                  ) : null
+                }
+              >
+                {activeTriggers.length === 0 ? (
+                  <EmptyState
+                    className="py-8"
+                    icon={<HubEmptyIcon><Webhook className="size-6" /></HubEmptyIcon>}
+                    title="No triggers yet"
+                    description="Pick a trigger below, paste your webhook link, and send a test."
+                  />
+                ) : (
+                  <div className="space-y-3">
+                    {activeTriggers.map((t) => {
+                      const row = rows[t.id];
+                      const isHighlighted = highlightId === t.id;
+                      const on = row?.enabled ?? true;
+                      return (
+                        <div
+                          key={t.id}
+                          className={`rounded-md border border-border p-4 transition-colors duration-200 ${on ? "bg-card" : "bg-muted/40"} ${row?.isNew ? "animate-scale-in" : ""}`}
                         >
-                          <Trash2 className="w-4 h-4 text-muted-foreground" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-col sm:flex-row items-stretch gap-2 rounded-lg border bg-muted/30 p-3">
-                      <div className="flex flex-col items-center justify-center px-3 py-2 rounded-md bg-primary/10 border border-primary/20 min-w-[140px]">
-                        <Workflow className="w-4 h-4 text-primary mb-1" />
-                        <span className="text-xs font-medium text-center">Trigger</span>
-                        <span className="text-[10px] text-muted-foreground text-center mt-0.5 line-clamp-2">
-                          {t.label}
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className={`min-w-0 flex-1 basis-56 ${on ? "" : "opacity-60"}`}>
+                              <h3 className="text-sm font-semibold text-foreground">{t.label}</h3>
+                              <p className="text-sm text-muted-foreground">{t.description}</p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <OnOffSwitch
+                                checked={on}
+                                onCheckedChange={(v) => updateRow(t.id, { enabled: v })}
+                                label={`Turn ${t.label} on or off`}
+                              />
+                              <Button
+                                size="icon"
+                                aria-label="Delete"
+                                variant="ghost"
+                                className="text-muted-foreground hover:text-destructive"
+                                onClick={() => removeTrigger(t.id)}
+                              >
+                                <Trash2 className="size-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="mt-3 space-y-1.5">
+                            <Label htmlFor={`wf-input-${t.id}`}>Webhook link</Label>
+                            <div className="flex flex-col gap-2 sm:flex-row">
+                              <Input
+                                id={`wf-input-${t.id}`}
+                                value={row?.webhook_url || ""}
+                                onChange={(e) => updateRow(t.id, { webhook_url: e.target.value })}
+                                placeholder="https://services.leadconnectorhq.com/hooks/..."
+                                className={`font-mono text-xs transition-all ${isHighlighted ? "ring-2 ring-brand ring-offset-2 ring-offset-background" : ""}`}
+                              />
+                              <Button
+                                variant="outline"
+                                className="shrink-0"
+                                onClick={() => sendTest(t.id)}
+                                disabled={testingId === t.id || !row?.webhook_url?.trim()}
+                              >
+                                <Send className="size-4" />
+                                {testingId === t.id ? "Sending…" : "Send test"}
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="mt-3 flex flex-wrap items-center gap-2">
+                            <button
+                              type="button"
+                              aria-pressed={!!row?.slack_enabled}
+                              onClick={() => {
+                                if (!slackConnected) {
+                                  toast.error("Connect Slack in Settings → Slack Integration first.");
+                                  return;
+                                }
+                                updateRow(t.id, { slack_enabled: !row?.slack_enabled });
+                              }}
+                              className={`flex min-h-9 items-center gap-2 rounded-full border px-3 text-sm font-medium transition-colors duration-150 ${
+                                row?.slack_enabled
+                                  ? "border-brand/40 bg-brand-subtle text-brand"
+                                  : "border-border bg-card text-muted-foreground hover:text-foreground"
+                              } ${!slackConnected ? "opacity-60" : ""}`}
+                              title={slackConnected ? "Also send this trigger to Slack" : "Slack not connected"}
+                            >
+                              <img src={SLACK_LOGO} alt="" className="size-4" />
+                              {row?.slack_enabled ? "Also posts to Slack" : "Also post to Slack"}
+                              {row?.slack_enabled && <Check className="size-3.5" />}
+                            </button>
+                            {!slackConnected && (
+                              <span className="text-xs text-muted-foreground">
+                                Connect Slack in Settings to use this.
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </SectionCard>
+            </RevealItem>
+
+            {availableTriggers.length > 0 && (
+              <RevealItem>
+                <SectionCard
+                  icon={<Plus />}
+                  title="Add a trigger"
+                  description="Choose the moment that should fire your webhook."
+                >
+                  <div className="grid gap-2 md:grid-cols-2">
+                    {availableTriggers.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => addTrigger(t.id)}
+                        className="group flex min-h-[60px] items-center gap-3 rounded-md border border-border bg-card p-3 text-left transition-colors duration-150 hover:border-brand/40 hover:bg-brand-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-medium text-foreground">{t.label}</span>
+                          <span className="block text-sm text-muted-foreground">{t.description}</span>
                         </span>
-                      </div>
-                      <div className="hidden sm:flex items-center text-muted-foreground">
-                        <ArrowRight className="w-5 h-5" />
-                      </div>
-                      <div className="flex-1 flex flex-col gap-1">
-                        <Label className="text-xs flex items-center gap-1">
-                          <Webhook className="w-3 h-3" /> Inbound webhook URL
-                        </Label>
-                        <div className="flex flex-col sm:flex-row gap-2">
-                          <Input
-                            id={`wf-input-${t.id}`}
-                            value={row?.webhook_url || ""}
-                            onChange={(e) => updateRow(t.id, { webhook_url: e.target.value })}
-                            placeholder="https://services.leadconnectorhq.com/hooks/..."
-                            className={`font-mono text-xs transition-all ${isHighlighted ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`}
-                          />
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => sendTest(t.id)}
-                            disabled={testingId === t.id || !row?.webhook_url?.trim()}
-                          >
-                            <Send className="w-3 h-3 mr-1" />
-                            {testingId === t.id ? "Sending…" : "Send test"}
+                        <Plus className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-brand" aria-hidden="true" />
+                      </button>
+                    ))}
+                  </div>
+                </SectionCard>
+              </RevealItem>
+            )}
+
+            <RevealItem>
+              <details className="group px-surface">
+                <summary className="flex cursor-pointer list-none items-center gap-3 p-4 sm:p-6 [&::-webkit-details-marker]:hidden">
+                  <span className="px-icon-chip shrink-0" aria-hidden="true">
+                    <img src={SLACK_LOGO} alt="" className="size-5" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-base font-semibold text-foreground">Custom Slack messages</span>
+                    <span className="mt-0.5 block text-sm text-muted-foreground">
+                      Advanced. Post anything to your Slack channel from a private webhook.
+                    </span>
+                  </span>
+                  <ChevronDown className="size-5 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180" aria-hidden="true" />
+                </summary>
+                <div className="space-y-3 border-t border-border p-4 sm:p-6">
+                  {!slackConnected ? (
+                    <p className="text-sm text-muted-foreground">
+                      Connect Slack in <strong>Settings → Slack Integration</strong> to activate your
+                      custom webhook URL.
+                    </p>
+                  ) : !inboundToken ? (
+                    <TextShimmer className="text-sm">Generating your webhook URL…</TextShimmer>
+                  ) : (
+                    <>
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <Input
+                          value={inboundUrl}
+                          readOnly
+                          aria-label="Your private Slack webhook link"
+                          className="font-mono text-xs"
+                          onFocus={(e) => e.currentTarget.select()}
+                        />
+                        <div className="flex gap-2">
+                          <CopyButton onCopy={copyInbound} showLabel />
+                          <Button variant="outline" onClick={rotateInbound} disabled={rotatingToken}>
+                            <RefreshCw className={`size-4 ${rotatingToken ? "animate-spin" : ""}`} />
+                            {rotatingToken ? "…" : "Regenerate"}
                           </Button>
                         </div>
-                        <div className="flex items-center gap-2 pt-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (!slackConnected) {
-                                toast.error("Connect Slack in Settings → Slack Integration first.");
-                                return;
-                              }
-                              updateRow(t.id, { slack_enabled: !row?.slack_enabled });
-                            }}
-                            className={`relative flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-medium transition-all ${
-                              row?.slack_enabled
-                                ? "border-green-500/60 bg-green-500/10 text-green-700 dark:text-green-400"
-                                : "border-border bg-background hover:bg-accent"
-                            } ${!slackConnected ? "opacity-60" : ""}`}
-                            title={
-                              slackConnected
-                                ? "Also send this trigger to Slack"
-                                : "Slack not connected"
-                            }
-                          >
-                            <img src={SLACK_LOGO} alt="" className="h-4 w-4" />
-                            Send to Slack
-                            {row?.slack_enabled && (
-                              <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
-                            )}
-                          </button>
-                          {!slackConnected && (
-                            <span className="text-[10px] text-muted-foreground">
-                              Connect Slack in Settings to enable
-                            </span>
-                          )}
-                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-
-          {availableTriggers.length > 0 && (
-            <Card className="animate-fade-in border-primary/40">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Pick a trigger</CardTitle>
-                <CardDescription>Choose what should fire your webhook.</CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-2 md:grid-cols-2">
-                {availableTriggers.length === 0 && (
-                  <p className="text-sm text-muted-foreground col-span-2">
-                    All triggers are already added.
-                  </p>
-                )}
-                {availableTriggers.map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => addTrigger(t.id)}
-                    className="text-left p-3 rounded-lg border bg-card hover:bg-accent hover:border-primary/40 transition-colors"
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <Workflow className="w-4 h-4 text-primary" />
-                      <span className="font-medium text-sm">{t.label}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{t.description}</p>
-                  </button>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-
-          <div className="flex justify-end">
-            <Button onClick={save} disabled={saving || loading}>
-              <Save className="w-4 h-4 mr-2" />
-              {saving ? "Saving…" : "Save Workflows"}
-            </Button>
-          </div>
-
-          <details className="group rounded-lg border">
-            <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-medium">
-              <img src={SLACK_LOGO} alt="" className="h-4 w-4" />
-              Custom Slack messages (advanced)
-              <span className="ml-auto text-xs text-muted-foreground group-open:hidden">Show</span>
-              <span className="ml-auto text-xs text-muted-foreground hidden group-open:inline">
-                Hide
-              </span>
-            </summary>
-            <Card className="border-0 shadow-none">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                    <img src={SLACK_LOGO} alt="" className="h-6 w-6 mt-0.5" />
-                    <div>
-                      <CardTitle className="text-base">SaaSSuite Custom Slack Messages</CardTitle>
-                      <CardDescription>
-                        A private inbound webhook URL. Anything you POST here is delivered to your
-                        Slack channel as a custom message.
-                      </CardDescription>
-                    </div>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {!slackConnected ? (
-                  <p className="text-sm text-muted-foreground">
-                    Connect Slack in <strong>Settings → Slack Integration</strong> to activate your
-                    custom webhook URL.
-                  </p>
-                ) : !inboundToken ? (
-                  <p className="text-sm text-muted-foreground">Generating your webhook URL…</p>
-                ) : (
-                  <>
-                    <div className="flex gap-2">
-                      <Input
-                        value={inboundUrl}
-                        readOnly
-                        className="font-mono text-xs"
-                        onFocus={(e) => e.currentTarget.select()}
-                      />
-                      <Button size="sm" variant="outline" onClick={copyInbound}>
-                        <Copy className="w-3 h-3 mr-1" /> Copy
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={rotateInbound}
-                        disabled={rotatingToken}
-                      >
-                        <RefreshCw
-                          className={`w-3 h-3 mr-1 ${rotatingToken ? "animate-spin" : ""}`}
-                        />
-                        {rotatingToken ? "…" : "Regenerate"}
-                      </Button>
-                    </div>
-                    <div className="rounded-md border bg-muted/40 p-3 space-y-2">
-                      <p className="text-xs font-medium">POST a JSON body like this:</p>
-                      <pre className="text-[11px] font-mono whitespace-pre-wrap break-all bg-background rounded p-2 border">
-                        {`{
+                      <div className="space-y-2 rounded-md border border-border bg-muted/40 p-3">
+                        <p className="text-sm font-medium">POST a JSON body like this:</p>
+                        <pre className="whitespace-pre-wrap break-all rounded-sm border border-border bg-background p-3 font-mono text-xs">
+                          {`{
   "title": "Website form submission",
   "message": "Someone requested a demo.",
   "source": "landing-page",
   "fields": { "Name": "Jane Doe", "Email": "jane@acme.com" }
 }`}
-                      </pre>
-                      <p className="text-[11px] text-muted-foreground">
-                        All fields are optional — include at least a <code>title</code>,{" "}
-                        <code>message</code>, or <code>fields</code>. Any HighLevel workflow, Zapier
-                        action, or custom code can hit this URL.
-                      </p>
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          </details>
+                        </pre>
+                        <p className="text-xs text-muted-foreground">
+                          All fields are optional. Include at least a <code>title</code>,{" "}
+                          <code>message</code>, or <code>fields</code>. Any HighLevel workflow, Zapier
+                          action, or custom code can hit this URL.
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </details>
+            </RevealItem>
+          </Reveal>
+
+          <div className="px-glass sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3 shadow-raised">
+            <p className="min-w-0 flex-1 basis-48 text-sm text-muted-foreground">
+              Saves every trigger and webhook link for {planLabel(selectedPlan)}.
+            </p>
+            <Button variant="accent" onClick={save} disabled={saving || loading}>
+              <Save className="size-4" />
+              {saving ? "Saving…" : "Save workflows"}
+            </Button>
+          </div>
         </>
       )}
     </div>

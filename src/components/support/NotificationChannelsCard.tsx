@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUser } from "@/contexts/UserContext";
-import { Card, CardContent } from "@/components/ui/card";
+import { SectionCard } from "@/components/premium/SectionCard";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Mail, Hash, ShieldCheck } from "lucide-react";
+import { Bell, Mail, Hash } from "lucide-react";
+import { EmptyState } from "@/components/premium/21st/empty-state";
 
 const ITEMS: { key: string; label: string; desc: string }[] = [
   { key: "alert_assigned_chat", label: "Chat assigned", desc: "When a chat is assigned to you." },
@@ -34,8 +35,24 @@ export default function NotificationChannelsCard() {
     })();
   }, [email]);
 
-  if (failed) return <Card><CardContent className="p-4 text-sm text-muted-foreground">Couldn't load notification settings.</CardContent></Card>;
-  if (!s) return null;
+  if (failed)
+    return (
+      <SectionCard icon={<Bell />} title="Alerts" description="Choose which support alerts reach you.">
+        <EmptyState
+          className="py-6"
+          title="Alert settings didn't load"
+          description="Use Refresh at the top of the page to try again."
+        />
+      </SectionCard>
+    );
+  if (!s)
+    return (
+      <div className="px-surface space-y-3 p-4 sm:p-6" role="status" aria-label="Loading alert settings">
+        <div className="px-skeleton h-5 w-40" />
+        <div className="px-skeleton h-4 w-3/4" />
+        <div className="px-skeleton h-24 w-full" />
+      </div>
+    );
 
   const managed = s.mode === "managed";
   const slackOn = !!s.slack?.connected;
@@ -54,32 +71,34 @@ export default function NotificationChannelsCard() {
   };
 
   return (
-    <Card>
-      <CardContent className="p-4 space-y-3">
-        <div>
-          <p className="text-sm font-semibold">Support notifications</p>
-          <p className="text-xs text-muted-foreground">
-            {slackOn ? "Choose where each alert goes: email, Slack, both, or neither." : "Choose which alerts you get by email."}
-            {s.role === "admin" ? " Email choices are just for you." : ""}
-          </p>
-          {managed && <p className="text-xs text-muted-foreground mt-1">SaaSSuite handles and responds to your support, so alerts go to the SaaSSuite team and these email choices don't apply.</p>}
-        </div>
-        <div className={`grid ${slackOn ? "grid-cols-[1fr_auto_auto]" : "grid-cols-[1fr_auto]"} gap-x-6 gap-y-1 items-center`}>
+    <SectionCard
+      icon={<Bell />}
+      title="Alerts"
+      description={
+        <>
+          {slackOn ? "Choose where each alert goes: email, Slack, both, or neither." : "Choose which alerts you get by email."}
+          {s.role === "admin" ? " Email choices are just for you." : ""}
+        </>
+      }
+      bodyClassName="space-y-3"
+    >
+        {managed && <p className="text-sm text-muted-foreground">SaaSSuite handles and responds to your support, so alerts go to the SaaSSuite team and these email choices don't apply.</p>}
+        <div className={`grid ${slackOn ? "grid-cols-[1fr_auto_auto]" : "grid-cols-[1fr_auto]"} gap-x-4 sm:gap-x-8 items-center`}>
           <span />
           <span className="text-xs font-medium text-muted-foreground flex items-center gap-1 justify-center"><Mail className="w-3.5 h-3.5" />Email</span>
           {slackOn && <span className="text-xs font-medium text-muted-foreground flex items-center gap-1 justify-center"><Hash className="w-3.5 h-3.5" />Slack</span>}
           {ITEMS.map((i) => (
             <div key={i.key} className="contents">
-              <div className="py-2 border-t">
-                <p className="text-sm">{i.label}</p>
+              <div className="py-3 border-t border-border">
+                <p className="text-sm font-medium">{i.label}</p>
                 <p className="text-xs text-muted-foreground">{i.desc}</p>
               </div>
-              <div className="py-2 border-t h-full flex items-center justify-center">
+              <div className="py-3 border-t border-border h-full flex min-w-11 items-center justify-center">
                 <Checkbox className={boxClass} checked={s.email?.[i.key] !== false}
                   disabled={managed} onCheckedChange={(v) => toggle("email", i.key, v === true)} aria-label={`${i.label} email`} />
               </div>
               {slackOn && (
-                <div className="py-2 border-t h-full flex items-center justify-center">
+                <div className="py-3 border-t border-border h-full flex min-w-11 items-center justify-center">
                   <Checkbox className={boxClass} checked={s.slack?.[i.key] !== false}
                     onCheckedChange={(v) => toggle("slack", i.key, v === true)} aria-label={`${i.label} slack`} />
                 </div>
@@ -89,8 +108,7 @@ export default function NotificationChannelsCard() {
         </div>
         {slackOn
           ? <p className="text-xs text-muted-foreground">Slack alerts post to your team's connected channel, so Slack choices apply to the whole team.</p>
-          : <p className="text-xs text-muted-foreground">Want alerts in Slack too? Connect Slack from the Slack page and Slack options will show up here.</p>}
-      </CardContent>
-    </Card>
+          : <p className="text-xs text-muted-foreground">Want alerts in Slack too? Connect Slack on the Slack page and a Slack column appears here.</p>}
+    </SectionCard>
   );
 }

@@ -27,7 +27,15 @@ import {
 } from "@/components/ui/dialog";
 import {
   BookOpen,
-  Copy,
+  Building2,
+  GraduationCap,
+  Home,
+  LifeBuoy,
+  Link2,
+  MoreHorizontal,
+  Palette,
+  Sparkles,
+  Video,
   Eye,
   EyeOff,
   GripVertical,
@@ -45,7 +53,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { useGhl } from "@/components/highlevel/useGhl";
 import { toast } from "sonner";
 import { VIDEO_CATEGORIES } from "@/constants/videoCategories";
-import { PreviewHeaderHost, PreviewHeaderPortal } from "@/components/client-hub/PreviewHeaderSlot";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
+import { SectionCard } from "@/components/premium/SectionCard";
+import { Reveal, RevealItem } from "@/components/premium/Reveal";
+import { EmptyState } from "@/components/premium/21st/empty-state";
+import { HubEmptyIcon } from "@/components/premium/hub/HubBits";
+import { HubLinkBar } from "@/components/premium/hub/HubLinkBar";
+import { HubSubNav, type HubSubNavItem } from "@/components/premium/hub/HubSubNav";
+import { HubListSkeleton, HubRow, OnOffSwitch } from "@/components/premium/hub/HubBits";
 import { processTrainingDocContent } from "@/utils/compileTrainingDocContent";
 
 interface AgencyVersions {
@@ -983,492 +1005,474 @@ const V3EducationView = ({
     }
   };
 
+  const pageLabel = (id: "education" | "home" | "support") =>
+    id === "education" ? tabName : id === "home" ? homeTabName : supportTabName;
+  const canRenamePage =
+    livePreviewTab === "education" || livePreviewTab === "home" || livePreviewTab === "support";
+  const planLabel = selectedPlan === "plan1" ? "Plan 1" : selectedPlan === "plan2" ? "Plan 2" : "Plan 3";
+  const subNavItems: HubSubNavItem[] = [
+    {
+      id: "education",
+      label: tabName,
+      icon: <GraduationCap className="size-4" />,
+      hint: "The training library your clients watch. Switch videos on or off, reorder them and add your own. Changes save as you go.",
+    },
+    {
+      id: "home",
+      label: homeTabName,
+      icon: <Home className="size-4" />,
+      hint: "The first screen clients see: your welcome message, announcement, checklists and buttons.",
+    },
+    {
+      id: "support",
+      label: supportTabName,
+      icon: <LifeBuoy className="size-4" />,
+      hint: "How clients get help: your support links, the AI assistant and tickets.",
+    },
+    ...(ghlConnected
+      ? [
+          {
+            id: "assign",
+            label: "Assign to Sub Account",
+            icon: <Building2 className="size-4" />,
+            hint: "Choose which HighLevel sub-accounts see this plan's hub.",
+          },
+        ]
+      : []),
+  ];
+  const selectedVisibleCount = isCustomSelection
+    ? customVideosForCategory.filter((v) => (v.tiers || []).includes(tier)).length
+    : selectedCategoryModules.filter((m) => isModuleVisible(selectedCategoryId, m.id)).length +
+      customVideosForCategory.filter((v) => (v.tiers || []).includes(tier)).length;
+  const selectedTotalCount = selectedCategoryModules.length + customVideosForCategory.length;
+
   return (
-    <div className="w-full min-w-0 space-y-4">
-      {/* Title stays full width through tablet. Actions wrap underneath it. */}
-      <div className="flex w-full min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div className="flex w-full min-w-0 items-start gap-3">
-          <BookOpen className="mt-1 h-6 w-6 shrink-0 text-primary" />
-          <div className="min-w-0 flex-1">
-            <PageHeader
-              title={newUi ? "Hub Pages" : "Edit Pages"}
-              subtitle="Turn training videos on or off for each plan, reorder them, and add your own."
-            />
-          </div>
-        </div>
-        <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:max-w-md lg:justify-end">
-          <Button variant="outline" size="sm" onClick={onSyncPlans} disabled={!isAdvancedPlan || !ghlConnected}>
-            <RefreshCw className="w-4 h-4 mr-1" />
-            Sync Plans
-          </Button>
-          <Button variant="outline" size="sm" onClick={onLearnMore}>
-            <Play className="w-4 h-4 mr-1" />
-            Learn more
-          </Button>
-          <Button variant="outline" size="sm" onClick={onOpenInstallationGuide}>
-            <BookOpen className="w-4 h-4 mr-1" />
-            Installation Guide
-          </Button>
-        </div>
-      </div>
-
-      {/* URL bar */}
-      <div
-        className="flex w-full min-w-0 flex-wrap items-center gap-2 rounded-lg border bg-white p-3"
-        data-tip-target="v3-edu-plan-url"
-      >
-        <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
-          Client Hub URL:
-        </span>
-        <Select value={selectedPlan} onValueChange={(v) => setSelectedPlan(v as any)}>
-          <SelectTrigger className="h-8 w-[140px] bg-background text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="plan1">Plan 1</SelectItem>
-            <SelectItem value="plan2" disabled={!isAdvancedPlan || !ghlConnected}>
-              Plan 2
-            </SelectItem>
-            <SelectItem value="plan3" disabled={!isAdvancedPlan || !ghlConnected}>
-              Plan 3
-            </SelectItem>
-          </SelectContent>
-        </Select>
-        {hasSelectedPlanUrl ? (
+    <div className="w-full min-w-0 space-y-6">
+      <PageHeader
+        eyebrow="Client Hub"
+        title={newUi ? "Hub Pages" : "Edit Pages"}
+        subtitle="Everything your clients see when they open your hub. Pick a plan, then edit one page at a time."
+        actions={
           <>
-            <Input
-              value={selectedPlanUrl}
-              readOnly
-              className="h-8 w-full min-w-0 basis-full cursor-not-allowed bg-muted font-mono text-xs lg:w-auto lg:flex-1 lg:basis-0"
-            />
-            <Button
-              variant="outline"
-              size="icon"
-              aria-label="Copy"
-              className="h-8 w-8 shrink-0"
-              onClick={() => copyToClipboard(selectedPlanUrl)}
-            >
-              <Copy className="w-3.5 h-3.5" />
+            <Button variant="outline" onClick={onOpenInstallationGuide}>
+              <BookOpen className="size-4" />
+              Installation guide
             </Button>
-          </>
-        ) : (
-          <span className="min-w-0 flex-1 text-xs text-muted-foreground">Setting up your URL…</span>
-        )}
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-8 shrink-0"
-          onClick={() =>
-            window.dispatchEvent(
-              new CustomEvent("tipbot-select-tool", { detail: { tool: "settings" } }),
-            )
-          }
-        >
-          Agency name
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-8 shrink-0"
-          onClick={() =>
-            window.dispatchEvent(
-              new CustomEvent("tipbot-select-tool", { detail: { tool: "branding" } }),
-            )
-          }
-        >
-          Brand colors
-        </Button>
-      </div>
-
-      {/* Live Preview switcher — portalled into the active page's card header */}
-      <PreviewHeaderPortal>
-        <div
-          className="flex items-center gap-2"
-          data-tip-target="v3-edu-tab-names"
-          data-testid="hub-open-page"
-          data-page={livePreviewTab}
-        >
-          <span className="text-sm font-medium whitespace-nowrap">Now Editing:</span>
-          {editingTabId ? (
-            <span className="inline-flex items-center gap-1">
-              <Input
-                autoFocus
-                value={editingTabValue}
-                onChange={(e) => setEditingTabValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    commitTabName();
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" aria-label="More hub options">
+                  <MoreHorizontal className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-60">
+                <DropdownMenuItem onClick={onLearnMore}>
+                  <Play className="mr-2 size-4" /> Watch the walkthrough
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={onSyncPlans} disabled={!isAdvancedPlan || !ghlConnected}>
+                  <RefreshCw className="mr-2 size-4" /> Sync plans
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {onCustomizeUrl ? (
+                  <DropdownMenuItem onClick={onCustomizeUrl}>
+                    <Link2 className="mr-2 size-4" /> Customize hub link
+                  </DropdownMenuItem>
+                ) : null}
+                <DropdownMenuItem
+                  onClick={() =>
+                    window.dispatchEvent(
+                      new CustomEvent("tipbot-select-tool", { detail: { tool: "settings" } }),
+                    )
                   }
-                  if (e.key === "Escape") {
+                >
+                  <Building2 className="mr-2 size-4" /> Agency name
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() =>
+                    window.dispatchEvent(
+                      new CustomEvent("tipbot-select-tool", { detail: { tool: "branding" } }),
+                    )
+                  }
+                >
+                  <Palette className="mr-2 size-4" /> Brand colors
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        }
+      />
+
+      {/* Plan + hub link */}
+      <HubLinkBar
+        data-tip-target="v3-edu-plan-url"
+        label="Hub link"
+        url={hasSelectedPlanUrl ? selectedPlanUrl : null}
+        onCopy={() => copyToClipboard(selectedPlanUrl)}
+        onOpen={() => window.open(selectedPlanUrl, "_blank", "noopener")}
+        planSelect={
+          <Select value={selectedPlan} onValueChange={(v) => setSelectedPlan(v as any)}>
+            <SelectTrigger className="h-11 w-full lg:w-[150px]" aria-label="Plan you are editing">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="plan1">Plan 1</SelectItem>
+              <SelectItem value="plan2" disabled={!isAdvancedPlan || !ghlConnected}>
+                Plan 2
+              </SelectItem>
+              <SelectItem value="plan3" disabled={!isAdvancedPlan || !ghlConnected}>
+                Plan 3
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        }
+      />
+
+      {/* The one sub-navigation */}
+      <div data-tip-target="v3-edu-tab-names" data-testid="hub-open-page" data-page={livePreviewTab}>
+        <HubSubNav
+          items={subNavItems}
+          active={livePreviewTab}
+          onChange={(id) => {
+            setEditingTabId(null);
+            setLivePreviewTab(id as any);
+          }}
+          editing={
+            editingTabId ? (
+              <form
+                className="flex min-w-0 flex-1 flex-wrap items-center gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  commitTabName();
+                }}
+              >
+                <Label htmlFor="hub-page-name" className="text-sm text-muted-foreground">
+                  Page name
+                </Label>
+                <Input
+                  id="hub-page-name"
+                  autoFocus
+                  value={editingTabValue}
+                  onChange={(e) => setEditingTabValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      setEditingTabId(null);
+                      setEditingTabValue("");
+                    }
+                  }}
+                  className="h-9 w-48"
+                />
+                <Button type="submit" size="sm" variant="accent" aria-label="Save tab name">
+                  Save name
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
                     setEditingTabId(null);
                     setEditingTabValue("");
-                  }
-                }}
-                className="h-9 text-sm w-40 px-2 py-0 bg-white rounded-md"
-                style={{ color: "#4F39F6" }}
-              />
+                  }}
+                >
+                  Cancel
+                </Button>
+              </form>
+            ) : undefined
+          }
+          actions={
+            canRenamePage && !editingTabId ? (
               <Button
-                type="button"
-                size="icon"
-                className="h-9 w-9"
-                onClick={commitTabName}
-                aria-label="Save tab name"
+                size="sm"
+                variant="ghost"
+                aria-label="Rename this page"
+                onClick={() => {
+                  const page = livePreviewTab as "education" | "home" | "support";
+                  setEditingTabId(page);
+                  setEditingTabValue(pageLabel(page));
+                }}
               >
-                <Save className="w-3.5 h-3.5" />
+                <Pencil className="size-3.5" />
+                Rename page
               </Button>
-            </span>
-          ) : (
-            <>
-              {/* Pages are laid out as a segmented control so Education, Home
-                  and Support are one click away instead of hidden in a dropdown. */}
-              <div className="flex flex-wrap items-center gap-1 rounded-md bg-muted p-1">
-                {(
-                  [
-                    { id: "education", label: tabName },
-                    { id: "home", label: homeTabName },
-                    { id: "support", label: supportTabName },
-                    ...(ghlConnected ? [{ id: "assign", label: "Assign to Sub Account" }] : []),
-                  ] as const
-                ).map((page) => (
-                  <button
-                    key={page.id}
-                    type="button"
-                    aria-pressed={livePreviewTab === page.id}
-                    onClick={() => setLivePreviewTab(page.id as any)}
-                    className={`h-7 rounded px-3 text-sm transition-colors duration-150 ${
-                      livePreviewTab === page.id
-                        ? "bg-background text-foreground font-medium shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {page.label}
-                  </button>
-                ))}
-              </div>
-              {livePreviewTab !== "popup" &&
-                livePreviewTab !== "theme" &&
-                livePreviewTab !== "assign" && (
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8"
-                    aria-label="Rename this page"
-                    onClick={() => {
-                      setEditingTabId(livePreviewTab);
-                      setEditingTabValue(
-                        livePreviewTab === "education"
-                          ? tabName
-                          : livePreviewTab === "home"
-                            ? homeTabName
-                            : supportTabName,
-                      );
-                    }}
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                  </Button>
-                )}
-            </>
-          )}
-        </div>
-      </PreviewHeaderPortal>
+            ) : null
+          }
+        />
+      </div>
 
-      {/* Software Onboarding card */}
+      {/* Education */}
       {livePreviewTab === "education" && (
-        <div className="border rounded-lg bg-background" data-tip-target="v3-edu-video-list">
-          <div className="px-4 py-3 border-b shadow-sm flex items-center justify-between gap-3 flex-wrap">
-            <PreviewHeaderHost />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-[280px_1fr]">
-            {/* LEFT: Quick Setup + Learning Modules */}
-            <div className="border-r p-4 space-y-5">
-              {/* Quick Set Up */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-1">
-                  <h3 className="text-sm font-semibold text-foreground">Quick Set Up</h3>
-                  <TooltipProvider delayDuration={100}>
-                    <Tooltip open={quickSetupTipOpen} onOpenChange={setQuickSetupTipOpen}>
-                      <TooltipTrigger asChild>
-                        <button
-                          type="button"
-                          onClick={() => setQuickSetupTipOpen((o) => !o)}
-                          onMouseEnter={() => setQuickSetupTipOpen(true)}
-                          onMouseLeave={() => setQuickSetupTipOpen(false)}
-                          className="inline-flex items-center justify-center"
-                          aria-label="About quick set up"
-                        >
-                          <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p className="text-xs">
-                          Click a preset to instantly enable only the videos relevant to that
-                          workflow. Combine multiple presets to build a tailored experience for your
-                          clients.
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {SUGGESTED_SETUPS.map((setup) => {
-                    const isActive = activeSetups.has(setup.id);
-                    return (
-                      <button
-                        key={setup.id}
-                        onClick={() => handleSetupToggle(setup.id)}
-                        disabled={!hasSelectedPlanUrl}
-                        className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${
-                          isActive
-                            ? "border-purple-400 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 text-purple-700 ring-1 ring-purple-400/50"
-                            : "bg-muted text-muted-foreground border-border hover:border-primary/50"
-                        } ${!hasSelectedPlanUrl ? "opacity-50 cursor-not-allowed" : ""}`}
-                      >
-                        {setup.label}
-                      </button>
-                    );
-                  })}
-                </div>
+        <div data-tip-target="v3-edu-video-list">
+        <Reveal className="space-y-4">
+          <RevealItem>
+            <SectionCard
+              icon={<Sparkles />}
+              title="Quick set up"
+              description="Pick what your clients use and we switch on just the matching videos. Combine as many as you like."
+            >
+              <div className="flex flex-wrap gap-2">
+                {SUGGESTED_SETUPS.map((setup) => {
+                  const isActive = activeSetups.has(setup.id);
+                  return (
+                    <button
+                      key={setup.id}
+                      type="button"
+                      aria-pressed={isActive}
+                      onClick={() => handleSetupToggle(setup.id)}
+                      disabled={!hasSelectedPlanUrl}
+                      className={cn(
+                        "inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+                        isActive
+                          ? "border-brand/40 bg-brand-subtle text-brand"
+                          : "border-border bg-card text-muted-foreground hover:border-brand/40 hover:text-foreground",
+                      )}
+                    >
+                      {isActive ? <Check className="size-3.5" aria-hidden="true" /> : null}
+                      {setup.label}
+                    </button>
+                  );
+                })}
               </div>
+            </SectionCard>
+          </RevealItem>
 
-              {/* Learning Modules */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-foreground">Learning Modules</h3>
-                <div className="space-y-2">
-                  {orderedCategories.map((row) => {
-                    const isSelected = selectedCategoryId === row.key;
-                    const isRenaming = renamingKey === `cat::${row.key}`;
-                    let dots: React.ReactNode = null;
-                    let allHidden = false;
-                    if (row.kind === "builtin") {
-                      const cat = VIDEO_CATEGORIES.find((c) => c.id === row.builtinId!)!;
-                      const visibleCount = cat.modules.filter((m) =>
-                        isModuleVisible(cat.id, m.id),
-                      ).length;
-                      allHidden = visibleCount === 0;
-                      dots = cat.modules.map((m) => (
-                        <span
-                          key={m.id}
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            isModuleVisible(cat.id, m.id)
-                              ? "bg-green-500"
-                              : "bg-muted-foreground/30"
-                          }`}
-                        />
-                      ));
-                    } else {
-                      const titleVideos = customVideos.filter(
-                        (v) =>
-                          v.module_type === "custom" && v.custom_module_title === row.customTitle,
-                      );
-                      const visibleCount = titleVideos.filter((v) =>
-                        (v.tiers || []).includes(tier),
-                      ).length;
-                      allHidden = titleVideos.length > 0 && visibleCount === 0;
-                      dots = titleVideos.map((v) => (
-                        <span
-                          key={v.id}
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            (v.tiers || []).includes(tier)
-                              ? "bg-green-500"
-                              : "bg-muted-foreground/30"
-                          }`}
-                        />
-                      ));
-                    }
-                    return (
-                      <div
-                        key={row.key}
-                        draggable={!isRenaming}
-                        onDragStart={() => setDragCategoryKey(row.key)}
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={() => onDropCategory(row.key)}
-                        onClick={() => !isRenaming && setSelectedCategoryId(row.key)}
-                        className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all ${
-                          isSelected
-                            ? "border-purple-400 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 shadow-[0_0_18px_rgba(139,92,246,0.35)] ring-1 ring-purple-400/50"
-                            : "border-border bg-muted/30 hover:bg-muted/50"
-                        } ${allHidden ? "opacity-60" : ""}`}
-                      >
-                        <GripVertical className="w-3.5 h-3.5 text-muted-foreground/50 cursor-grab shrink-0" />
-                        {row.kind === "builtin" ? (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleCategory(row.builtinId!);
-                            }}
-                            className="text-muted-foreground hover:text-foreground"
-                          >
-                            {allHidden ? (
-                              <EyeOff className="w-4 h-4" />
-                            ) : (
-                              <Eye className="w-4 h-4 text-primary" />
-                            )}
-                          </button>
-                        ) : null}
-                        <div className="flex-1 min-w-0">
-                          {isRenaming ? (
-                            <div
-                              className="flex items-center gap-1"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <Input
-                                autoFocus
-                                value={renamingValue}
-                                onChange={(e) => setRenamingValue(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    commitCategoryRename(row);
-                                  }
-                                  if (e.key === "Escape") {
-                                    setRenamingKey(null);
-                                  }
-                                }}
-                                className="h-6 text-xs px-2"
-                              />
-                              <Button
-                                type="button"
-                                size="icon"
-                                aria-label="Confirm"
-                                className="h-6 w-6"
-                                onClick={() => commitCategoryRename(row)}
-                              >
-                                <Check className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1.5">
-                              <p className="text-xs font-semibold truncate">{row.displayName}</p>
-                              {row.kind === "custom" && (
-                                <Badge variant="outline" className="text-[10px]">
-                                  Custom
-                                </Badge>
-                              )}
-                            </div>
-                          )}
-                          {!isRenaming && dots && (
-                            <div className="flex items-center gap-0.5 mt-1">{dots}</div>
-                          )}
-                        </div>
-                        {!isRenaming && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              beginRename(`cat::${row.key}`, row.displayName);
-                            }}
-                            className="text-muted-foreground/60 hover:text-foreground"
-                            aria-label="Rename category"
-                          >
-                            <Pencil className="w-3 h-3" />
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-
+          <RevealItem className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+            {/* Modules */}
+            <SectionCard
+              title="Modules"
+              description="Groups of videos. Drag to reorder."
+              actions={
                 <Button
-                  className="w-full mt-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-0 shadow-[0_0_20px_rgba(139,92,246,0.45)] hover:opacity-90"
+                  variant="outline"
                   size="sm"
                   onClick={() => {
                     setNewModuleTitle("");
                     setShowAddModuleDialog(true);
                   }}
                 >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Add Module
+                  <Plus className="size-4" />
+                  Add module
                 </Button>
-              </div>
-            </div>
-
-            {/* RIGHT: Selected category videos */}
-            <div className="px-2 py-4 space-y-3">
-              <h3 className="text-sm font-semibold text-foreground">{selectedPanelTitle}</h3>
-
-              {!showInlineAdd ? (
-                <button
-                  type="button"
-                  id="v3-add-custom-video"
-                  data-tip-target="v3-edu-add-custom-video"
-                  onClick={() => setShowInlineAdd(true)}
-                  className={`w-full flex items-center justify-center gap-2 py-3 rounded-lg border-2 border-dashed text-sm text-primary hover:bg-primary/5 transition-colors ${
-                    highlightCustomVideo
-                      ? "border-primary ring-2 ring-primary ring-offset-2 animate-pulse"
-                      : "border-border"
-                  }`}
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Custom Video
-                </button>
-              ) : (
-                <div className="p-3 rounded-lg border-2 border-dashed border-primary/60 bg-primary/5 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold text-primary">New custom video</p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowInlineAdd(false);
-                        setInlineForm({ title: "", description: "", videoUrl: "", isEmbed: false });
-                      }}
-                      className="text-muted-foreground hover:text-foreground"
-                      aria-label="Cancel"
+              }
+            >
+              <div className="space-y-2">
+                {orderedCategories.map((row) => {
+                  const isSelected = selectedCategoryId === row.key;
+                  const isRenaming = renamingKey === `cat::${row.key}`;
+                  let total = 0;
+                  let visibleCount = 0;
+                  if (row.kind === "builtin") {
+                    const cat = VIDEO_CATEGORIES.find((c) => c.id === row.builtinId!)!;
+                    total = cat.modules.length;
+                    visibleCount = cat.modules.filter((m) => isModuleVisible(cat.id, m.id)).length;
+                  } else {
+                    const titleVideos = customVideos.filter(
+                      (v) => v.module_type === "custom" && v.custom_module_title === row.customTitle,
+                    );
+                    total = titleVideos.length;
+                    visibleCount = titleVideos.filter((v) => (v.tiers || []).includes(tier)).length;
+                  }
+                  const allHidden = total > 0 && visibleCount === 0;
+                  return (
+                    <div
+                      key={row.key}
+                      draggable={!isRenaming}
+                      onDragStart={() => setDragCategoryKey(row.key)}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={() => onDropCategory(row.key)}
+                      onClick={() => !isRenaming && setSelectedCategoryId(row.key)}
+                      className={cn(
+                        "group relative flex min-h-[52px] cursor-pointer items-center gap-2 rounded-md border px-2 py-2 transition-colors duration-150",
+                        isSelected
+                          ? "border-brand/40 bg-brand-subtle"
+                          : "border-border bg-card hover:border-brand/30",
+                      )}
                     >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-start">
-                    <div className="space-y-2">
-                      <Input
-                        placeholder="Video title"
-                        value={inlineForm.title}
-                        onChange={(e) => setInlineForm((f) => ({ ...f, title: e.target.value }))}
-                        className="h-8 text-sm"
+                      <GripVertical
+                        className="size-4 shrink-0 cursor-grab text-muted-foreground/50"
+                        aria-hidden="true"
                       />
-                      <Textarea
-                        placeholder="Short description"
-                        value={inlineForm.description}
-                        onChange={(e) =>
-                          setInlineForm((f) => ({ ...f, description: e.target.value }))
-                        }
-                        rows={2}
-                        className="text-sm resize-none"
-                      />
-                      <Input
-                        placeholder={
-                          inlineForm.isEmbed
-                            ? "Paste embed code"
-                            : "Video URL (YouTube, Vimeo, etc.)"
-                        }
-                        value={inlineForm.videoUrl}
-                        onChange={(e) => setInlineForm((f) => ({ ...f, videoUrl: e.target.value }))}
-                        className="h-8 text-sm"
-                      />
+                      <div className={cn("min-w-0 flex-1", allHidden && "opacity-55")}>
+                        {isRenaming ? (
+                          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            <Input
+                              autoFocus
+                              value={renamingValue}
+                              onChange={(e) => setRenamingValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  commitCategoryRename(row);
+                                }
+                                if (e.key === "Escape") {
+                                  setRenamingKey(null);
+                                }
+                              }}
+                              className="h-8 px-2 text-sm"
+                            />
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="accent"
+                              aria-label="Confirm"
+                              className="size-8 shrink-0"
+                              onClick={() => commitCategoryRename(row)}
+                            >
+                              <Check className="size-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              className="block max-w-full truncate text-left text-sm font-medium text-foreground focus-visible:outline-none focus-visible:underline"
+                              aria-current={isSelected ? "true" : undefined}
+                            >
+                              {row.displayName}
+                            </button>
+                            <p className="truncate text-xs text-muted-foreground">
+                              {total === 0
+                                ? "No videos yet"
+                                : `${visibleCount} of ${total} shown`}
+                              {row.kind === "custom" ? " · Custom" : ""}
+                            </p>
+                          </>
+                        )}
+                      </div>
+                      {!isRenaming && (
+                        <div className="flex shrink-0 items-center">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              beginRename(`cat::${row.key}`, row.displayName);
+                            }}
+                            className="flex size-8 items-center justify-center rounded-sm text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
+                            aria-label="Rename category"
+                          >
+                            <Pencil className="size-3.5" />
+                          </button>
+                          {row.kind === "builtin" ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleCategory(row.builtinId!);
+                              }}
+                              className="flex size-8 items-center justify-center rounded-sm text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
+                              aria-label={allHidden ? "Show every video in this module" : "Hide or show every video in this module"}
+                            >
+                              {allHidden ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                            </button>
+                          ) : null}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </SectionCard>
+
+            {/* Videos in the selected module */}
+            <SectionCard
+              title={selectedPanelTitle}
+              description={
+                isLoading
+                  ? "Loading videos…"
+                  : selectedTotalCount === 0
+                    ? `Nothing here yet for ${planLabel}.`
+                    : `${selectedVisibleCount} of ${selectedTotalCount} videos shown on ${planLabel}. Drag to reorder.`
+              }
+              actions={
+                !showInlineAdd ? (
+                  <Button
+                    variant="accent"
+                    size="sm"
+                    id="v3-add-custom-video"
+                    data-tip-target="v3-edu-add-custom-video"
+                    onClick={() => setShowInlineAdd(true)}
+                    className={highlightCustomVideo ? "ring-2 ring-brand ring-offset-2 animate-pulse" : ""}
+                  >
+                    <Plus className="size-4" />
+                    Add custom video
+                  </Button>
+                ) : null
+              }
+            >
+              <div className="space-y-3">
+                {showInlineAdd && (
+                  <div className="px-brand-wash space-y-4 rounded-md border border-brand/20 p-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-foreground">New custom video</p>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-8"
+                        onClick={() => {
+                          setShowInlineAdd(false);
+                          setInlineForm({ title: "", description: "", videoUrl: "", isEmbed: false });
+                        }}
+                        aria-label="Cancel"
+                      >
+                        <X className="size-4" />
+                      </Button>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="inline-video-title">Title</Label>
+                        <Input
+                          id="inline-video-title"
+                          placeholder="Video title"
+                          value={inlineForm.title}
+                          onChange={(e) => setInlineForm((f) => ({ ...f, title: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="inline-video-url">{inlineForm.isEmbed ? "Embed code" : "Video link"}</Label>
+                        <Input
+                          id="inline-video-url"
+                          placeholder={
+                            inlineForm.isEmbed ? "Paste embed code" : "Video URL (YouTube, Vimeo, etc.)"
+                          }
+                          value={inlineForm.videoUrl}
+                          onChange={(e) => setInlineForm((f) => ({ ...f, videoUrl: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-1.5 sm:col-span-2">
+                        <Label htmlFor="inline-video-desc">Description</Label>
+                        <Textarea
+                          id="inline-video-desc"
+                          placeholder="Short description"
+                          value={inlineForm.description}
+                          onChange={(e) => setInlineForm((f) => ({ ...f, description: e.target.value }))}
+                          rows={2}
+                          className="resize-none"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
                       <div className="flex items-center gap-2">
                         <Switch
                           id="inline-is-embed"
                           checked={inlineForm.isEmbed}
                           onCheckedChange={(c) => setInlineForm((f) => ({ ...f, isEmbed: c }))}
                         />
-                        <Label htmlFor="inline-is-embed" className="text-xs text-muted-foreground">
+                        <Label htmlFor="inline-is-embed" className="text-sm font-normal text-muted-foreground">
                           This is an embed code
                         </Label>
                       </div>
-                      {availablePlanTiers.length > 1 && (
-                        <div className="pt-2 border-t border-border/50 space-y-1.5">
-                          <p className="text-[11px] font-semibold text-foreground">
-                            Apply this video to:
-                          </p>
+                      <TranscribeOnSaveCheckbox
+                        id="inline-auto-transcribe"
+                        checked={autoTranscribe}
+                        onChange={setAutoTranscribe}
+                      />
+                    </div>
+                    {availablePlanTiers.length > 1 && (
+                      <div className="space-y-2 border-t border-border pt-3">
+                        <p className="text-sm font-medium text-foreground">Show this video on</p>
+                        <div className="flex flex-wrap gap-x-5 gap-y-2">
                           {availablePlanTiers.map((p) => {
                             const checked = inlinePlanTiers.has(p.id);
                             return (
-                              <label
-                                key={p.id}
-                                className="flex items-center gap-2 text-xs cursor-pointer"
-                              >
+                              <label key={p.id} className="flex min-h-9 cursor-pointer items-center gap-2 text-sm">
                                 <Checkbox
                                   checked={checked}
                                   onCheckedChange={(v) => {
@@ -1486,156 +1490,183 @@ const V3EducationView = ({
                             );
                           })}
                         </div>
-                      )}
+                      </div>
+                    )}
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        variant="accent"
+                        onClick={saveInlineVideo}
+                        disabled={savingInline}
+                        aria-label="Save video"
+                      >
+                        <Save className="size-4" />
+                        {savingInline ? "Saving…" : "Save video"}
+                      </Button>
                     </div>
-                    <TranscribeOnSaveCheckbox
-                      id="inline-auto-transcribe"
-                      checked={autoTranscribe}
-                      onChange={setAutoTranscribe}
-                    />
-                    <Button
-                      type="button"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={saveInlineVideo}
-                      disabled={savingInline}
-                      aria-label="Save video"
-                    >
-                      <Save className="w-3.5 h-3.5" />
-                    </Button>
                   </div>
-                </div>
-              )}
+                )}
 
-              {isLoading ? (
-                <div className="flex items-center justify-center py-6">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {selectedCategoryModules.map((m) => {
-                    const visible = isModuleVisible(selectedCategoryId, m.id);
-                    const nameKey = `${selectedCategoryId}::${m.id}`;
-                    const displayName = moduleNameOverrides[nameKey] ?? m.name;
-                    const isRenaming = renamingKey === `mod::${nameKey}`;
-                    return (
-                      <div
-                        key={m.id}
-                        draggable={!isRenaming}
-                        onDragStart={() => setDragBuiltinId(m.id)}
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={() => onDropBuiltinModule(m.id)}
-                        className={`flex items-center gap-3 p-3 rounded-lg border bg-background ${
-                          visible ? "" : "opacity-60"
-                        }`}
-                      >
-                        <Switch
-                          checked={visible}
-                          onCheckedChange={(v) => setModuleVisibility(selectedCategoryId, m.id, v)}
-                          className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-muted-foreground/40"
-                          aria-label={visible ? "Hide video" : "Show video"}
-                        />
-                        <div className="flex-1 min-w-0">
-                          {isRenaming ? (
-                            <div className="flex items-center gap-1">
-                              <Input
-                                autoFocus
-                                value={renamingValue}
-                                onChange={(e) => setRenamingValue(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    commitModuleRename(selectedCategoryId, m.id, m.name);
-                                  }
-                                  if (e.key === "Escape") {
-                                    setRenamingKey(null);
-                                  }
-                                }}
-                                className="h-7 text-sm px-2"
+                {isLoading ? (
+                  <HubListSkeleton rows={5} />
+                ) : selectedTotalCount === 0 ? (
+                  <EmptyState
+                    className="py-8"
+                    icon={
+                      <HubEmptyIcon>
+                        <Video className="size-6" />
+                      </HubEmptyIcon>
+                    }
+                    title="No videos in this module yet"
+                    description="Add your first video and it shows up here for your clients."
+                    action={
+                      !showInlineAdd ? (
+                        <Button variant="outline" onClick={() => setShowInlineAdd(true)}>
+                          <Plus className="size-4" />
+                          Add custom video
+                        </Button>
+                      ) : undefined
+                    }
+                  />
+                ) : (
+                  <div className="space-y-2">
+                    {selectedCategoryModules.map((m) => {
+                      const visible = isModuleVisible(selectedCategoryId, m.id);
+                      const nameKey = `${selectedCategoryId}::${m.id}`;
+                      const displayName = moduleNameOverrides[nameKey] ?? m.name;
+                      const isRenaming = renamingKey === `mod::${nameKey}`;
+                      return (
+                        <HubRow
+                          key={m.id}
+                          draggable={!isRenaming}
+                          onDragStart={() => setDragBuiltinId(m.id)}
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={() => onDropBuiltinModule(m.id)}
+                          off={!visible && !isRenaming}
+                          leading={
+                            <GripVertical
+                              className="size-4 shrink-0 cursor-grab text-muted-foreground/50"
+                              aria-hidden="true"
+                            />
+                          }
+                          title={
+                            isRenaming ? (
+                              <span className="flex items-center gap-1">
+                                <Input
+                                  autoFocus
+                                  value={renamingValue}
+                                  onChange={(e) => setRenamingValue(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      commitModuleRename(selectedCategoryId, m.id, m.name);
+                                    }
+                                    if (e.key === "Escape") {
+                                      setRenamingKey(null);
+                                    }
+                                  }}
+                                  className="h-8 px-2 text-sm"
+                                />
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="accent"
+                                  aria-label="Confirm"
+                                  className="size-8 shrink-0"
+                                  onClick={() => commitModuleRename(selectedCategoryId, m.id, m.name)}
+                                >
+                                  <Check className="size-4" />
+                                </Button>
+                              </span>
+                            ) : (
+                              displayName
+                            )
+                          }
+                          trailing={
+                            <>
+                              {!isRenaming && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    beginRename(`mod::${nameKey}`, displayName);
+                                  }}
+                                  className="flex size-8 items-center justify-center rounded-sm text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
+                                  aria-label="Rename module"
+                                >
+                                  <Pencil className="size-3.5" />
+                                </button>
+                              )}
+                              <OnOffSwitch
+                                checked={visible}
+                                onCheckedChange={(v) => setModuleVisibility(selectedCategoryId, m.id, v)}
+                                label={visible ? "Hide video" : "Show video"}
                               />
-                              <Button
-                                type="button"
-                                size="icon"
-                                aria-label="Confirm"
-                                className="h-7 w-7"
-                                onClick={() => commitModuleRename(selectedCategoryId, m.id, m.name)}
-                              >
-                                <Check className="w-3.5 h-3.5" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <p className="text-sm font-semibold truncate">{displayName}</p>
-                          )}
-                        </div>
-                        {!isRenaming && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              beginRename(`mod::${nameKey}`, displayName);
-                            }}
-                            className="text-muted-foreground/60 hover:text-foreground"
-                            aria-label="Rename module"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                        <GripVertical className="w-4 h-4 text-muted-foreground/50 cursor-grab" />
-                      </div>
-                    );
-                  })}
+                            </>
+                          }
+                        />
+                      );
+                    })}
 
-                  {customVideosForCategory.map((v) => (
-                    <div
-                      key={v.id}
-                      draggable
-                      onDragStart={() => setDragCustomId(v.id)}
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={() => onDropCustomVideo(v.id)}
-                      className={`flex items-center gap-3 p-3 rounded-lg border bg-background ${
-                        (v.tiers || []).includes(tier) ? "" : "opacity-60"
-                      }`}
-                    >
-                      <Switch
-                        checked={(v.tiers || []).includes(tier)}
-                        onCheckedChange={(c) => toggleCustomVideoVisibility(v, c)}
-                        className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-muted-foreground/40"
-                        aria-label="Toggle video visibility"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-semibold truncate">{v.title}</p>
-                          <Badge variant="outline" className="text-[10px]">
-                            Custom
-                          </Badge>
-                        </div>
-                        {v.description && (
-                          <p className="text-xs text-muted-foreground truncate">{v.description}</p>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => openEditCustomVideo(v)}
-                        className="text-muted-foreground hover:text-foreground"
-                        aria-label="Edit video"
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => deleteCustomVideo(v.id)}
-                        className="text-muted-foreground hover:text-destructive"
-                        aria-label="Delete video"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                      <GripVertical className="w-4 h-4 text-muted-foreground/50 cursor-grab" />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+                    {customVideosForCategory.map((v) => {
+                      const on = (v.tiers || []).includes(tier);
+                      return (
+                        <HubRow
+                          key={v.id}
+                          draggable
+                          onDragStart={() => setDragCustomId(v.id)}
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={() => onDropCustomVideo(v.id)}
+                          off={!on}
+                          leading={
+                            <GripVertical
+                              className="size-4 shrink-0 cursor-grab text-muted-foreground/50"
+                              aria-hidden="true"
+                            />
+                          }
+                          title={
+                            <span className="flex min-w-0 items-center gap-2">
+                              <span className="truncate">{v.title}</span>
+                              <Badge variant="brand" className="shrink-0">
+                                Custom
+                              </Badge>
+                            </span>
+                          }
+                          meta={v.description || undefined}
+                          trailing={
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => openEditCustomVideo(v)}
+                                className="flex size-8 items-center justify-center rounded-sm text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
+                                aria-label="Edit video"
+                              >
+                                <Pencil className="size-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => deleteCustomVideo(v.id)}
+                                className="flex size-8 items-center justify-center rounded-sm text-muted-foreground/70 transition-colors hover:bg-destructive/10 hover:text-destructive"
+                                aria-label="Delete video"
+                              >
+                                <Trash2 className="size-3.5" />
+                              </button>
+                              <OnOffSwitch
+                                checked={on}
+                                onCheckedChange={(c) => toggleCustomVideoVisibility(v, c)}
+                                label="Toggle video visibility"
+                              />
+                            </>
+                          }
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </SectionCard>
+          </RevealItem>
+        </Reveal>
         </div>
       )}
 

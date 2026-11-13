@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useUser } from '@/contexts/UserContext';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { motion } from 'framer-motion';
+import { riseItem, staggerParent } from '@/lib/motion';
+import { Tag } from '@/components/ui/tag';
+import { EntryShell } from '@/components/premium/entry/EntryShell';
+import { FormMessage } from '@/components/premium/entry/fields';
 import { Building2, User, ArrowRight, Loader2 } from 'lucide-react';
 import { readNextPath } from '@/utils/deepLink';
 import { navigateWithParams } from '@/utils/preserveParams';
@@ -154,79 +156,89 @@ const AccountSelector = () => {
     }
   };
 
+  const signOut = (
+    <button
+      type="button"
+      className="font-semibold text-brand underline-offset-4 hover:text-brand-hover hover:underline"
+      onClick={() => {
+        void import("@/lib/hardSignOut").then((m) => m.hardSignOut());
+        navigate('/login');
+      }}
+    >
+      Sign out
+    </button>
+  );
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 via-background to-secondary/20 p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-            <p className="text-muted-foreground">Loading accounts...</p>
-          </CardContent>
-        </Card>
-      </div>
+      <EntryShell title="Choose an account" description="Loading the accounts you can open.">
+        <div className="space-y-3" role="status" aria-label="Loading accounts">
+          <div className="px-skeleton h-16 rounded-lg" />
+          <div className="px-skeleton h-16 rounded-lg" />
+        </div>
+      </EntryShell>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 via-background to-secondary/20 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Select Account</CardTitle>
-          <CardDescription>
-            You have access to multiple accounts. Select which one you'd like to access.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+    <EntryShell
+      title="Choose an account"
+      description={
+        accounts.length > 0
+          ? "You can open more than one account. Pick the one you want to work in."
+          : "We couldn't find an account for this login."
+      }
+      footer={<>Wrong login? {signOut}</>}
+    >
+      <div className="space-y-4">
+        {error && (
+          <FormMessage>
+            {/no accounts found/i.test(error)
+              ? "No accounts are linked to this login. Sign out and use a different email, or write to support@saassuite.ai."
+              : error}
+          </FormMessage>
+        )}
 
-          <div className="space-y-3">
-            {accounts.map((account) => (
-              <Button
-                key={account.email}
-                variant="outline"
-                className="w-full h-auto py-4 px-4 flex items-center justify-between hover:bg-accent"
+        <motion.ul variants={staggerParent} initial="hidden" animate="show" className="space-y-3">
+          {accounts.map((account) => (
+            <motion.li key={account.email} variants={riseItem}>
+              <button
+                type="button"
+                className="px-surface-interactive group flex min-h-16 w-full cursor-pointer items-center gap-3 rounded-lg p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                 onClick={() => handleSelectAccount(account)}
                 disabled={selecting}
               >
-                <div className="flex items-center gap-3">
+                <span className="px-icon-chip shrink-0">
                   {account.type === 'own' ? (
-                    <User className="h-5 w-5 text-primary" />
+                    <User className="size-5" aria-hidden="true" />
                   ) : (
-                    <Building2 className="h-5 w-5 text-blue-500" />
+                    <Building2 className="size-5" aria-hidden="true" />
                   )}
-                  <div className="text-left">
-                    <div className="font-medium">
-                      {account.agencyName || account.ownerName || account.email}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {account.type === 'own' ? 'Your Account' : `Admin access • ${account.email}`}
-                    </div>
-                  </div>
-                </div>
-                <ArrowRight className="h-4 w-4 text-muted-foreground" />
-              </Button>
-            ))}
-          </div>
-
-          <div className="pt-4 border-t">
-            <Button
-              variant="ghost"
-              className="w-full"
-              onClick={() => {
-                void import("@/lib/hardSignOut").then((m) => m.hardSignOut());
-                navigate('/login');
-              }}
-            >
-              Sign out
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-small font-semibold text-foreground">
+                    {account.agencyName || account.ownerName || account.email}
+                  </span>
+                  <span className="mt-0.5 flex min-w-0 items-center gap-2">
+                    <Tag tone={account.type === 'own' ? 'brand' : 'neutral'} className="shrink-0">
+                      {account.type === 'own' ? 'Your account' : 'Admin access'}
+                    </Tag>
+                    {account.type !== 'own' && (
+                      <span className="truncate text-caption font-normal text-muted-foreground">{account.email}</span>
+                    )}
+                  </span>
+                </span>
+                {selecting ? (
+                  <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" aria-hidden="true" />
+                ) : (
+                  <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-brand" aria-hidden="true" />
+                )}
+              </button>
+            </motion.li>
+          ))}
+        </motion.ul>
+      </div>
+    </EntryShell>
   );
 };
 

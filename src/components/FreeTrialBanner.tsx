@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { Gift, Minus, ChevronUp } from "lucide-react";
+import { Clock, Gift, Minus, ChevronUp } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Tag } from "@/components/ui/tag";
+import { ChromeDock, dockCardClass } from "@/components/premium/entry/chrome";
 import { KIT_BASIC_TRIAL_SOURCE, MANUAL_BASIC_TRIAL_SOURCE, kitBasicTrialEnd } from "@/lib/trialNotice";
 
 export { MANUAL_BASIC_TRIAL_SOURCE } from "@/lib/trialNotice";
@@ -84,36 +86,55 @@ export const FreeTrialNotice = ({ endsAt, now, accountEmail, title = "Free 30-da
   const hours = Math.floor((ms % 86_400_000) / 3_600_000);
   const formatted = endsAt.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 
+  const urgent = days < 3;
+  const left = `${days}d ${hours}h left`;
+
   if (minimized) {
     return (
-      <aside aria-label="Free Basic trial" className="fixed bottom-24 left-4 z-40 max-w-[calc(100vw-2rem)] md:bottom-4">
-        <Button variant="outline" size="sm" onClick={toggleMinimized} aria-label="Expand trial notification" aria-expanded={false} title="Expand trial notification" className="gap-2 border-primary/30 bg-card text-card-foreground shadow-lg">
-          <Gift className="h-4 w-4 text-primary" />
-          <span className="tabular-nums">Trial · {days}d {hours}h left</span>
-          <ChevronUp className="h-4 w-4" />
-        </Button>
-      </aside>
+      <ChromeDock>
+        <aside aria-label="Free Basic trial" className="pointer-events-auto self-end md:self-auto">
+          <Button variant="outline" size="sm" onClick={toggleMinimized} aria-label="Expand trial notification" aria-expanded={false} title="Expand trial notification" className="gap-2 rounded-full bg-card shadow-popover">
+            <Gift className="text-brand" aria-hidden="true" />
+            <span className="tabular-nums">Trial · {left}</span>
+            <ChevronUp className="rotate-180 text-muted-foreground md:rotate-0" aria-hidden="true" />
+          </Button>
+        </aside>
+      </ChromeDock>
     );
   }
 
   return (
-    <aside aria-label="Free Basic trial" className="fixed bottom-24 left-4 z-40 w-[260px] max-w-[calc(100vw-2rem)] rounded-lg border border-primary/30 bg-card p-4 text-card-foreground shadow-lg md:bottom-4">
-      <div className="flex items-start gap-1">
-      <p className="flex flex-1 items-center gap-2 text-sm font-semibold">
-        <Gift className="h-4 w-4 shrink-0 text-primary" />
-        {title}
-      </p>
-      <Button variant="ghost" size="icon-sm" onClick={toggleMinimized} aria-label="Minimize trial notification" aria-expanded={true} title="Minimize trial notification" className="-mr-2 -mt-2 shrink-0">
-        <Minus className="h-4 w-4" />
-      </Button>
-      </div>
-      <p className="mt-2 text-sm font-semibold tabular-nums text-primary">{days}d {hours}h left</p>
-      <p className="mt-1 text-xs text-muted-foreground">Ends {formatted}</p>
-      {note ? <p className="mt-1 text-xs text-muted-foreground">{note}</p> : null}
-      <Button asChild size="sm" className="mt-3 w-full">
-        <a href="/app/billing">Keep Basic</a>
-      </Button>
-    </aside>
+    <ChromeDock>
+      <aside aria-label="Free Basic trial" className={dockCardClass}>
+        <div className="flex items-center gap-3 md:items-start">
+          <span className="px-icon-chip hidden shrink-0 md:inline-grid">
+            <Gift className="size-5" aria-hidden="true" />
+          </span>
+          <Gift className="size-4 shrink-0 text-brand md:hidden" aria-hidden="true" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-small font-semibold text-foreground">{title}</p>
+            <p className="text-caption font-normal tabular-nums text-muted-foreground md:hidden">{left}</p>
+            <p className="mt-0.5 hidden text-caption font-normal text-muted-foreground md:block">Ends {formatted}</p>
+            {note ? <p className="hidden text-caption font-normal text-muted-foreground md:block">{note}</p> : null}
+          </div>
+          <Button asChild size="sm" className="shrink-0 md:hidden">
+            <a href="/app/billing">Keep Basic</a>
+          </Button>
+          <Button variant="ghost" size="icon-sm" onClick={toggleMinimized} aria-label="Minimize trial notification" aria-expanded={true} title="Minimize trial notification" className="-mr-1 shrink-0 text-muted-foreground md:-mr-2 md:-mt-2">
+            <Minus aria-hidden="true" />
+          </Button>
+        </div>
+        <div className="mt-3 hidden items-center justify-between gap-3 md:flex">
+          <Tag tone={urgent ? "warning" : "brand"} className="tabular-nums">
+            <Clock aria-hidden="true" />
+            {left}
+          </Tag>
+          <Button asChild size="sm">
+            <a href="/app/billing">Keep Basic</a>
+          </Button>
+        </div>
+      </aside>
+    </ChromeDock>
   );
 };
 
