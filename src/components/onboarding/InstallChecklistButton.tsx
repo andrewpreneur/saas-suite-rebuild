@@ -115,13 +115,29 @@ const InstallChecklistButton = () => {
 
   return (
     <>
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="gap-2 pl-2">
-        <ProgressRing value={count} total={3} size={22} stroke={3}>
-          {""}
-        </ProgressRing>
-        Install checklist
-        <span className="text-xs tabular-nums text-muted-foreground">{count}/3</span>
-      </Button>
+      {allDone ? (
+        // Finished: it shrinks to a quiet tick so the top bar is not carrying a done task.
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setOpen(true)}
+          aria-label="Install checklist, all 3 done"
+          title="Install checklist: all done"
+          className="size-9 rounded-full"
+        >
+          <ProgressRing value={3} total={3} size={22} stroke={3}>
+            {""}
+          </ProgressRing>
+        </Button>
+      ) : (
+        <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="gap-2 pl-2">
+          <ProgressRing value={count} total={3} size={22} stroke={3}>
+            {""}
+          </ProgressRing>
+          Finish install
+          <span className="text-xs tabular-nums text-muted-foreground">{count}/3</span>
+        </Button>
+      )}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
           <DialogHeader className="min-w-0">

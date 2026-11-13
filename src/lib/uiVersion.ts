@@ -13,3 +13,6 @@ if (typeof document !== "undefined") {
   if (document.body) markBody();
   else document.addEventListener("DOMContentLoaded", markBody, { once: true });
 }
+
+// Applies the saved skin (clean or glass) before the first paint.
+import "./skin";

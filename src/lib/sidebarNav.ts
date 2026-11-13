@@ -4,7 +4,8 @@
  * More Tools lists finished tools that used to be reachable only through the
  * sidebar search box. Each keeps its own plan lock and access flag in AppSidebar.
  */
-export const SIDEBAR_HOME_TOOL_IDS = ["dashboard", "challenge"] as const;
+/** Challenge now lives in the Grow group, so Home is one link. */
+export const SIDEBAR_HOME_TOOL_IDS = ["dashboard"] as const;
 
 export const SIDEBAR_SECTIONS: { id: string; label: string; toolIds: string[] }[] = [
   {
@@ -78,14 +79,13 @@ export const NEW_UI_SIDEBAR_SECTIONS: {
   },
   { id: "brand", label: "Branding", toolIds: ["branding", "streamline"] },
   { id: "support", label: "Support", toolIds: ["support", "onboarding-calls", "agency-support"] },
-  { id: "growth", label: "Grow", toolIds: ["affiliate-dashboard", "one-feature-kit", "email-warmup", "free-leads"] },
+  { id: "growth", label: "Grow", toolIds: ["affiliate-dashboard", "one-feature-kit", "challenge", "email-warmup", "free-leads"] },
   {
     id: "learn",
     label: "Learn",
     toolIds: ["learning", "community", "agents", "help"],
     tipTarget: "sidebar-section-resources",
   },
-  { id: "account", label: "Account", toolIds: ["settings"] },
 ];
 
 /** Names shown in the new UI. Page titles use the same words so the sidebar and the page agree. */
@@ -128,6 +128,7 @@ export const TOOL_LABELS: Record<string, string> = {
 /** Sidebar group a tool belongs to, for the top bar's "Group / Page" trail. */
 export function sectionLabelForTool(toolId: string): string | null {
   if ((SIDEBAR_HOME_TOOL_IDS as readonly string[]).includes(toolId)) return null;
+  if (toolId === "settings") return "Account";
   const id = toolId === "start-here" ? "learning" : toolId;
   return NEW_UI_SIDEBAR_SECTIONS.find((section) => section.toolIds.includes(id))?.label ?? null;
 }

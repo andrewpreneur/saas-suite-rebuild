@@ -113,6 +113,11 @@ const SECTION_ICONS: Record<string, typeof BarChart3> = {
   build: LayoutGrid,
   grow: BookOpen,
   more: LayoutGrid,
+  hub: LayoutGrid,
+  brand: Palette,
+  support: LifeBuoy,
+  growth: Rocket,
+  learn: GraduationCap,
 };
 const NAV_SECTIONS: {
   id: string;
@@ -411,6 +416,13 @@ export function AppSidebar({ selectedTool, onSelectTool }: AppSidebarProps) {
     })).filter((section) => section.items.length > 0);
   }, [availableTools]);
 
+  const activeSectionId = sections.find((section) => section.items.some((item) => isActive(item.id)))?.id ?? null;
+  const [openSection, setOpenSection] = useState<string | null>(activeSectionId);
+  // Moving to a page in another group opens that group and closes the last one.
+  useEffect(() => {
+    if (activeSectionId) setOpenSection(activeSectionId);
+  }, [activeSectionId]);
+
   const initials = (viewer.displayName || viewer.displayEmail || "?")
     .split(/[ @.]/)
     .filter(Boolean)
@@ -653,30 +665,77 @@ export function AppSidebar({ selectedTool, onSelectTool }: AppSidebarProps) {
               </SidebarGroup>
             )}
 
-            {sections.map((section) => (
-              <SidebarGroup key={section.id} className="py-0">
-                {!collapsed && (
-                  <SidebarGroupLabel
-                    data-tip-target={
+            {/* One group open at a time: the sidebar shows where you are, not everything at once. */}
+            <SidebarGroup className="py-0">
+              <SidebarGroupContent>
+                <SidebarMenu className="space-y-0.5">
+                  {sections.map((section) => {
+                    const SectionIcon = section.icon;
+                    const holdsActive = section.items.some((item) => isActive(item.id));
+                    const open = !collapsed && openSection === section.id;
+                    const tip =
                       section.tipTarget ??
                       (section.id === "build"
                         ? "sidebar-section-client-hub"
                         : section.id === "grow"
                           ? "sidebar-section-resources"
-                          : `sidebar-section-${section.id}`)
-                    }
-                    className="px-eyebrow mt-3 h-7 px-3"
-                  >
-                    {section.label}
-                  </SidebarGroupLabel>
-                )}
-                <SidebarGroupContent>
-                  <SidebarMenu className="space-y-0.5">
-                    {section.items.map((item) => renderItem(item))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </SidebarGroup>
-            ))}
+                          : `sidebar-section-${section.id}`);
+                    return (
+                      <li key={section.id} className="list-none">
+                        <button
+                          type="button"
+                          data-tip-target={tip}
+                          data-testid={`sidebar-group-${section.id}`}
+                          aria-expanded={open}
+                          aria-label={collapsed ? section.label : undefined}
+                          title={collapsed ? section.label : undefined}
+                          onClick={() => {
+                            if (collapsed) {
+                              const first = section.items[0];
+                              if (first) onSelectTool(first.id as Exclude<ToolType, "help">);
+                              return;
+                            }
+                            setOpenSection((current) => (current === section.id ? null : section.id));
+                          }}
+                          className={`group/sec flex h-10 w-full items-center gap-3 rounded-lg text-sm font-medium transition-colors duration-150 hover:bg-[#17124008] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${collapsed ? "justify-center px-0" : "px-3"} ${holdsActive ? "text-foreground" : "text-sidebar-foreground/80"}`}
+                        >
+                          <SectionIcon
+                            className={`size-[18px] shrink-0 ${holdsActive ? "text-primary" : "text-sidebar-foreground/60"}`}
+                            aria-hidden="true"
+                          />
+                          {!collapsed && (
+                            <>
+                              <span className="flex-1 truncate text-left">{section.label}</span>
+                              {section.id === "support" && supportUnread > 0 && !open ? (
+                                <span className="grid h-5 min-w-5 place-items-center rounded-full bg-foreground px-1 text-[10px] font-semibold text-background">
+                                  {supportUnread}
+                                </span>
+                              ) : null}
+                              <ChevronRight
+                                className={`size-4 shrink-0 text-sidebar-foreground/40 transition-transform duration-200 ease-out ${open ? "rotate-90" : ""}`}
+                                aria-hidden="true"
+                              />
+                            </>
+                          )}
+                        </button>
+                        <div
+                          className="grid transition-[grid-template-rows] duration-200 ease-out"
+                          style={{ gridTemplateRows: open ? "1fr" : "0fr" }}
+                          // Closed groups stay out of the tab order and away from screen readers.
+                          {...(open ? {} : { inert: "" as unknown as boolean })}
+                        >
+                          <div className="min-h-0 overflow-hidden">
+                            <ul className="ml-[21px] space-y-0.5 border-l border-sidebar-border py-1 pl-2">
+                              {section.items.map((item) => renderItem(item))}
+                            </ul>
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
           </>
         )}
       </SidebarContent>
