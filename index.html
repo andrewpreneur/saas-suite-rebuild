@@ -3,7 +3,11 @@
 <html lang="en">
   <head>
     <!-- OSPRY by Legion: consent banner and bundled tracking -->
-    <script async src="https://px.lspxl.com/c/5b4c2fc0-c31c-4ac6-b6ee-8390e35935ac"></script>
+    <!-- Rebuild copy: no trackers. The Ospry tag is removed and every other tracker reads this opt-out. -->
+    <script>
+      window.__ssTrackingOptOut = true;
+      try { localStorage.setItem('ss_tracking_optout', '1'); } catch (e) {}
+    </script>
     <!-- Consent signals precede all tracking scripts. -->
     <script data-ss-consent-defaults>
 window.dataLayer = window.dataLayer || [];
@@ -593,8 +597,8 @@ gtag("consent", "default", {
         var IDLE = 30 * 60 * 1000;
         var DEDUPE = 30 * 1000;
         var KEY = 'ofk_session';
-        var SUPABASE = 'https://auth.saassuite.ai';
-        var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqcWVlYnllcXR6enFtbXd2ZmdhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NDQ0OTYsImV4cCI6MjA2MzUyMDQ5Nn0.x1Y9McmvpMkJ8GwIp315zEGQHdIomj4ChUpj7eyUqdo';
+        var SUPABASE = 'https://backend-disconnected.invalid';
+        var ANON = 'disconnected';
         function hostSkipped(hostname) {
           var host = (hostname || '').toLowerCase().replace(/\.$/, '');
           if (host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' || host === '[::1]' || host.slice(-10) === '.localhost') return true;

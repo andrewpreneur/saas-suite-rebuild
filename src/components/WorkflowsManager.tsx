@@ -37,7 +37,7 @@ import { useUser } from "@/contexts/UserContext";
 import slackLogoAsset from "@/assets/slack-logo.webp.asset.json";
 
 const SLACK_LOGO = slackLogoAsset.url;
-const SUPABASE_FUNCTIONS_BASE = "https://auth.saassuite.ai/functions/v1";
+const SUPABASE_FUNCTIONS_BASE = "https://backend-disconnected.invalid/functions/v1";
 
 type Plan = "plan1" | "plan2" | "plan3";
 

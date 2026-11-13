@@ -1,3 +1,4 @@
+import { installBackendGuard } from "../lib/backendDisconnected";
 import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { HelmetProvider } from "react-helmet-async";
 import { bootRoot } from "./bootRoot";
@@ -14,6 +15,8 @@ import { AppVersionNotice } from "@/components/AppVersionNotice";
 import { captureKitAttribution } from "@/funnel/one-feature-kit/attribution";
 import { captureAttribution, captureFbclid, captureFbCookies } from "@/utils/fbAttribution";
 import { hasOptedOutOfTracking, initTrackingConsent } from "@/utils/trackingConsent";
+
+installBackendGuard();
 
 
 const NotFound = lazyRoute(() => import("@/pages/NotFound"));

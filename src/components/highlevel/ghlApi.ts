@@ -18,6 +18,6 @@ export async function ghl<T = any>(action: string, agencyId: string, extra: Reco
 }
 
 // Public webhooks live on the SaaS Suite white-label domain.
-export const FUNCTIONS_BASE = "https://auth.saassuite.ai/functions/v1";
+export const FUNCTIONS_BASE = "https://backend-disconnected.invalid/functions/v1";
 export const WEBHOOK_URL = `${FUNCTIONS_BASE}/apply-menu-preset`;
 export const ASSIGN_WEBHOOK_URL = `${FUNCTIONS_BASE}/assign-menu-link`;

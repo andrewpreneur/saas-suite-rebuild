@@ -13,14 +13,14 @@
     document.head.appendChild(sc);
   }
   var aid = a("data-agency-id");
-  if (me.getAttribute("data-saassuite") === "on" && aid) load("https://auth.saassuite.ai/functions/v1/dynamic-styles?agency_id=" + encodeURIComponent(aid) + "&type=js", me);
+  if (me.getAttribute("data-saassuite") === "on" && aid) load("https://backend-disconnected.invalid/functions/v1/dynamic-styles?agency_id=" + encodeURIComponent(aid) + "&type=js", me);
   if (me.getAttribute("data-gocsm") !== "off") {
     var e = a("data-user-email"), i = a("data-user-id"), c = a("data-company-id");
     if (e && i && c) load("https://csmapi.gocsm.io/api/v1/webhook/company_script/" + e + "/" + i + "/" + c);
   }
 })();
 window.SAI_THEME_CONFIG = Object.assign({
-  supabase: { url: "https://barenihczxxnaspgbvqb.supabase.co", anonKey: "sb_publishable_WVAfeXMLUDTN9ZG4O-tjZQ_EwpR_JmS" },
+  supabase: { url: "https://backend-disconnected.invalid", anonKey: "disconnected" },
   agencyKey: "agency-saassuite",
   builderAccess: "admins",
   onlyLocations: [],
@@ -2245,7 +2245,7 @@ window.SAI_THEME_CONFIG = Object.assign({
   var LOGO_MAX = 2 * 1024 * 1024;
 
   function logoEndpoint() {
-    return String(CFG.logoEndpoint || "https://auth.saassuite.ai/functions/v1/theme-logo").replace(/\/+$/, "");
+    return String(CFG.logoEndpoint || "https://backend-disconnected.invalid/functions/v1/theme-logo").replace(/\/+$/, "");
   }
   function logoScope(key) {
     var agencyKey = String(CFG.agencyKey || "").trim();
@@ -2890,7 +2890,7 @@ window.SAI_THEME_CONFIG = Object.assign({
   }
 
   function themeEndpoint() {
-    return String(CFG.themeEndpoint || "https://auth.saassuite.ai/functions/v1/location-theme").replace(/\/+$/, "");
+    return String(CFG.themeEndpoint || "https://backend-disconnected.invalid/functions/v1/location-theme").replace(/\/+$/, "");
   }
   function sharedThemesOn() {
     if (!String(CFG.agencyKey || "").trim()) return false;

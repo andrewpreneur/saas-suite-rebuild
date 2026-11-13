@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Copy, Loader2, MessageSquareReply, Play } from "lucide-react";
 import GhlTicketEmailGuide from "@/components/support/ghlTicketEmailSetup";
 
-const BASE = "https://auth.saassuite.ai/functions/v1/inbound-ticket-reply";
+const BASE = "https://backend-disconnected.invalid/functions/v1/inbound-ticket-reply";
 
 const SAMPLE = `{
   "customer_email": "{{contact.email}}",

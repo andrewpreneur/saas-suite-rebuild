@@ -4,7 +4,7 @@ export const SESSION_EXPIRED_MESSAGE = "Your session expired, please sign in aga
 /** Shown when chat-copilot still returns 401 after one session refresh. */
 export const SESSION_REFRESH_PROMPT = "Your session expired, please refresh";
 
-export const CHAT_COPILOT_URL = "https://auth.saassuite.ai/functions/v1/chat-copilot";
+export const CHAT_COPILOT_URL = "https://backend-disconnected.invalid/functions/v1/chat-copilot";
 
 /** Refresh this many seconds before expiry so the request still carries a live user JWT. */
 export const CHAT_SESSION_REFRESH_LEEWAY_SECONDS = 60;

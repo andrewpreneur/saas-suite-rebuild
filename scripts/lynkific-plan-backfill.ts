@@ -9,7 +9,7 @@
 
 const FUNCTION_URL =
   process.env.LYNKIFIC_PLAN_SYNC_URL ??
-  "https://cjqeebyeqtzzqmmwvfga.supabase.co/functions/v1/lynkific-plan-sync";
+  "https://backend-disconnected.invalid/functions/v1/lynkific-plan-sync";
 
 const send = process.argv.includes("--send");
 const userFlag = process.argv.indexOf("--user");

@@ -180,8 +180,8 @@ function pageHtml({ sidebar, themeClass, path, legacy }) {
         appAccent: false,
         radius: 10,
       },
-      themeEndpoint: "https://auth.saassuite.ai/functions/v1/location-theme",
-      logoEndpoint: "https://auth.saassuite.ai/functions/v1/theme-logo",
+      themeEndpoint: "https://backend-disconnected.invalid/functions/v1/location-theme",
+      logoEndpoint: "https://backend-disconnected.invalid/functions/v1/theme-logo",
     })};
   </script>
   <script>
