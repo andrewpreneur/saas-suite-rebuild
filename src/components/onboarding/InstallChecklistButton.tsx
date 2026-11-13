@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,6 +13,8 @@ import { popIn, riseItem, staggerParent } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { CheckDot, CopyField, ProgressRing } from "@/components/premium/onboarding/pieces";
 import { toast } from "sonner";
+import { TaskCheckbox } from "@/components/premium/21st/task-checkbox";
+import { Confetti, type ConfettiHandle } from "@/components/premium/21st/confetti";
 import { supabase } from "@/integrations/supabase/client";
 import { useUser } from "@/contexts/UserContext";
 import { buildHubUrl, fetchHubVersion } from "@/lib/hubUrl";
@@ -68,9 +70,12 @@ const InstallChecklistButton = () => {
 
   if (!email) return null;
 
+  const confettiRef = useRef<ConfettiHandle>(null);
   const toggle = (k: Item) => {
     setDone((prev) => {
       const next = { ...prev, [k]: !prev[k] };
+      // Ticking the last of the three is the moment worth marking.
+      if (!prev[k] && Object.values(next).every(Boolean)) window.setTimeout(() => confettiRef.current?.fire(), 250);
       localStorage.setItem(storeKey(email.trim().toLowerCase()), JSON.stringify(next));
       return next;
     });
@@ -155,6 +160,7 @@ const InstallChecklistButton = () => {
               </div>
             </div>
           </DialogHeader>
+          <Confetti ref={confettiRef} className="pointer-events-none absolute inset-0 z-10 h-full w-full" />
           <motion.ol
             variants={staggerParent}
             initial="hidden"
@@ -170,23 +176,12 @@ const InstallChecklistButton = () => {
                   done[s.key] ? "border-transparent bg-muted" : "border-border bg-card",
                 )}
               >
-                <button
-                  type="button"
-                  role="checkbox"
-                  aria-checked={done[s.key]}
-                  onClick={() => toggle(s.key)}
-                  className="flex min-h-[2.75rem] w-full items-center gap-3 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <CheckDot checked={done[s.key]} />
-                  <span
-                    className={cn(
-                      "text-body font-medium transition-colors duration-200",
-                      done[s.key] ? "text-muted-foreground line-through" : "text-foreground",
-                    )}
-                  >
-                    {s.title}
-                  </span>
-                </button>
+                <TaskCheckbox
+                  checked={done[s.key]}
+                  onCheckedChange={() => toggle(s.key)}
+                  label={s.title}
+                  className="min-h-[2.75rem]"
+                />
                 <AnimatePresence initial={false}>
                   {!done[s.key] && (
                     <motion.div

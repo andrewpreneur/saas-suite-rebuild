@@ -17,7 +17,8 @@ import { motion, MotionConfig } from "framer-motion";
 import { pageEnter } from "@/lib/motion";
 import { AppTopBar } from "@/components/premium/AppTopBar";
 import { SkinSwitch } from "@/components/premium/SkinSwitch";
-import { MobileQuickNav } from "@/components/premium/MobileQuickNav";
+import { MobileBottomBar } from "@/components/premium/MobileBottomBar";
+import { PageSkeleton } from "@/components/premium/PageSkeleton";
 import appBackground from "@/assets/app-background.png.asset.json";
 import { newUi } from "@/lib/uiVersion";
 import CancelNoticeBanner from "@/components/CancelNoticeBanner";
@@ -617,12 +618,10 @@ const AppPage = () => {
     );
   }
   if (isLoading) {
+    // Shaped like the page that is about to appear, so nothing jumps when it does.
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
+      <div className="px-canvas min-h-screen">
+        <PageSkeleton />
       </div>
     );
   }
@@ -709,8 +708,9 @@ const AppPage = () => {
                     <AccountSwitcher />
                   </div>
                 </div>
-                <MobileQuickNav tool={selectedTool} />
               </div>
+
+              <MobileBottomBar tool={selectedTool} />
 
               {/* Top bar: where you are, jump-to menu, account controls */}
               <AppTopBar
@@ -726,7 +726,7 @@ const AppPage = () => {
 
               {/* Main Content */}
               <main className="flex-1 overflow-auto px-0 md:px-6 relative">
-                <div className="mobile-flush mobile-type w-full max-w-[1400px] mx-auto px-3 md:px-8 py-3 md:py-5 pb-6">
+                <div className="mobile-flush mobile-type w-full max-w-[1400px] mx-auto px-3 md:px-8 py-3 md:py-5 pb-28 md:pb-6">
                   {/* Classic tool content (CoPilot now renders via the persistent shell) */}
                   <>
                     {/* Hero Section */}
