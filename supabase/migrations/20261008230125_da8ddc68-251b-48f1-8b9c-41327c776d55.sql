@@ -1,0 +1,1 @@
+ALTER TABLE public.saas_suite_users ADD COLUMN IF NOT EXISTS mobile_menu_color text NOT NULL DEFAULT '#3b82f6';

@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.remove_empty_starter_for_new_admin() FROM PUBLIC, anon, authenticated;

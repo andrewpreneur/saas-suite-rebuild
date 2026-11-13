@@ -1,0 +1,1 @@
+ALTER TABLE public.saas_suite_users ADD COLUMN IF NOT EXISTS snapshot_access BOOLEAN NOT NULL DEFAULT FALSE;

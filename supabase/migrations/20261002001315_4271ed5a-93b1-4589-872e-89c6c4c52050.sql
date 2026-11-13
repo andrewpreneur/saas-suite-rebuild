@@ -1,0 +1,2 @@
+CREATE POLICY "Platform admin can delete account_admins" ON public.account_admins FOR DELETE TO authenticated USING (lower(auth.jwt() ->> 'email') = 'andrew@dna-media.net');
+CREATE POLICY "Platform admin can update account_admins" ON public.account_admins FOR UPDATE TO authenticated USING (lower(auth.jwt() ->> 'email') = 'andrew@dna-media.net') WITH CHECK (lower(auth.jwt() ->> 'email') = 'andrew@dna-media.net');

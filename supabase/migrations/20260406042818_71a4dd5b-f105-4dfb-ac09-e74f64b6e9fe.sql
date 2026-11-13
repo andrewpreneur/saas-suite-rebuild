@@ -1,0 +1,1 @@
+ALTER TABLE public.affiliate_referrals ADD CONSTRAINT affiliate_referrals_affiliate_id_referred_email_key UNIQUE (affiliate_id, referred_email);

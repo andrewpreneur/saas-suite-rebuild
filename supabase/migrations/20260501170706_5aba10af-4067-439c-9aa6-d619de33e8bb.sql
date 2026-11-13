@@ -1,0 +1,1 @@
+UPDATE custom_onboarding_videos SET transcription_status='pending', transcription_error=NULL WHERE id = '994e5919-7110-46f1-abee-90ff7be633b4';

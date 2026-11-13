@@ -1,0 +1,1 @@
+export { brandingThemeMarker, readBrandingTheme, type BrandingVersion, type BrandingThemeOptions } from "../../supabase/functions/_shared/brandingTheme";

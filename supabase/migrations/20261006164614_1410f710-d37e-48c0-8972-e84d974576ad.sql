@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.support_admin_row(text) FROM anon;

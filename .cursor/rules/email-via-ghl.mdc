@@ -1,0 +1,16 @@
+---
+description: Customer email is sent by GoHighLevel workflows, never by a direct mail provider
+alwaysApply: true
+---
+
+# Customer email goes through GoHighLevel
+
+All customer email goes through GoHighLevel. The app POSTs a flat JSON event to a GoHighLevel inbound webhook, and a GoHighLevel workflow sends the email.
+
+Never add Resend, SendGrid, Postmark, SMTP, or any other direct email provider.
+
+Each new email type needs its own webhook URL secret and a GoHighLevel workflow. Coordinate that workflow with the GHL Dev bot.
+
+Server-side Purchase goes through Stape.
+
+Shared sender: `supabase/functions/_shared/ghl-email-webhook.ts` (`postGhlEmailEvent`). A missing URL or a failed POST is logged on `customer_message_events` with provider `ghl` (`sent`, `failed`, or detail `missing_url`) and does not fail the caller.

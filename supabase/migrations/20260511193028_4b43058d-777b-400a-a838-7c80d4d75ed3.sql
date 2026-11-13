@@ -1,0 +1,1 @@
+UPDATE public.free_leads SET status='delivered', leads_url='https://docs.google.com/spreadsheets/d/1SBfv7JJA1mMkK4G7jOVz0y2xhaBrrMYgXkMeyR0aVaA/edit?usp=sharing' WHERE id='ac30d0f9-3b4d-4e17-810b-94fae160ad78';

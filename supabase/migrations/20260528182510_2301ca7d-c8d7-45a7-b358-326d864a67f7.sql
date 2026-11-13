@@ -1,0 +1,1 @@
+UPDATE public.saas_suite_users SET original_agency_id = COALESCE(original_agency_id, agency_id), agency_id = 'automatic-for-you' WHERE lower(email) = 'hello@automaticforyou.com';

@@ -1,0 +1,1 @@
+ALTER TABLE public.saas_suite_users ALTER COLUMN plan SET DEFAULT 'STARTER'::plan_type;

@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.log_ticket_team_response() FROM PUBLIC, anon, authenticated;

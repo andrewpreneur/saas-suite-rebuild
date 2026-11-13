@@ -1,0 +1,1 @@
+ALTER TABLE public.saas_suite_users ADD COLUMN mobile_zoom_enabled boolean NOT NULL DEFAULT true;

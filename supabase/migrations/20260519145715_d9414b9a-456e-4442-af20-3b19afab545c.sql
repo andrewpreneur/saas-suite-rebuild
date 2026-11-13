@@ -1,0 +1,1 @@
+UPDATE public.saas_suite_users SET approval='YES', plan='ADVANCED', email_warmup_access=true, free_leads_access=true, snapshot_access=true WHERE lower(email)='visionaryaisolutionsinc@gmail.com';

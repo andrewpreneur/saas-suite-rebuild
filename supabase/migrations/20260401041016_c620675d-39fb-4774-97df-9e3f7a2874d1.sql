@@ -1,0 +1,1 @@
+ALTER TABLE public.saas_suite_users ADD COLUMN IF NOT EXISTS dynamic_installation boolean NOT NULL DEFAULT true;

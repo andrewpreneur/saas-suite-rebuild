@@ -1,0 +1,3 @@
+CREATE INDEX IF NOT EXISTS idx_saas_suite_users_agency_id_basic ON public.saas_suite_users (agency_id_basic) WHERE agency_id_basic IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_saas_suite_users_agency_id_advanced ON public.saas_suite_users (agency_id_advanced) WHERE agency_id_advanced IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_saas_suite_users_agency_id_elite ON public.saas_suite_users (agency_id_elite) WHERE agency_id_elite IS NOT NULL;

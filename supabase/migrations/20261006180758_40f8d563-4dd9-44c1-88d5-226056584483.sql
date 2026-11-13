@@ -1,0 +1,1 @@
+ALTER FUNCTION public.page_analytics_summary(int, text) SECURITY INVOKER;

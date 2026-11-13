@@ -1,0 +1,358 @@
+project_id = "cjqeebyeqtzzqmmwvfga"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://127.0.0.1"
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:3000"
+additional_redirect_urls = ["https://127.0.0.1:3000"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
+
+[functions.notify-onboarding-webhook]
+verify_jwt = false
+
+[functions.send-admin-email]
+verify_jwt = true
+
+[functions.generate-ai-ad]
+verify_jwt = true
+
+[functions.generate-ai-email]
+verify_jwt = true
+
+[functions.generate-ai-offer]
+verify_jwt = true
+
+[functions.restore-user-access]
+verify_jwt = true
+
+[functions.suspend-user-access]
+verify_jwt = true
+
+[functions.invite-account-admin]
+verify_jwt = true
+
+[functions.notify-support-webhook]
+verify_jwt = false
+
+[functions.chat-copilot]
+verify_jwt = false
+
+[functions.notify-ai-webinar-webhook]
+verify_jwt = false
+
+[functions.register-email-warmup]
+verify_jwt = false
+
+[functions.dynamic-styles]
+verify_jwt = false
+
+[functions.generate-platform-email]
+verify_jwt = true
+
+[functions.notify-agency-id-change]
+verify_jwt = false
+
+[functions.notify-agency-created]
+verify_jwt = false
+
+[functions.copilot-webhook]
+verify_jwt = false
+
+[functions.slack-auto-notify]
+verify_jwt = false
+
+[functions.dispatch-workflow]
+verify_jwt = false
+
+[functions.agency-voice-api]
+verify_jwt = false
+
+[functions.fetch-kb-structure]
+verify_jwt = false
+
+[functions.fetch-kb-category-articles]
+verify_jwt = false
+
+[functions.create-onboarding-checkout]
+verify_jwt = false
+
+[functions.notify-onboarding-purchase]
+verify_jwt = false
+
+[functions.consume-onboarding-call]
+verify_jwt = false
+
+[functions.set-custom-domain-access]
+verify_jwt = false
+
+[functions.submit-custom-domain]
+verify_jwt = false
+
+[functions.accrue-affiliate-commissions]
+verify_jwt = false
+
+[functions.stripe-subscription-webhook]
+verify_jwt = false
+
+[functions.admin-voice-chat]
+verify_jwt = true
+
+[functions.admin-voice-tts]
+verify_jwt = true
+
+[functions.admin-voice-stt]
+verify_jwt = true
+
+[functions.copilot-voice-chat]
+verify_jwt = true
+
+[functions.copilot-voice-tts]
+verify_jwt = true
+
+[functions.copilot-voice-stt]
+verify_jwt = true
+
+[functions.slack-commands]
+verify_jwt = false
+
+[functions.slack-interactions]
+verify_jwt = false
+
+[functions.slack-notify]
+verify_jwt = false
+
+[functions.one-feature-kit-purchase-notify]
+verify_jwt = false
+
+[functions.one-feature-kit-payment]
+verify_jwt = false
+
+[functions.one-feature-kit-webhook]
+verify_jwt = false
+
+[functions.one-feature-kit-refire]
+verify_jwt = false
+
+[functions.retry-kit-meta-purchases]
+verify_jwt = false
+
+[functions.kit-ad-customization]
+verify_jwt = true
+
+[functions.kit-onboarding-notify]
+verify_jwt = false
+
+[functions.slack-setup-channel]
+verify_jwt = false
+
+[functions.slack-provision]
+verify_jwt = false
+
+[functions.slack-install]
+verify_jwt = false
+
+[functions.slack-oauth]
+verify_jwt = false
+
+[functions.slack-inbound-webhook]
+verify_jwt = false
+
+[functions.meta-capi]
+verify_jwt = false
+
+[functions.giveaway-score]
+verify_jwt = false
+
+[functions.session-beacon]
+verify_jwt = false
+
+[functions.provision-hub]
+verify_jwt = false
+
+[functions.send-install-guide]
+verify_jwt = false
+
+[functions.send-activation-rescue]
+verify_jwt = false
+
+[functions.guest-access-window]
+verify_jwt = false
+
+[functions.create-agency-support-checkout]
+verify_jwt = false
+
+[functions.notify-agency-support-purchase]
+verify_jwt = false
+
+[functions.agency-support-access]
+verify_jwt = false
+
+[functions.user-360]
+verify_jwt = false
+
+[functions.commas-proxy]
+verify_jwt = false
+
+[functions.create-course-checkout]
+verify_jwt = false
+
+[functions.send-pending-hub-welcome]
+verify_jwt = false
+
+[functions.send-pending-welcome]
+verify_jwt = false
+
+[functions.set-initial-password]
+verify_jwt = false
+
+[functions.auth-account-state]
+verify_jwt = false
+
+[functions.admin-data-api]
+verify_jwt = false
+
+[functions.page-analytics-api]
+verify_jwt = false
+
+[functions.signup-stats]
+verify_jwt = false
+
+[functions.revenue-analytics]
+verify_jwt = false
+
+[functions.copilot-nudge-run]
+verify_jwt = false
+
+[functions.copilot-nudge-reply]
+verify_jwt = false
+
+[functions.webinar-stats]
+verify_jwt = false
+
+[functions.webinar-ads-api]
+verify_jwt = false
+
+[functions.webinar-ingest]
+verify_jwt = false
+
+[functions.webinar-ai-overview]
+verify_jwt = false
+
+
+[functions.support-wins]
+verify_jwt = false
+
+[functions.support-rep-apply]
+verify_jwt = false
+
+[functions.public-support-submit]
+verify_jwt = false
+
+[functions.theme-logo]
+verify_jwt = false
+
+[functions.location-theme]
+verify_jwt = false
+
+[functions.support-rep-auth]
+verify_jwt = false
+
+[functions.support-rep-portal]
+verify_jwt = false
+
+[functions.support-rep-dispatch]
+verify_jwt = false
+
+[functions.reconcile-plans]
+verify_jwt = false
+
+[functions.revenuecat-webhook]
+verify_jwt = false
+
+[functions.sync-store-subscription]
+verify_jwt = false
+
+[functions.notify-support-assignee]
+verify_jwt = false
+
+[functions.onboarding-autopay]
+verify_jwt = false
+
+[functions.ghl-connection]
+verify_jwt = false
+
+[functions.menu-automation-worker]
+verify_jwt = false
+
+[functions.one-feature-stats]
+verify_jwt = false
+
+[functions.public-copilot]
+verify_jwt = false
+
+[functions.inbound-ticket-reply]
+verify_jwt = false
+
+[functions.lynkific-plan-sync]
+verify_jwt = false
+
+[functions.message-status-webhook]
+verify_jwt = false
+
+[functions.support-handover-webhook-test]
+verify_jwt = false
+
+[functions.support-handover-alert]
+verify_jwt = false
+
+[functions.v2-native-ai-chat]
+verify_jwt = false
+
+[functions.hub-session]
+verify_jwt = false
+
+[functions.fire-platform-event]
+verify_jwt = false
+
+[functions.hub-data]
+verify_jwt = false
+
+[functions.affiliate-referrals]
+verify_jwt = false
+
+[functions.funnel-apply]
+verify_jwt = false
+
+# Google session required. Name and email are read from the JWT, not the body.
+[functions.work-with-us-apply]
+verify_jwt = true
+
+[functions.saas-partner-waitlist]
+verify_jwt = false
+
+[functions.build-your-saas-checkout]
+verify_jwt = false

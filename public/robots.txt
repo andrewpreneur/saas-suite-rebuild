@@ -1,0 +1,27 @@
+# Allow all crawlers (including AI/LLM bots) full access.
+User-agent: *
+Allow: /
+
+# Common AI/LLM crawlers — explicitly allowed.
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+Sitemap: https://saassuite.ai/sitemap.xml

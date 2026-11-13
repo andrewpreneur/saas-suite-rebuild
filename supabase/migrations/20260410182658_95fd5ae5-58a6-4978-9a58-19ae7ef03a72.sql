@@ -1,0 +1,1 @@
+UPDATE saas_suite_users SET max_onboarding_users = 10000 WHERE plan = 'ADVANCED';

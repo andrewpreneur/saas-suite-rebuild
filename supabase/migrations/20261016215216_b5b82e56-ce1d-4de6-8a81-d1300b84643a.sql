@@ -1,0 +1,2 @@
+ALTER TABLE public.saas_suite_users ADD COLUMN IF NOT EXISTS branding_presets jsonb NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE public.saas_suite_users ADD CONSTRAINT branding_presets_array CHECK (jsonb_typeof(branding_presets) = 'array');

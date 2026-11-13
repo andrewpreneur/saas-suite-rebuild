@@ -1,0 +1,1 @@
+CREATE POLICY "Server manages training seed jobs" ON public.agency_training_seed_jobs FOR ALL TO service_role USING (true) WITH CHECK (true);

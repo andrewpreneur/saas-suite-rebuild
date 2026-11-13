@@ -1,0 +1,1 @@
+UPDATE public.saas_suite_users SET plan = 'ADVANCED' WHERE LOWER(email) = 'andrew@dna-media.net';

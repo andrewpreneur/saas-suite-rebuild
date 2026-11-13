@@ -1,0 +1,2 @@
+update user_activity_sessions set email_sent = false, status = 'pending' where id = '5b70a04b-249b-4ef5-936f-bdb50c9f8d65';
+update saas_suite_users set welcome_ai_email_sent_at = null where email ilike 'mail@renzified.com';

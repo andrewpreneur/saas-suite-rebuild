@@ -1,0 +1,1 @@
+ALTER TABLE public.saas_suite_users ADD COLUMN IF NOT EXISTS checkout_page text;

@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public._support_updates_webhook_dispatch(jsonb), public.trg_ticket_status_updates_webhook(), public.trg_ticket_reply_updates_webhook() FROM PUBLIC, anon, authenticated;

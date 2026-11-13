@@ -1,0 +1,3 @@
+ALTER FUNCTION public.challenge_my_point_reviews(text) SECURITY INVOKER;
+DROP POLICY "Account members read their private challenge review" ON public.challenge_point_reviews;
+CREATE POLICY "Owner reads their private challenge review" ON public.challenge_point_reviews FOR SELECT TO authenticated USING (EXISTS(SELECT 1 FROM public.giveaway_entries e WHERE e.id=entry_id AND e.email=public.current_auth_email()));

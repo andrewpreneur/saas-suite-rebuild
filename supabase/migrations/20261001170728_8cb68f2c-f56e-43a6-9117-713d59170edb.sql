@@ -1,0 +1,11 @@
+REVOKE EXECUTE ON FUNCTION public.guard_account_admin_permissions() FROM anon, authenticated, public;
+REVOKE EXECUTE ON FUNCTION public.guard_onboarding_autopay() FROM anon, authenticated, public;
+REVOKE EXECUTE ON FUNCTION public._support_assignee_dispatch(text, jsonb) FROM anon, authenticated, public;
+REVOKE EXECUTE ON FUNCTION public.trg_support_ticket_assignee_notify() FROM anon, authenticated, public;
+REVOKE EXECUTE ON FUNCTION public.trg_support_reply_assignee_notify() FROM anon, authenticated, public;
+REVOKE EXECUTE ON FUNCTION public.trg_chat_assignment_sync() FROM anon, authenticated, public;
+REVOKE EXECUTE ON FUNCTION public.trg_chat_message_assignee_notify() FROM anon, authenticated, public;
+REVOKE EXECUTE ON FUNCTION public.support_admin_row(text) FROM anon, public;
+REVOKE EXECUTE ON FUNCTION public.support_can_see_ticket(text, text) FROM anon, public;
+REVOKE EXECUTE ON FUNCTION public.support_can_edit_ticket(text, text) FROM anon, public;
+REVOKE EXECUTE ON FUNCTION public.support_can_see_chat(text, text) FROM anon, public;

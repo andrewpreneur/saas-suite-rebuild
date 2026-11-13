@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.apply_ticket_assign_rule(), public.notify_slack_ticket_created(), public.notify_slack_ticket_assigned() FROM PUBLIC, anon, authenticated;

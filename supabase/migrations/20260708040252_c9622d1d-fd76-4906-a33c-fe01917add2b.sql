@@ -1,0 +1,1 @@
+ALTER TABLE public.agency_menu_config ADD COLUMN IF NOT EXISTS menu_link_id_2 text;

@@ -1,0 +1,1 @@
+alter table public.saas_suite_users add column if not exists inbound_reply_key text not null default replace(gen_random_uuid()::text,'-','');

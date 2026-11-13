@@ -1,0 +1,1 @@
+UPDATE saas_suite_users SET agency_id = '9f36898e9722463db9c8164e976cb62d', approval = 'STARTER', max_onboarding_users = 1 WHERE lower(email) = 'info@convertnow.ai';

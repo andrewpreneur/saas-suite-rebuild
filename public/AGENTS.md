@@ -1,0 +1,2 @@
+- Theme Customizer preserves validated manual colors; automatic contrast chooses defaults only, and CSS state selectors own hover/selected icon ink so inline colors cannot freeze it.
+- Keystone's Launchpad zap matches visible neighboring menu glyph dimensions rather than inheriting the smaller native Launchpad size; leave other agencies and customizer controls unchanged.

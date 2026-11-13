@@ -1,0 +1,1 @@
+DELETE FROM public.webinar_registrations WHERE email IN ('qa-capture-test@example.com','curl-test@example.com');

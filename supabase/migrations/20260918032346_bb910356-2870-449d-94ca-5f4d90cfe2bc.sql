@@ -1,0 +1,1 @@
+ALTER TABLE public.webinar_ad_entities ADD COLUMN IF NOT EXISTS cpm numeric;

@@ -1,0 +1,1 @@
+ALTER TABLE public.ghl_locations_cache ADD COLUMN IF NOT EXISTS email text, ADD COLUMN IF NOT EXISTS phone text, ADD COLUMN IF NOT EXISTS company_name text;

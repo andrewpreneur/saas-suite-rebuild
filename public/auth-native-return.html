@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Returning to SaaS Suite…</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #0f1115;
+        color: #f5f7fb;
+        text-align: center;
+        padding: 48px 24px;
+      }
+      p { color: #b8c0cc; line-height: 1.5; max-width: 22rem; }
+      a.button {
+        display: inline-block;
+        margin-top: 1rem;
+        padding: 0.9rem 1.4rem;
+        border-radius: 0.6rem;
+        background: #7c3aed;
+        color: #fff;
+        text-decoration: none;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p id="status">Returning to SaaS Suite… Tap Continue if the app does not open.</p>
+      <p><a id="open-app" class="button" href="#">Continue to SaaS Suite</a></p>
+    </main>
+    <script>
+      (function () {
+        var params = new URLSearchParams(window.location.search || "");
+        var hash = window.location.hash || "";
+        if (hash.charAt(0) === "#" && hash.length > 1) {
+          new URLSearchParams(hash.slice(1)).forEach(function (value, key) {
+            if (!params.has(key)) params.append(key, value);
+          });
+        }
+
+        var compact = new URLSearchParams();
+        var code = params.get("code");
+        if (code) {
+          compact.set("code", code);
+        } else {
+          ["access_token", "refresh_token", "expires_in", "token_type", "provider_token"].forEach(function (key) {
+            if (params.get(key)) compact.set(key, params.get(key));
+          });
+        }
+        ["next", "attribution_token", "error", "error_description", "state", "ss_run"].forEach(function (key) {
+          if (params.get(key)) compact.set(key, params.get(key));
+        });
+
+        var query = compact.toString();
+        var status = document.getElementById("status");
+        var link = document.getElementById("open-app");
+        if (!query) {
+          if (status) status.textContent = "Sign-in did not finish. Close this window and try again in the app.";
+          return;
+        }
+
+        var mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "");
+        if (!mobile) {
+          var web = "https://saassuite.ai/app" + (query ? "?" + query : "");
+          if (link) {
+            link.setAttribute("href", web);
+            link.textContent = "Continue in your browser";
+          }
+          if (status) status.textContent = "Sign-in finished. Continue in your browser.";
+          window.location.replace(web);
+          return;
+        }
+
+        var android = /Android/i.test(navigator.userAgent || "");
+        var target = android
+          ? "intent://auth#Intent;scheme=ai.saassuite.app;package=ai.saassuite.app;S.ss_oauth=" +
+            encodeURIComponent(query) +
+            ";end"
+          : "ai.saassuite.app://auth?" + query;
+
+        if (link) link.setAttribute("href", target);
+
+        function openApp() {
+          try {
+            var a = document.createElement("a");
+            a.href = target;
+            a.rel = "noreferrer";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+          } catch (e) {}
+          try { window.location.href = target; } catch (e2) {}
+        }
+
+        openApp();
+        setTimeout(openApp, 300);
+        setTimeout(openApp, 1000);
+      })();
+    </script>
+  </body>
+</html>

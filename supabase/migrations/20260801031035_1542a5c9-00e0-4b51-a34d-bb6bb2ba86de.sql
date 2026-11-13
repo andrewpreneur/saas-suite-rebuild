@@ -1,0 +1,1 @@
+ALTER TABLE public.feature_requests ADD COLUMN IF NOT EXISTS live_url text;

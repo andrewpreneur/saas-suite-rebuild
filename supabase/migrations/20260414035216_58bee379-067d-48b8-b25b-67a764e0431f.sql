@@ -1,0 +1,1 @@
+ALTER TABLE public.menu_link_rules ADD COLUMN preset_name text;

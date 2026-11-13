@@ -1,0 +1,1 @@
+ALTER TABLE public.workflows ADD COLUMN IF NOT EXISTS slack_enabled boolean NOT NULL DEFAULT false;

@@ -1,0 +1,1 @@
+ALTER TABLE public.custom_onboarding_videos ADD COLUMN IF NOT EXISTS transcription_error text;

@@ -1,0 +1,5 @@
+alter table public.kit_onboarding_progress drop constraint if exists kit_onboarding_progress_steps;
+alter table public.kit_onboarding_progress add constraint kit_onboarding_progress_steps check (completed <@ array['replay','install-saas','install-snapshot','customize-video','saas-training','menu-training','sales-page','launch-ads','launch-video']::text[]);
+insert into public.academy_content (kind, slug, stage, title, description, video_url, format, duration_minutes, is_published, sort_order)
+select 'lesson','one-feature-launch-video','sell','One Feature Kit Launch Video','Launch Q&A for going live with your one feature offer.','https://files.leadconnectorhq.com/file/6af5f1314dccfd82dad9f5e2/onefeaturelaunchq-a.mp4','Video',0,true,110
+where not exists (select 1 from public.academy_content where slug='one-feature-launch-video');

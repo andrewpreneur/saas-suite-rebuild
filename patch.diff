@@ -1,0 +1,12 @@
+--- a/supabase/functions/dynamic-styles/index.ts
++++ b/supabase/functions/dynamic-styles/index.ts
+@@ -19,7 +19,8 @@
+   max-height: calc(100vh - 20px) !important;
+ }
+ #sidebar-v2 .h-screen {
+-  height: 100% !important;
++  height: 100vh !important;
++  max-height: 100vh !important;
+   min-height: 0 !important;
+   display: flex !important;
+   flex-direction: column !important;

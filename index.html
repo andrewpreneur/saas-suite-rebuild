@@ -1,0 +1,880 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- OSPRY by Legion: consent banner and bundled tracking -->
+    <script async src="https://px.lspxl.com/c/5b4c2fc0-c31c-4ac6-b6ee-8390e35935ac"></script>
+    <!-- Consent signals precede all tracking scripts. -->
+    <script data-ss-consent-defaults>
+window.dataLayer = window.dataLayer || [];
+function gtag() {
+  dataLayer.push(arguments);
+}
+gtag("consent", "default", {
+  analytics_storage: "granted",
+  ad_storage: "granted",
+  ad_user_data: "granted",
+  ad_personalization: "granted",
+});
+gtag("consent", "default", {
+  analytics_storage: "denied",
+  ad_storage: "denied",
+  ad_user_data: "denied",
+  ad_personalization: "denied",
+  wait_for_update: 500,
+  region: "AT,BE,BG,HR,CY,CZ,DK,EE,FI,FR,DE,GR,HU,IE,IT,LV,LT,LU,MT,NL,PL,PT,RO,SK,SI,ES,SE,IS,LI,NO,GB,CH,RE,GP,MQ,GF,YT,MF,AX,CA-QC".split(","),
+});
+(function () {
+  var signals = {
+    analytics: ["analytics_storage"],
+    advertising: ["ad_storage", "ad_user_data", "ad_personalization"],
+  };
+  for (var purpose in signals) {
+    var choice = null;
+    try {
+      var saved = JSON.parse(localStorage.getItem("cookie_consent_" + purpose) || "null");
+      if (
+        saved &&
+        (saved.choice === "denied" || (saved.choice === "granted" && Date.now() - saved.at < 365 * 86400000))
+      ) {
+        choice = saved.choice;
+      }
+    } catch (e) {}
+    if (navigator.globalPrivacyControl === true) choice = "denied";
+    if (!choice) continue;
+    var update = {};
+    signals[purpose].forEach(function (signal) {
+      update[signal] = choice;
+    });
+    gtag("consent", "update", update);
+  }
+})();
+
+    </script>
+    <!-- QA flag first. ?ss_test=1 (and ?ofk_test=1) sticks for 24 hours.
+         GTM still loads; its container needs an exception trigger on ss_test. -->
+    <script>
+      (function () {
+        var KEY = "ss_test";
+        var MAX_AGE = 86400;
+        function domainSuffix() {
+          var host = (location.hostname || "").toLowerCase().replace(/\.$/, "").replace(/^www\./, "");
+          if (host === "saassuite.ai" || host.slice(-13) === ".saassuite.ai") return "; Domain=.saassuite.ai";
+          return "";
+        }
+        function writeCookie(on) {
+          var domain = domainSuffix();
+          var common = "; Path=/; SameSite=Lax";
+          if (on) {
+            document.cookie = KEY + "=1; Max-Age=" + MAX_AGE + common + domain;
+            return;
+          }
+          document.cookie = KEY + "=; Max-Age=0" + common + domain;
+          document.cookie = KEY + "=; Max-Age=0" + common;
+        }
+        function stored() {
+          try { if (localStorage.getItem(KEY) === "1") return true; } catch (e) {}
+          var parts = (document.cookie || "").split(";");
+          for (var i = 0; i < parts.length; i++) {
+            var part = parts[i].replace(/^\s+/, "");
+            if (part.indexOf(KEY + "=") === 0 && part.slice((KEY + "=").length) === "1") return true;
+          }
+          return false;
+        }
+        var mode = null;
+        try {
+          var params = new URLSearchParams(location.search);
+          if (params.get("ss_test") === "0") mode = "off";
+          else if (params.get("ss_test") === "1" || params.get("ofk_test") === "1") mode = "on";
+        } catch (e) {}
+        if (mode === "off") {
+          try { localStorage.removeItem(KEY); } catch (e) {}
+          writeCookie(false);
+          window.__ssTest = false;
+        } else if (mode === "on") {
+          try { localStorage.setItem(KEY, "1"); } catch (e) {}
+          writeCookie(true);
+          window.__ssTest = true;
+        } else {
+          window.__ssTest = stored();
+        }
+        if (window.__ssTest) {
+          window.dataLayer = window.dataLayer || [];
+          window.dataLayer.push({ ss_test: true, traffic_type: "internal" });
+        }
+      })();
+    </script>
+    <!-- Cookie opt-out gate: runs before any tracking script so a stored opt-out
+         prevents the affiliate script and Meta Pixels from loading at all. -->
+    <script>
+      (function () {
+        var out = false;
+        try { out = localStorage.getItem("ss_tracking_optout") === "1"; } catch (e) {}
+        window.__ssTrackingOptOut = out;
+        // Lovable injects defer analytics after this script. Hold them on the kit
+        // page so they cannot run before the hero paints. Released with GTM.
+        var path = location.pathname || "";
+        var host = (location.hostname || "").toLowerCase().replace(/^www\./, "");
+        var kit = host === "onefeaturekit.com" || path === "/one-feature-kit" || path.indexOf("/one-feature-kit/") === 0;
+        var landerPath = (path || "/").replace(/\/+$/, "") || "/";
+        var fastLanders = {
+          "/onefeaturetraining-2": 1,
+          "/onefeaturetraining-success": 1,
+          "/onefeaturetraining-5": 1,
+          "/onefeaturetraining-quiz": 1,
+          "/agents": 1,
+          "/work-with-us": 1,
+          "/highlevelers": 1,
+          "/highlevelers-upgrade": 1,
+          "/founders-plan": 1,
+          "/one-feature-away": 1,
+          "/black-friday": 1,
+          "/skool-challenge": 1
+        };
+        window.__ssFastLander = !!fastLanders[landerPath];
+        if ((!kit && !window.__ssFastLander) || typeof MutationObserver !== "function") return;
+        var held = [];
+        function hold(node) {
+          if (!node || node.tagName !== "SCRIPT" || node.getAttribute("data-ss-held")) return;
+          var src = node.getAttribute("src") || "";
+          if (src.indexOf("/__l5e/") === -1 && src.indexOf("/~flock.js") === -1) return;
+          var attrs = [];
+          for (var i = 0; i < node.attributes.length; i++) {
+            var attr = node.attributes[i];
+            if (attr.name !== "src" && attr.name !== "type") attrs.push([attr.name, attr.value]);
+          }
+          held.push({ src: src, attrs: attrs });
+          node.setAttribute("data-ss-held", "1");
+          node.type = "javascript/blocked";
+          node.removeAttribute("src");
+        }
+        new MutationObserver(function (list) {
+          for (var i = 0; i < list.length; i++) {
+            var nodes = list[i].addedNodes;
+            for (var j = 0; j < nodes.length; j++) hold(nodes[j]);
+          }
+        }).observe(document.documentElement, { childList: true, subtree: true });
+        window.__ssReleaseHostScripts = function () {
+          var items = held.splice(0, held.length);
+          for (var i = 0; i < items.length; i++) {
+            var s = document.createElement("script");
+            s.async = true;
+            s.setAttribute("data-ss-held", "1");
+            var attrs = items[i].attrs;
+            for (var a = 0; a < attrs.length; a++) s.setAttribute(attrs[a][0], attrs[a][1]);
+            s.src = items[i].src;
+            document.body.appendChild(s);
+          }
+        };
+      })();
+    </script>
+    <script type="text/javascript">
+      if (!window.__ssTrackingOptOut) (function() {
+        function inject() {
+          if (window.__ssLynk) return;
+          window.__ssLynk = true;
+          var t = document.createElement("script");
+          t.type = "text/javascript";
+          t.async = true;
+          t.src = "https://lynks.lynkific.com/js/am.js";
+          t.onload = t.onreadystatechange = function() {
+            var state = this.readyState;
+            if (!state || state === "complete" || state === "loaded") try {
+              affiliateManager.init("T69cI1milcirIORef4Ib", "https://backend.leadconnectorhq.com", ".saassuite.ai");
+            } catch (e) {}
+          };
+          var e = document.getElementsByTagName("script")[0];
+          e.parentNode.insertBefore(t, e);
+        }
+        var path = location.pathname || "";
+        var host = (location.hostname || "").toLowerCase().replace(/^www\./, "");
+        var kit = host === "onefeaturekit.com" || path === "/one-feature-kit" || path.indexOf("/one-feature-kit/") === 0;
+        if (!kit && !window.__ssFastLander) { inject(); return; }
+        var started = false;
+        function later() { if (started) return; started = true; inject(); }
+        window.addEventListener("pointerdown", later, { once: true, passive: true });
+        window.addEventListener("keydown", later, { once: true });
+        setTimeout(later, 8000);
+      })();
+    </script>
+    <!-- Host gate: the pixel may ONLY load on our own production domains. Lovable
+         previews, *.lovableproject.com and embedded installs on partner domains
+         must never initialise a pixel or fire a single event. -->
+    <script>
+      (function () {
+        // onefeaturekit.com is a funnel domain on this same app. It is not in
+        // this list, so the SaaS Suite pixels and GTM do not load there.
+        var ALLOWED = ['saassuite.ai', 'gofreesaas.com'];
+        var h = (window.location.hostname || '').toLowerCase().replace(/^www\./, '');
+        window.__ssPixelAllowed = ALLOWED.some(function (d) {
+          return h === d || h.endsWith('.' + d);
+        });
+        window.__ssDraftFunnel = false;
+        var path = window.location.pathname || '';
+        window.__ssKitPath = h === 'onefeaturekit.com' || path === '/one-feature-kit' || path.indexOf('/one-feature-kit/') === 0;
+        if (window.__ssKitPath) {
+          try { document.documentElement.classList.add('ofk-boot'); } catch (e) {}
+        }
+      })();
+    </script>
+    <!-- Google Tag Manager -->
+    <script>
+      if (!window.__ssTrackingOptOut && window.__ssPixelAllowed && !window.__ssDraftFunnel) {
+      (function(w,d,s,l,i){
+        w[l]=w[l]||[];
+        w[l].push({'gtm.start': new Date().getTime(), event:'gtm.js'});
+        w.__ssLoadGtm = function () {
+          if (w.__ssGtmScript) return;
+          w.__ssGtmScript = true;
+          var f=d.getElementsByTagName(s)[0],
+          j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+          'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+        };
+        if (!w.__ssKitPath && !w.__ssFastLander) w.__ssLoadGtm();
+      })(window,document,'script','dataLayer','GTM-M7B83SRK');
+      }
+    </script>
+    <!-- End Google Tag Manager -->
+    <!-- Meta Pixel. One loader inits both datasets and fires one PageView. -->
+    <script>
+      if (!window.__ssTrackingOptOut && !window.__ssTest && window.__ssPixelAllowed && !window.__ssDraftFunnel) {
+      !function(f,b,e,v,n,t,s)
+      {if(f.fbq)return;n=f.fbq=function(){
+      // One init per pixel id. GTM and a second copy of this snippet both call
+      // fbq('init', id). A repeat with no user-data is a no-op. Advanced
+      // matching still passes fbq('init', id, { em }) through.
+      var cmd = arguments[0];
+      // GTM's pixel tag calls init again. An empty object counts as no user-data.
+      var pixelData = arguments[2];
+      var hasMatch = !!(pixelData && typeof pixelData === 'object');
+      if (hasMatch) {
+        hasMatch = false;
+        for (var matchKey in pixelData) {
+          if (Object.prototype.hasOwnProperty.call(pixelData, matchKey) && pixelData[matchKey]) { hasMatch = true; break; }
+        }
+      }
+      if (cmd === 'init' && !hasMatch) {
+        var pixelId = String(arguments[1] || '');
+        f.__ssPx = f.__ssPx || {};
+        if (f.__ssPx[pixelId]) return;
+        f.__ssPx[pixelId] = 1;
+      } else if (cmd === 'init' && arguments[2] && typeof arguments[2] === 'object') {
+        f.__ssPx = f.__ssPx || {};
+        f.__ssPx[String(arguments[1] || '')] = 1;
+      }
+      // One PageView per pixel for the path the visitor is on now. GTM's
+      // Facebook tag sends another for 745177780828109 via trackSingle, and
+      // that repeat is dropped. A client-side navigation, including a return
+      // to a path already seen, clears the dedupe and gets one new PageView.
+      var pvPath = (location.pathname || '/') + (location.search || '');
+      var pvEvent = cmd === 'track' ? arguments[1] : ((cmd === 'trackSingle' || cmd === 'trackSingleCustom') ? arguments[2] : '');
+      if (pvEvent === 'PageView' && f.__ssPvPath !== pvPath) {
+        f.__ssPvPath = pvPath;
+        f.__ssPv = {};
+      }
+      // GTM-M7B83SRK's Facebook tag also emits Lead and Purchase with no eventID.
+      // Those copies do not match lead_<row id> or order_<charge id>, so Meta
+      // counts them again. Drop a Lead or Purchase that has no eventID. A call
+      // that carries eventID still goes through, including to both pixels.
+      var bareEvent = cmd === 'track' ? arguments[1] : ((cmd === 'trackSingle' || cmd === 'trackSingleCustom') ? arguments[2] : '');
+      if (bareEvent === 'Lead' || bareEvent === 'Purchase') {
+        var bareOpts = cmd === 'track' ? arguments[3] : arguments[4];
+        var bareId = bareOpts && typeof bareOpts.eventID === 'string' ? bareOpts.eventID : '';
+        if (!bareId) return;
+      }
+      if (cmd === 'track' && arguments[1] === 'PageView') {
+        f.__ssPv = f.__ssPv || {};
+        if (f.__ssPv['*|' + pvPath]) return;
+        f.__ssPv['*|' + pvPath] = 1;
+        var known = f.__ssPx || {};
+        for (var knownId in known) if (Object.prototype.hasOwnProperty.call(known, knownId)) f.__ssPv[knownId + '|' + pvPath] = 1;
+      } else if ((cmd === 'trackSingle' || cmd === 'trackSingleCustom') && arguments[2] === 'PageView') {
+        f.__ssPv = f.__ssPv || {};
+        var singleId = String(arguments[1] || '');
+        if (f.__ssPv['*|' + pvPath] || f.__ssPv[singleId + '|' + pvPath]) return;
+        f.__ssPv[singleId + '|' + pvPath] = 1;
+      }
+      n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+      n.queue=[];
+      f.__ssLoadFbq = function () {
+        if (f.__ssFbqScript) return;
+        if (b.documentElement.getAttribute('data-ss-pixel') === '1') { f.__ssFbqScript = true; return; }
+        if (b.querySelector('script[src*="fbevents.js"]')) { f.__ssFbqScript = true; return; }
+        f.__ssFbqScript = true;
+        t=b.createElement(e);t.async=!0;
+        try { t.fetchPriority = 'low'; } catch (err) {}
+        t.src=v;s=b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t,s);
+      };
+      function scheduleFbq() {
+        // fbevents plus the two signal configs are a few hundred milliseconds
+        // on the main thread, and a preload of that file shares bandwidth
+        // with the hero. Localhost never enters this block. Queue the
+        // PageView now, and download the library after the hero can paint.
+        var pixelStarted = false;
+        function runPixel() {
+          if (pixelStarted) return;
+          pixelStarted = true;
+          f.__ssLoadFbq();
+        }
+        function afterPaint(fn) {
+          var raf = f.requestAnimationFrame;
+          if (typeof raf !== 'function') { setTimeout(fn, 32); return; }
+          raf.call(f, function () { raf.call(f, fn); });
+        }
+        function whenHeroReady(fn) {
+          var img = b.querySelector('img[fetchpriority="high"], button.ofk-facade img');
+          if (img && !(img.complete && img.naturalWidth > 0)) {
+            var done = false;
+            function go() { if (done) return; done = true; fn(); }
+            img.addEventListener('load', go);
+            img.addEventListener('error', go);
+            setTimeout(go, 1000);
+            return;
+          }
+          fn();
+        }
+        function armPixel() {
+          // Give the hero paint a frame of its own before the pixel file is
+          // even requested, or the download lands on the same critical path.
+          whenHeroReady(function () {
+            afterPaint(function () { setTimeout(runPixel, 150); });
+          });
+        }
+        if (b.readyState === 'loading') b.addEventListener('DOMContentLoaded', armPixel);
+        else armPixel();
+        setTimeout(runPixel, 2000);
+      }
+      if (f.__ssKitPath) {
+        var metaUuid = (window.crypto && typeof crypto.randomUUID === 'function')
+          ? crypto.randomUUID()
+          : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (ch) {
+              var rand = Math.random() * 16 | 0;
+              var next = ch === 'x' ? rand : (rand & 0x3 | 0x8);
+              return next.toString(16);
+            });
+        window.__ofkMetaIds = {
+          uuid: metaUuid,
+          pageViewId: 'pv_' + metaUuid,
+          viewContentId: 'vc_' + metaUuid
+        };
+        scheduleFbq();
+      } else if (f.__ssFastLander) {
+        scheduleFbq();
+      } else {
+        f.__ssLoadFbq();
+      }
+      }(window, document,'script',
+      'https://connect.facebook.net/en_US/fbevents.js');
+      // autoConfig off before init, so the library does not add its own PageView
+      // on top of the explicit one below.
+      fbq('set', 'autoConfig', false, '745177780828109');
+      fbq('init', '745177780828109');
+      fbq('set', 'autoConfig', false, '1601372838188959');
+      fbq('init', '1601372838188959');
+      // Kit PageView uses pv_<uuid> from this head snippet. meta-capi reuses it.
+      // Other routes keep the untagged PageView.
+      if (window.__ssKitPath && window.__ofkMetaIds) {
+        fbq('track', 'PageView', {}, {eventID: window.__ofkMetaIds.pageViewId});
+        window.__ofkPixelPageView = window.__ofkMetaIds.pageViewId;
+      } else {
+        var path = (window.location.pathname||'/').replace(/\/+$/,'')||'/';
+        var kitPath = path === '/one-feature-kit' || path.indexOf('/one-feature-kit/') === 0;
+        if (!kitPath) fbq('track', 'PageView');
+      }
+      }
+    </script>
+    <!-- Kit and the eight pre-ad landers: PageView is queued in the head.
+         fbevents.js runs after the hero can paint. GTM (and gtag) wait for a
+         gesture or ~10s after window load. Stape and meta-capi do not wait for GTM. -->
+    <script>
+      (function () {
+        if (!window.__ssKitPath && !window.__ssFastLander) return;
+        if (window.__ssTrackingOptOut || !window.__ssPixelAllowed || window.__ssDraftFunnel) return;
+        var gtmStarted = false;
+        var hostReleased = false;
+        function loadGtm() {
+          if (gtmStarted) return;
+          gtmStarted = true;
+          if (typeof window.__ssLoadGtm === 'function') window.__ssLoadGtm();
+        }
+        function releaseHost() {
+          if (hostReleased) return;
+          hostReleased = true;
+          if (typeof window.__ssReleaseHostScripts === 'function') window.__ssReleaseHostScripts();
+        }
+        var gtmEvents = ['scroll', 'pointerdown', 'keydown', 'touchstart'];
+        function onGtmInteract(e) {
+          if (e && e.type === 'scroll') {
+            var y = window.scrollY || document.documentElement.scrollTop || (document.body && document.body.scrollTop) || 0;
+            if (y < 8) return;
+            var activation = navigator.userActivation;
+            if (activation && !activation.hasBeenActive && !activation.isActive) return;
+          }
+          for (var i = 0; i < gtmEvents.length; i++) {
+            window.removeEventListener(gtmEvents[i], onGtmInteract, true);
+          }
+          loadGtm();
+          releaseHost();
+        }
+        for (var n = 0; n < gtmEvents.length; n++) {
+          window.addEventListener(gtmEvents[n], onGtmInteract, { passive: true, capture: true });
+        }
+        function armGtmIdle() {
+          setTimeout(function () {
+            if (typeof window.requestIdleCallback === 'function') {
+              window.requestIdleCallback(function () { loadGtm(); releaseHost(); }, { timeout: 2000 });
+            } else {
+              loadGtm();
+              releaseHost();
+            }
+          }, 10000);
+        }
+        if (document.readyState === 'complete') armGtmIdle();
+        else window.addEventListener('load', armGtmIdle);
+      })();
+    </script>
+    <!-- Sales hero: system stack only (no remote webfont). Thumbnail preload is sales-path only. -->
+    <style>
+      .ofk-boot, .ofk-boot body, .ofk-boot #root { background:#fff; min-height:100vh; }
+      .ofk{--navy:#020817;--ink:#111827;--body:#374151;--gray:#4B5563;--muted:#6B7280;--line:#E5E7EB;--purple:#9C2BDA;--purple2:#B74CF0;--gold:#F0AD05;--bg:#FAFAFA;--card:#fff;--radius:16px;--shadow:0 10px 30px rgba(2,8,23,.08);--shadow-lg:0 20px 50px rgba(2,8,23,.14);--font:"OFK Sans",ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;}
+      @font-face{font-family:"OFK Sans";font-style:normal;font-weight:400 900;font-display:swap;src:local("Segoe UI"),local("Roboto"),local("Helvetica Neue"),local("Arial")}
+      .ofk,.ofk *{box-sizing:border-box;margin:0;padding:0}
+      .ofk{font-family:var(--font);color:var(--body);background:#fff;line-height:1.6;font-size:17px;-webkit-font-smoothing:antialiased}
+      .ofk img{max-width:100%;display:block}
+      .ofk a{color:var(--purple)}
+      .ofk h1,.ofk h2{color:var(--navy);line-height:1.15;font-weight:800;letter-spacing:-.02em}
+      .ofk h1{font-size:clamp(30px,4vw,46px)}
+      .ofk .hl{color:var(--purple)}
+      .ofk .wrap{max-width:1120px;margin:0 auto;padding:0 22px}
+      .ofk .strip{background:var(--navy);color:#fff;font-size:12.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;text-align:center;padding:10px 12px}
+      .ofk .header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:16px 22px;max-width:1120px;margin:0 auto}
+      .ofk .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--navy);font-weight:800;font-size:20px}
+      .ofk .brand img{width:34px;height:34px}
+      .ofk .hero{background:radial-gradient(1200px 500px at 15% 0%,#E6F0FF 0%,transparent 60%),radial-gradient(900px 500px at 90% 10%,#FCE7F3 0%,transparent 60%),#fff;padding:10px 0 40px;text-align:center}
+      .ofk .hero h1{margin-top:8px}
+      .ofk .lead{font-size:clamp(17px,1.9vw,20px);color:var(--gray);max-width:780px;margin:12px auto 0}
+      .ofk .hero-grid{display:grid;grid-template-columns:1.35fr 1fr;gap:28px;margin-top:36px;text-align:left;align-items:start}
+      .ofk .video{position:relative;border-radius:18px;overflow:hidden;aspect-ratio:16/9;background:linear-gradient(135deg,#0b1224,#1e1145);box-shadow:var(--shadow-lg)}
+      .ofk .ofk-facade{position:absolute;inset:0;display:block;width:100%;height:100%;border:0;padding:0;background:#0b1224}
+      .ofk .draftbar{display:none}
+      .ofk .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:26px}
+      .ofk .buybox{border:2px solid var(--purple);position:relative;padding:20px 22px 22px}
+      .ofk .price{display:flex;align-items:baseline;gap:12px;justify-content:center}
+      .ofk .price .now{font-size:48px;font-weight:900;color:var(--navy);letter-spacing:-.03em}
+      .ofk .price .was{font-size:22px;color:var(--muted);text-decoration:line-through}
+      .ofk .btn{display:block;width:100%;text-align:center;border:0;cursor:pointer;font:inherit;font-weight:900;font-size:18px;color:#fff;padding:18px 22px;border-radius:12px;background:linear-gradient(90deg,var(--purple),#B74CF0);box-shadow:0 12px 28px rgba(156,43,218,.35);text-decoration:none;text-transform:uppercase}
+      @media (max-width:900px){.ofk .hero-grid{grid-template-columns:1fr}}
+    </style>
+    <script>
+      (function () {
+        if (!window.__ssKitPath) return;
+        var h = (location.hostname || '').toLowerCase().replace(/^www\./, '');
+        var path = location.pathname || '/';
+        var sales = path === '/one-feature-kit' || (h === 'onefeaturekit.com' && path === '/');
+        if (!sales) return;
+        var link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'image';
+        link.href = '/assets/ofk/yt-960.avif';
+        link.type = 'image/avif';
+        link.setAttribute('imagesrcset', '/assets/ofk/yt-480.avif 480w, /assets/ofk/yt-960.avif 960w');
+        link.setAttribute('imagesizes', '(max-width: 900px) 100vw, 640px');
+        link.setAttribute('fetchpriority', 'high');
+        document.head.appendChild(link);
+      })();
+    </script>
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title data-static-seo>SaaSSuite | The Best HighLevel SaaS Tool</title>
+    <meta data-static-seo name="description" content="SaaSSuite is a comprehensive tool designed to enhance and customize your HighLevel experience with white-label capabilities.">
+    <meta name="author" content="SaaSSuite" />
+    <link rel="icon" href="/favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link data-static-seo rel="canonical" href="https://saassuite.ai/" />
+
+    
+    
+    <meta data-static-seo property="og:type" content="website" />
+    <meta data-static-seo property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/8LmhTgRQpIdlh6b3Mug3nk8TeU52/social-images/social-1763142613566-saassuitebusinesscard.png">
+
+    <meta data-static-seo name="twitter:card" content="summary_large_image" />
+    <meta data-static-seo name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/8LmhTgRQpIdlh6b3Mug3nk8TeU52/social-images/social-1763142613566-saassuitebusinesscard.png">
+    
+  
+  
+  
+  <meta data-static-seo property="og:title" content="SaaSSuite | The Best HighLevel SaaS Tool">
+  <meta data-static-seo name="twitter:title" content="SaaSSuite | The Best HighLevel SaaS Tool">
+  <meta data-static-seo property="og:description" content="SaaSSuite is a comprehensive tool designed to enhance and customize your HighLevel experience with white-label capabilities.">
+  <meta data-static-seo name="twitter:description" content="SaaSSuite is a comprehensive tool designed to enhance and customize your HighLevel experience with white-label capabilities.">
+
+  <!-- Sitewide structured data: Organization + SoftwareApplication -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "SaaSSuite",
+    "url": "https://saassuite.ai",
+    "logo": "https://storage.googleapis.com/gpt-engineer-file-uploads/8LmhTgRQpIdlh6b3Mug3nk8TeU52/uploads/1763141967140-saassuitelogo.png",
+    "description": "SaaSSuite is the all-in-one white-label toolkit for HighLevel (GoHighLevel) agencies — onboarding, AI support, branding, and retention for SaaS-mode agency owners.",
+    "founder": { "@type": "Person", "name": "Andrew George" },
+    "email": "andrew@dna-media.net",
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "email": "andrew@dna-media.net",
+      "contactType": "customer support",
+      "areaServed": "US",
+      "availableLanguage": "English"
+    },
+    "sameAs": [
+      "https://www.youtube.com/@andrewpreneurship",
+      "https://www.instagram.com/andrewpreneurship/",
+      "https://www.facebook.com/andrewpreneurship",
+      "https://www.linkedin.com/in/realandrewgeorge/"
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "SaaSSuite",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web",
+    "description": "SaaSSuite is the all-in-one white-label toolkit for HighLevel (GoHighLevel) agencies — onboarding, AI support, branding, and retention built for SaaS-mode agency owners.",
+    "url": "https://saassuite.ai",
+    "image": "https://storage.googleapis.com/gpt-engineer-file-uploads/8LmhTgRQpIdlh6b3Mug3nk8TeU52/social-images/social-1763142613566-saassuitebusinesscard.png",
+    "offers": { "@type": "Offer", "priceCurrency": "USD" },
+    "publisher": { "@type": "Organization", "name": "SaaSSuite", "url": "https://saassuite.ai" }
+  }
+  </script>
+</head>
+
+  <body>
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-M7B83SRK"
+      height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+    <div id="root"></div>
+    <noscript>
+      <img height="1" width="1" style="display:none"
+        src="https://www.facebook.com/tr?id=745177780828109&ev=PageView&noscript=1"
+        alt="" />
+      <img height="1" width="1" style="display:none"
+        src="https://www.facebook.com/tr?id=1601372838188959&ev=PageView&noscript=1"
+        alt="" />
+    </noscript>
+    <!-- Stale-prerender guard: non-prerendered routes (e.g. /illegal) are served the
+         prerendered homepage HTML by the SPA fallback, which paints for a moment before
+         React renders the real route. If the baked-in canonical path doesn't match the
+         current path, clear the stale markup before it can paint. -->
+    <script>
+      (function () {
+        try {
+          var canonical = document.querySelector('link[rel="canonical"]');
+          if (!canonical) return;
+          var norm = function (p) { return (p || "/").replace(/\/+$/, "") || "/"; };
+          var baked = norm(new URL(canonical.href, location.origin).pathname);
+          if (baked !== norm(location.pathname)) {
+            var root = document.getElementById("root");
+            if (root) root.innerHTML = "";
+          }
+        } catch (e) {}
+      })();
+    </script>
+
+    <!-- Kit view before React. Same ofk_session record as src/funnel/one-feature-kit/session.ts. -->
+    <script>
+      (function () {
+        var IDLE = 30 * 60 * 1000;
+        var DEDUPE = 30 * 1000;
+        var KEY = 'ofk_session';
+        var SUPABASE = 'https://auth.saassuite.ai';
+        var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqcWVlYnllcXR6enFtbXd2ZmdhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NDQ0OTYsImV4cCI6MjA2MzUyMDQ5Nn0.x1Y9McmvpMkJ8GwIp315zEGQHdIomj4ChUpj7eyUqdo';
+        function hostSkipped(hostname) {
+          var host = (hostname || '').toLowerCase().replace(/\.$/, '');
+          if (host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' || host === '[::1]' || host.slice(-10) === '.localhost') return true;
+          var bare = host.replace(/^www\./, '');
+          var blocked = ['lovable.app', 'lovableproject.com', 'lovable.dev'];
+          for (var i = 0; i < blocked.length; i++) {
+            if (bare === blocked[i] || bare.slice(-(blocked[i].length + 1)) === '.' + blocked[i]) return true;
+          }
+          return false;
+        }
+        try {
+          if (window.__ssTrackingOptOut) return;
+          if (localStorage.getItem('ss_tracking_optout') === '1') return;
+        } catch (e) { return; }
+        if (hostSkipped(location.hostname)) return;
+        var path = (location.pathname||'/').replace(/\/+$/,'')||'/';
+        var host = (location.hostname || '').toLowerCase().replace(/\.$/, '');
+        var kitHost = host === 'onefeaturekit.com' || host === 'www.onefeaturekit.com';
+        var slugMap = {
+          checkout: '/one-feature-kit/checkout',
+          'ghl-signup-and-upgrade': '/one-feature-kit/ghl-signup-and-upgrade',
+          'launch-pack': '/one-feature-kit/launch-pack',
+          'webinar-sales-system': '/one-feature-kit/webinar-sales-system',
+          'thank-you': '/one-feature-kit/thank-you',
+          'business-in-a-box': '/one-feature-kit/ghl-signup-and-upgrade',
+          'affiliate-club': '/one-feature-kit/launch-pack',
+          snapshot: '/one-feature-kit/launch-pack',
+          'dfy-branding': '/one-feature-kit/launch-pack',
+          'watch-us-build': '/one-feature-kit/launch-pack'
+        };
+        var stepOf = {
+          '/one-feature-kit': 'sales',
+          '/one-feature-kit/checkout': 'checkout',
+          '/one-feature-kit/ghl-signup-and-upgrade': 'ghl',
+          '/one-feature-kit/launch-pack': 'launch',
+          '/one-feature-kit/webinar-sales-system': 'webinar',
+          '/one-feature-kit/thank-you': 'thanks'
+        };
+        var canonical = null;
+        if (path === '/one-feature-kit') canonical = '/one-feature-kit';
+        else if (path.indexOf('/one-feature-kit/') === 0) canonical = slugMap[path.slice('/one-feature-kit/'.length)] || null;
+        else if (kitHost && path === '/') canonical = '/one-feature-kit';
+        else if (kitHost) canonical = slugMap[path.replace(/^\//, '')] || null;
+        var step = canonical ? stepOf[canonical] : null;
+        if (!canonical || !step) return;
+        function validId(id) { return typeof id === 'string' && /^[A-Za-z0-9_-]{8,64}$/.test(id); }
+        function uuid() {
+          if (window.crypto && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+          return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            var r = Math.random() * 16 | 0;
+            var v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+          });
+        }
+        var now = Date.now();
+        var forcedOff = false;
+        var test = window.__ssTest === true;
+        try {
+          var testParams = new URLSearchParams(location.search);
+          if (testParams.get('ss_test') === '0') forcedOff = true;
+          if (!test && !forcedOff && (testParams.get('ofk_test') === '1' || testParams.get('ss_test') === '1')) test = true;
+        } catch (e) {}
+        if (forcedOff) test = false;
+        var session = null;
+        try {
+          var raw = localStorage.getItem(KEY);
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            if (parsed && validId(parsed.id) && typeof parsed.touchedAt === 'number') session = parsed;
+          }
+        } catch (e) {}
+        if (session && now - session.touchedAt <= IDLE) {
+          session.touchedAt = now;
+          session.test = forcedOff ? false : (session.test === true || test);
+        } else {
+          var id = uuid();
+          if (!validId(id)) {
+            try { id = sessionStorage.getItem('ofk_session_id'); } catch (e) {}
+          }
+          if (!validId(id)) return;
+          session = { id: id, touchedAt: now, test: test };
+        }
+        var suppressed = step === 'checkout' && typeof session.checkoutViewAt === 'number' && now - session.checkoutViewAt < DEDUPE;
+        if (step === 'checkout' && !suppressed) session.checkoutViewAt = now;
+        try { localStorage.setItem(KEY, JSON.stringify(session)); } catch (e) { return; }
+        var viewId = uuid();
+        window.__ofkEarlyView = { id: viewId, path: canonical, step: step, sessionId: session.id };
+        if (suppressed) return;
+        function clip(value, max) {
+          if (typeof value !== 'string') return null;
+          var trimmed = value.trim();
+          if (!trimmed) return null;
+          return trimmed.slice(0, max);
+        }
+        function readStore(storage, key) {
+          try {
+            var rawStore = storage.getItem(key);
+            return rawStore ? JSON.parse(rawStore) : null;
+          } catch (e) { return null; }
+        }
+        var params = new URLSearchParams(location.search);
+        function utmOf(obj) {
+          obj = obj || {};
+          function text(key) {
+            var value = obj[key];
+            return typeof value === 'string' ? value.trim().slice(0, 200) : '';
+          }
+          return { utm_source: text('utm_source'), utm_medium: text('utm_medium'), utm_campaign: text('utm_campaign'), utm_content: text('utm_content') };
+        }
+        function anyUtm(fields) { return !!(fields.utm_source || fields.utm_medium || fields.utm_campaign || fields.utm_content); }
+        var utm = { utm_source: '', utm_medium: '', utm_campaign: '', utm_content: '' };
+        var attr = {};
+        var fbclid = null;
+        try {
+          var fromUrl = utmOf({
+            utm_source: params.get('utm_source') || '',
+            utm_medium: params.get('utm_medium') || '',
+            utm_campaign: params.get('utm_campaign') || '',
+            utm_content: params.get('utm_content') || ''
+          });
+          var stored = utmOf(readStore(window.sessionStorage, 'ofk_utm_first_touch'));
+          if (!anyUtm(stored)) stored = utmOf(readStore(window.localStorage, 'ofk_utm_first_touch'));
+          attr = readStore(window.localStorage, 'utm_attribution') || {};
+          var site = utmOf(attr);
+          utm = anyUtm(stored) ? stored : (anyUtm(fromUrl) ? fromUrl : site);
+          var packed = JSON.stringify(utm);
+          window.sessionStorage.setItem('ofk_utm_first_touch', packed);
+          window.localStorage.setItem('ofk_utm_first_touch', packed);
+          fbclid = params.get('fbclid');
+          if (fbclid) window.localStorage.setItem('fbclid', fbclid);
+          else fbclid = window.localStorage.getItem('fbclid');
+        } catch (e) {}
+        var row = {
+          session_id: session.id,
+          step: step,
+          event: 'view',
+          is_test: session.test === true,
+          properties: session.test === true ? { view_id: viewId, test: true } : { view_id: viewId },
+          utm_source: clip(utm.utm_source, 200),
+          utm_medium: clip(utm.utm_medium, 200),
+          utm_campaign: clip(utm.utm_campaign, 200),
+          utm_content: clip(utm.utm_content, 200),
+          utm_term: clip(params.get('utm_term') || (typeof attr.utm_term === 'string' ? attr.utm_term : ''), 200),
+          fbclid: clip(fbclid, 500),
+          referrer: clip(document.referrer || '', 500)
+        };
+        // SHA-256 of the user agent, same digest as crypto.subtle. Web Crypto
+        // is missing in in-app browsers and on any page that is not a secure
+        // context, and waiting on its promise used to save this view with
+        // ua_hash empty. React will not send a second row after __ofkEarlyView.
+        function sha256Hex(text) {
+          function rr(n, x) { return ((n >>> x) | (n << (32 - x))) >>> 0; }
+          var k = [
+            0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+            0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+            0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+            0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+            0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+            0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+            0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+            0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+          ];
+          var h = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19];
+          var bytes = [];
+          var i;
+          for (i = 0; i < text.length; i++) {
+            var c = text.charCodeAt(i);
+            if (c < 128) bytes.push(c);
+            else if (c < 2048) bytes.push(192 | (c >> 6), 128 | (c & 63));
+            else if (c >= 0xd800 && c <= 0xdbff && i + 1 < text.length) {
+              var c2 = text.charCodeAt(++i);
+              var u = 0x10000 + ((c & 0x3ff) << 10) + (c2 & 0x3ff);
+              bytes.push(240 | (u >> 18), 128 | ((u >> 12) & 63), 128 | ((u >> 6) & 63), 128 | (u & 63));
+            } else bytes.push(224 | (c >> 12), 128 | ((c >> 6) & 63), 128 | (c & 63));
+          }
+          var bitLen = bytes.length * 8;
+          bytes.push(0x80);
+          while ((bytes.length % 64) !== 56) bytes.push(0);
+          var hi = Math.floor(bitLen / 0x100000000);
+          var lo = bitLen >>> 0;
+          var s;
+          for (s = 24; s >= 0; s -= 8) bytes.push((hi >>> s) & 255);
+          for (s = 24; s >= 0; s -= 8) bytes.push((lo >>> s) & 255);
+          var w = new Array(64);
+          var off;
+          for (off = 0; off < bytes.length; off += 64) {
+            var t;
+            for (t = 0; t < 16; t++) {
+              w[t] = ((bytes[off + t * 4] << 24) | (bytes[off + t * 4 + 1] << 16) | (bytes[off + t * 4 + 2] << 8) | bytes[off + t * 4 + 3]) >>> 0;
+            }
+            for (t = 16; t < 64; t++) {
+              var x = w[t - 15];
+              var y = w[t - 2];
+              var s0 = (rr(x, 7) ^ rr(x, 18) ^ (x >>> 3)) >>> 0;
+              var s1 = (rr(y, 17) ^ rr(y, 19) ^ (y >>> 10)) >>> 0;
+              w[t] = (w[t - 16] + s0 + w[t - 7] + s1) >>> 0;
+            }
+            var a = h[0], b = h[1], cc = h[2], d = h[3], e = h[4], f = h[5], g = h[6], hh = h[7];
+            for (t = 0; t < 64; t++) {
+              var s1b = (rr(e, 6) ^ rr(e, 11) ^ rr(e, 25)) >>> 0;
+              var ch = ((e & f) ^ ((~e >>> 0) & g)) >>> 0;
+              var temp1 = (hh + s1b + ch + k[t] + w[t]) >>> 0;
+              var s0b = (rr(a, 2) ^ rr(a, 13) ^ rr(a, 22)) >>> 0;
+              var maj = ((a & b) ^ (a & cc) ^ (b & cc)) >>> 0;
+              var temp2 = (s0b + maj) >>> 0;
+              hh = g; g = f; f = e; e = (d + temp1) >>> 0; d = cc; cc = b; b = a; a = (temp1 + temp2) >>> 0;
+            }
+            h[0] = (h[0] + a) >>> 0;
+            h[1] = (h[1] + b) >>> 0;
+            h[2] = (h[2] + cc) >>> 0;
+            h[3] = (h[3] + d) >>> 0;
+            h[4] = (h[4] + e) >>> 0;
+            h[5] = (h[5] + f) >>> 0;
+            h[6] = (h[6] + g) >>> 0;
+            h[7] = (h[7] + hh) >>> 0;
+          }
+          var hex = '';
+          for (i = 0; i < 8; i++) {
+            var n = h[i];
+            for (s = 28; s >= 0; s -= 4) hex += ((n >>> s) & 15).toString(16);
+          }
+          return hex;
+        }
+        try {
+          var uaHex = sha256Hex(typeof navigator.userAgent === 'string' ? navigator.userAgent : '');
+          if (/^[0-9a-f]{64}$/.test(uaHex)) row.ua_hash = uaHex;
+        } catch (e) {}
+        function post(body) {
+          return fetch(SUPABASE + '/rest/v1/kit_events', {
+            method: 'POST',
+            headers: {
+              apikey: ANON,
+              Authorization: 'Bearer ' + ANON,
+              'Content-Type': 'application/json',
+              Prefer: 'return=minimal'
+            },
+            body: JSON.stringify(body),
+            keepalive: true
+          });
+        }
+        function send(body) {
+          post(body).then(function (res) {
+            if (res.ok) return;
+            return res.text().then(function (text) {
+              if (/PGRST204|42703|is_test|properties|schema cache/i.test(text)) {
+                var retry = {};
+                for (var key in body) {
+                  if (key !== 'is_test' && key !== 'properties') retry[key] = body[key];
+                }
+                return post(retry);
+              }
+            });
+          }).catch(function () {});
+        }
+        send(row);
+      })();
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      window.addEventListener("DOMContentLoaded", () => {
+        const amId = localStorage.getItem("am_id");
+
+        const baseUrl = window.location.pathname.includes("yearly")
+          ? "https://saassuite1.gohighlevel.com/widgets/form/g0i0KExAmYpV3xNYP3JX" // Your yearly form embed
+          : "https://saassuite1.gohighlevel.com/widgets/form/EV3gcRXSEF5c3r7xKPaS"; // Your monthly form embed
+
+        const fullUrl = amId ? `${baseUrl}?am_id=${encodeURIComponent(amId)}` : baseUrl;
+
+        const iframe = document.createElement("iframe");
+        iframe.src = fullUrl;
+        iframe.style = "width:100%;min-height:900px;border:none;border-radius:12px;";
+        iframe.title = "SaaSSuite Checkout";
+        iframe.id = "dynamic-ghl-order-form";
+
+        const wrapper = document.getElementById("order-form-wrapper");
+        if (wrapper) {
+          wrapper.appendChild(iframe);
+          console.log("✅ Order form iframe injected with am_id:", fullUrl);
+        }
+      });
+    </script>
+  </body>
+</html>

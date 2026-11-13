@@ -1,0 +1,34 @@
+# SaaSSuite
+
+> The all-in-one white-label toolkit for HighLevel (GoHighLevel) agencies running SaaS mode.
+
+SaaSSuite gives HighLevel agencies branded onboarding, native AI support, retention automations, and full white-label customization on top of HighLevel SaaS mode. It's purpose-built for agencies who resell HighLevel to their own clients.
+
+## Pages
+- [Home](/): What SaaSSuite is and who it's for.
+- [Pricing](/pricing): Monthly and yearly plans for SaaS-mode agencies plus per-account Agency Support plans.
+- [Webinar](/webinar): Live product walkthrough for HighLevel agency owners.
+- [Blog](/blog): Playbooks and guides for running a HighLevel white-label SaaS.
+
+## Products
+- [Onboarding](/onboardings): Interactive walkthroughs, video onboarding, and checklists.
+- [AI support](/support): Native AI chat trained on your knowledge base with human handover.
+- [Branding tool](/branding-tool): Full white-label CSS, colors, fonts, and login customization.
+- [Login tracking](/login-tracking): Behavioral tracking for HighLevel SaaS retention.
+- [Email warmup](/email-warmup): Domain and inbox warmup for HighLevel-based email sends.
+- [Affiliate program](/affiliate): Earn recurring revenue for HighLevel agency referrals.
+
+## For niches
+- [Med spas](/for/med-spas)
+- [Real estate](/for/real-estate)
+- [Chiropractors](/for/chiropractors)
+- [Law firms](/for/law-firms)
+
+## Alternatives
+- [SaaSSuite vs GHLEngine](/alternatives/ghlengine)
+- [SaaSSuite vs HLProTools](/alternatives/hlprotools)
+- [SaaSSuite vs Extendly](/alternatives/extendly)
+
+## Optional
+- [Privacy policy](/privacy)
+- [Terms of service](/terms)

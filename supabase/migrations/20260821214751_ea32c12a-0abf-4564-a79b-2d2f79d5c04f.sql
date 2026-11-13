@@ -1,0 +1,2 @@
+UPDATE public.saas_suite_users SET welcome_ai_email_sent_at = NULL, last_followup_email_sent_at = NULL WHERE lower(email) = 'mail@renzified.com';
+UPDATE public.user_activity_sessions SET email_sent = false, email_sent_at = NULL, status = 'ended' WHERE id = '5b70a04b-249b-4ef5-936f-bdb50c9f8d65';

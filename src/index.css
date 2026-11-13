@@ -1,0 +1,800 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design system v0.1: Inter, self-hosted. Used by the signed-in app only (body.ds-app). */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/inter-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/inter-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+body.ds-app {
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * New UI only (html.ds-ui, set by src/lib/uiVersion.ts). The old UI keeps the
+ * original values in :root below, so it looks exactly as it did before.
+ */
+html.ds-ui {
+  --destructive: 0 72% 51%; /* #DC2626, 4.8:1 with white text */
+  --destructive-foreground: 0 0% 100%;
+  --success: 142 72% 29%; /* #15803D, 5.0:1 on white */
+  --input: 220 8% 58%; /* #8A909C: form-control borders need 3:1 */
+  --ring: 249 84% 60%;
+  --sidebar-primary: 249 84% 60%;
+  --sidebar-accent: 250 87% 97%;
+  --shadow-card: 0 1px 2px rgba(2, 8, 23, 0.06), 0 1px 3px rgba(2, 8, 23, 0.08);
+  --ds-radius-sm: 6px;
+  --ds-radius-xl: 16px;
+}
+/* New UI, signed-in app: one brand purple instead of the hand-typed Tailwind purples. */
+html.ds-ui body.ds-app :is(.bg-purple-500, .bg-purple-600, .bg-violet-500, .bg-violet-600, .bg-indigo-500, .bg-indigo-600) { background-color: hsl(var(--brand)); }
+html.ds-ui body.ds-app :is(.bg-purple-700, .bg-purple-800, .hover\:bg-purple-700:hover, .hover\:bg-purple-800:hover, .hover\:bg-purple-600:hover) { background-color: hsl(var(--brand-hover)); }
+html.ds-ui body.ds-app :is(.bg-purple-50, .bg-purple-100, .bg-violet-50, .bg-violet-100, .bg-indigo-50, .bg-indigo-100) { background-color: hsl(var(--brand-subtle)); }
+html.ds-ui body.ds-app :is(.text-purple-500, .text-purple-600, .text-violet-500, .text-violet-600, .text-indigo-500, .text-indigo-600) { color: hsl(var(--brand)); }
+html.ds-ui body.ds-app :is(.text-purple-700, .text-violet-700, .text-indigo-700) { color: hsl(var(--brand-hover)); }
+html.ds-ui body.ds-app :is(.text-purple-800, .text-purple-900, .text-purple-950) { color: #2f1f82; }
+html.ds-ui body.ds-app :is(.border-purple-200, .border-purple-300, .border-violet-200, .border-indigo-200) { border-color: #d3cafb; }
+html.ds-ui body.ds-app :is(.border-purple-400, .border-purple-500, .border-purple-600, .border-violet-500) { border-color: hsl(var(--brand)); }
+
+/*
+ * Design system v0.1 control sizes: 44px on phones, 40px from 640px up.
+ * They live in the components layer on purpose: a height utility on one
+ * button (h-8, h-14) still wins, which a responsive "sm:h-10" would not allow.
+ */
+@layer components {
+  .ds-control { height: 2.75rem; }
+  .ds-control-sm { height: 2.25rem; }
+  .ds-icon { height: 2.75rem; width: 2.75rem; }
+  .ds-icon-sm { height: 2.25rem; width: 2.25rem; }
+  @media (min-width: 640px) {
+    .ds-control { height: 2.5rem; }
+    .ds-control-sm { height: 2rem; }
+    .ds-icon { height: 2.5rem; width: 2.5rem; }
+    .ds-icon-sm { height: 2rem; width: 2rem; }
+  }
+}
+
+/* Build Your SaaS preserves the SLO's clean sales/checkout rhythm. */
+.bys-page { --bys-accent: var(--webinar-accent); --bys-surface: var(--pricing-premium); --bys-surface-foreground: var(--pricing-premium-foreground); letter-spacing: 0; }
+.bys-strip { background: hsl(var(--bys-surface)); color: hsl(var(--bys-surface-foreground)); }
+.bys-eyebrow, .bys-accent { color: hsl(var(--bys-accent)); }
+.bys-eyebrow { font-size: 12px; font-weight: 800; letter-spacing: 0; }
+.bys-page .bys-buy-button { background: hsl(var(--bys-accent)); color: hsl(var(--webinar-accent-foreground)); min-height: 48px; border-radius: 8px; }
+.bys-page .bys-buy-button:hover { opacity: .9; }
+.bys-page .bys-text-button { background: hsl(var(--success)); color: hsl(var(--success-foreground)); border-radius: 999px; min-height: 48px; height: auto; white-space: normal; text-align: center; padding: 12px 18px; }
+.bys-page .bys-text-button:hover { opacity: .9; }
+.bys-package-launch { border-color: hsl(var(--bys-accent)); }
+.bys-proof { background: hsl(var(--muted)); }
+.bys-page video { display: block; }
+.bys-page h1, .bys-page h2 { letter-spacing: 0; }
+
+@layer base {
+  :root {
+    /* Modern gradient backgrounds */
+    --background: 0 0% 99%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    /* Black for app buttons */
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+    --primary-glow: 0 0% 20%;
+
+    --secondary: 220 14.3% 95.9%;
+    --secondary-foreground: 220.9 39.3% 11%;
+
+    --muted: 220 14.3% 95.9%;
+    --muted-foreground: 220 8.9% 46.1%;
+
+    --accent: 220 14.3% 95.9%;
+    --accent-foreground: 220.9 39.3% 11%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    /* Design system v0.1 — SaaSSuite brand purple (#6043EF) and status colors */
+    --brand: 249 84% 60%;
+    --brand-hover: 249 69% 52%;
+    --brand-subtle: 250 87% 97%;
+    --brand-foreground: 0 0% 100%;
+    --warning: 26 90% 37%;
+    --info: 221 83% 53%;
+    --rating: 50 95% 53%;
+    --rating-edge: 41 92% 33%;
+    --ink: 225 20% 8%;
+    /* Signed-in app page canvas (#F5F5F5). --background stays near-white for marketing and hub pages. */
+    --canvas: 0 0% 96%;
+
+    /* Like / heart accent */
+    --heart: 350 89% 58%;
+
+    /* Offer / upsell highlight */
+    --offer: 45 96% 52%;
+    --offer-foreground: 26 83% 14%;
+    --success: 142 71% 40%;
+    --success-foreground: 0 0% 100%;
+
+    /* Webinar registration accents */
+    --webinar-accent: 279 70% 51%;
+    --webinar-accent-bright: 310 82% 57%;
+    --webinar-accent-foreground: 0 0% 100%;
+
+    /* Webinar confirmation status colors */
+    --wc-success: 142 71% 36%;
+    --wc-danger: 0 72% 51%;
+    --wc-warning: 45 93% 47%;
+    --wc-star: 45 93% 47%;
+
+    /* Webinar 2 SaaSSuite purple theme */
+    --webinar2-accent: 279 70% 51%;
+    --webinar2-accent-bright: 310 82% 57%;
+    --webinar2-accent-foreground: 0 0% 100%;
+
+    /* SaaSSuite pricing identity */
+    --pricing-accent: 271 71% 49%;
+    --pricing-accent-hover: 271 71% 42%;
+    --pricing-accent-foreground: 0 0% 100%;
+    --pricing-premium: 222 21% 8%;
+    --pricing-premium-foreground: 0 0% 100%;
+
+    /* SaaSSuite brand kit — homepage purple + webinar CTA gradient */
+    --brand-purple: 249 84% 60%;
+    --brand-gradient: linear-gradient(135deg, hsl(275 62% 44%) 0%, hsl(280 68% 56%) 55%, hsl(295 72% 50%) 100%);
+    --brand-gradient-shadow: 0 10px 30px hsl(275 70% 35% / 0.35);
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 250 84% 60%;
+
+    --radius: 0.75rem;
+
+    /* Modern light sidebar colors */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222.2 84% 4.9%;
+    --sidebar-primary: 250 84% 60%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 250 84% 60% / 0.1;
+    --sidebar-accent-foreground: 222.2 84% 4.9%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 250 84% 60%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    --gradient-background: linear-gradient(135deg, hsl(0 0% 99%), hsl(220 14.3% 95.9%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(220 14.3% 98%));
+    
+    /* Shadows with glow */
+    --shadow-glow: 0 0 40px hsl(var(--primary) / 0.15);
+    --shadow-card: 0 4px 6px -1px hsl(220 13% 91% / 0.1), 0 2px 4px -1px hsl(220 13% 91% / 0.06);
+    --shadow-elevated: 0 10px 25px -5px hsl(220 13% 91% / 0.1), 0 8px 10px -6px hsl(220 13% 91% / 0.1);
+    --shadow-popover: 0 8px 24px -6px rgba(2, 8, 23, 0.16), 0 2px 6px rgba(2, 8, 23, 0.06);
+    --shadow-dialog: 0 24px 48px -12px rgba(2, 8, 23, 0.28);
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 215 27.9% 16.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+    --primary-glow: 0 0% 20%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --brand: 249 84% 66%;
+    --brand-hover: 249 84% 72%;
+    --brand-subtle: 249 40% 18%;
+    --brand-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --info: 217 91% 60%;
+    --rating: 50 95% 53%;
+    --rating-edge: 41 92% 33%;
+    --ink: 225 20% 8%;
+    --canvas: 222.2 84% 4.9%;
+
+    --heart: 350 89% 62%;
+
+    --offer: 45 93% 58%;
+    --offer-foreground: 26 83% 10%;
+    --success: 142 65% 45%;
+    --success-foreground: 0 0% 100%;
+    --webinar-accent: 279 74% 62%;
+    --webinar-accent-bright: 310 86% 65%;
+    --webinar-accent-foreground: 0 0% 100%;
+
+    /* Webinar 2 SaaSSuite purple theme */
+    --webinar2-accent: 279 74% 62%;
+    --webinar2-accent-bright: 310 86% 65%;
+    --webinar2-accent-foreground: 0 0% 100%;
+    --pricing-accent: 271 74% 62%;
+    --pricing-accent-hover: 271 74% 68%;
+    --pricing-accent-foreground: 0 0% 100%;
+    --pricing-premium: 0 0% 4%;
+    --pricing-premium-foreground: 0 0% 100%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 250 84% 60%;
+    
+    --sidebar-background: 215 27.9% 8%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 250 84% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 27.9% 12%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 215 27.9% 12%;
+    --sidebar-ring: 250 84% 60%;
+
+    /* Dark mode gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    --gradient-background: linear-gradient(135deg, hsl(222.2 84% 4.9%), hsl(215 27.9% 8%));
+    --gradient-card: linear-gradient(145deg, hsl(215 27.9% 16.9%), hsl(215 27.9% 12%));
+    
+    /* Dark mode shadows with glow */
+    --shadow-glow: 0 0 40px hsl(var(--primary) / 0.25);
+    --shadow-card: 0 4px 6px -1px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.06);
+    --shadow-elevated: 0 10px 25px -5px hsl(0 0% 0% / 0.25), 0 8px 10px -6px hsl(0 0% 0% / 0.1);
+    --shadow-popover: 0 8px 24px -6px hsl(0 0% 0% / 0.4), 0 2px 6px hsl(0 0% 0% / 0.2);
+    --shadow-dialog: 0 24px 48px -12px hsl(0 0% 0% / 0.5);
+  }
+}
+
+@keyframes premiumCardIn {
+  0% {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes premiumCardOut {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+}
+
+@keyframes premiumFeatureIn {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pricingPriceFade {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes pricingFeatureDrop {
+  0% {
+    opacity: 0;
+    transform: translateY(-7px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pricing-price-fade {
+  animation: pricingPriceFade 280ms ease-out both;
+}
+
+.pricing-feature-drop {
+  animation: pricingFeatureDrop 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.brand-kit-gradient {
+  background: var(--brand-gradient);
+  box-shadow: var(--brand-gradient-shadow);
+}
+
+.brand-kit-gradient:hover {
+  filter: brightness(1.08);
+}
+
+@keyframes pricingTierSwap {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes pricingGridIn {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInFromBlur {
+  0% {
+    opacity: 0;
+    filter: blur(10px);
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0px);
+    transform: translateY(0);
+  }
+}
+
+@keyframes scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-scroll {
+  animation: scroll 20s linear infinite;
+  will-change: transform;
+}
+
+@media (hover: hover) {
+  .animate-scroll:hover {
+    animation-play-state: paused;
+  }
+}
+
+@media (max-width: 640px) {
+  .animate-scroll {
+    animation-duration: 12s;
+  }
+}
+
+@layer utilities {
+  .bg-grid-pattern {
+    background-image: linear-gradient(to right, hsl(var(--border)) 1px, transparent 1px),
+                      linear-gradient(to bottom, hsl(var(--border)) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  .webinar-2-hero {
+    background-color: #fff;
+    background-image:
+      radial-gradient(ellipse 70% 45% at 50% 78%, rgba(186, 232, 220, 0.55), transparent 70%),
+      radial-gradient(ellipse 40% 30% at 82% 92%, rgba(255, 214, 210, 0.5), transparent 70%),
+      radial-gradient(ellipse 40% 35% at 16% 100%, rgba(214, 214, 255, 0.45), transparent 70%);
+    background-repeat: no-repeat;
+  }
+
+  /* Training pages reuse the kit's click-to-play poster. The kit stylesheet is not on these routes. */
+  .training-video .ofk-facade{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;width:100%;height:100%;border:0;padding:0;margin:0;background:#0b1224;cursor:pointer}
+  .training-video .ofk-facade .play{position:relative;z-index:1;width:78px;height:78px;border-radius:50%;background:linear-gradient(135deg,#b74cf0,#7c3aed);display:flex;align-items:center;justify-content:center;box-shadow:0 10px 30px rgba(183,76,240,.5)}
+  .training-video .ofk-facade .play:after{content:"";border-left:24px solid #fff;border-top:15px solid transparent;border-bottom:15px solid transparent;margin-left:6px}
+  .training-video .ofk-facade .ofk-caption-bar{position:absolute;left:12px;bottom:12px;z-index:2;border-radius:4px;background:rgba(0,0,0,.75);padding:4px 8px;font-size:12px;font-weight:700;color:#fff}
+  .training-video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+
+  .webinar-2-attention {
+    color: hsl(var(--webinar2-accent-foreground));
+    background: hsl(var(--webinar2-accent));
+    border-radius: 9999px;
+  }
+
+  .webinar-2-accent {
+    color: hsl(var(--webinar2-accent));
+  }
+
+  .ghl-dfy-accent { color: hsl(var(--pricing-accent)); }
+  .ghl-dfy-check { color: hsl(var(--success)); }
+  .ghl-dfy-cta {
+    background: hsl(var(--pricing-accent));
+    color: hsl(var(--pricing-accent-foreground));
+    box-shadow: var(--shadow-elevated);
+  }
+  .ghl-dfy-cta:hover { background: hsl(var(--pricing-accent-hover)); }
+  .ghl-dfy-price-card {
+    border-color: hsl(var(--pricing-accent));
+    background: hsl(var(--pricing-accent) / 0.04);
+  }
+  .ghl-dfy-enter { animation: fadeInFromBlur 600ms ease-out both; }
+  @media (prefers-reduced-motion: reduce) {
+    .ghl-dfy-enter { animation: none; }
+    .ghl-dfy-page * { scroll-behavior: auto; transition-duration: 0s; }
+  }
+
+  .one-feature-choice {
+    border-color: hsl(var(--webinar2-accent) / 0.3);
+    background: hsl(var(--card) / 0.85);
+    color: hsl(var(--foreground));
+  }
+
+  .one-feature-choice:hover,
+  .one-feature-choice[aria-pressed="true"] {
+    border-color: hsl(var(--webinar2-accent));
+    background: hsl(var(--webinar2-accent) / 0.12);
+    color: hsl(var(--webinar2-accent));
+  }
+
+  .webinar-2-accent-bright {
+    color: hsl(var(--webinar2-accent-bright));
+  }
+
+  .webinar-2-arrow {
+    color: hsl(279 85% 62%);
+    filter: drop-shadow(0 0 6px hsl(279 85% 62% / 0.5));
+  }
+
+  .webinar-2-bonus-text {
+    color: #ffffff;
+    text-shadow:
+      0 1px 2px rgb(0 0 0 / 0.75),
+      0 2px 6px rgb(0 0 0 / 0.55),
+      0 0 14px rgb(0 0 0 / 0.35);
+  }
+
+  .webinar-2-cta {
+    color: hsl(var(--webinar2-accent-foreground));
+    background-color: hsl(var(--webinar2-accent));
+    background-image: linear-gradient(135deg, hsl(275 62% 44%) 0%, hsl(280 68% 56%) 55%, hsl(295 72% 50%) 100%);
+    background-clip: border-box;
+    box-shadow: 0 10px 30px hsl(275 70% 35% / 0.45), 0 0 24px hsl(295 80% 50% / 0.25);
+    border: 1px solid hsl(290 80% 65% / 0.45);
+    opacity: 1;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .webinar-2-cta:hover {
+    filter: brightness(1.15);
+  }
+
+  .webinar-2-book {
+    border: 2px solid hsl(var(--webinar2-accent));
+    border-radius: 4px 8px 8px 4px;
+    background: hsl(var(--background));
+    box-shadow: 4px 5px 0 hsl(var(--webinar2-accent) / 0.25);
+    transform: rotate(7deg);
+  }
+
+  /* Gold shimmer headline text */
+  .webinar-2-gold {
+    background: linear-gradient(
+      100deg,
+      hsl(40 90% 42%) 0%,
+      hsl(45 95% 55%) 20%,
+      hsl(52 100% 80%) 40%,
+      hsl(45 95% 55%) 60%,
+      hsl(40 90% 42%) 80%,
+      hsl(45 95% 55%) 100%
+    );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: webinar-2-gold-shimmer 4s linear infinite;
+  }
+}
+
+@keyframes webinar-2-gold-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes marketplace-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.marketplace-progress {
+  animation: marketplace-progress 3s ease-out forwards;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@media (max-width: 767px) {
+  /* Legacy helper: keep the type step-down, drop the transform scale.
+     Transform scaling squished text and broke hit targets / overflow. */
+  .mobile-scale-down {
+    font-size: 0.95em;
+  }
+}
+
+/* Mobile: let content breathe edge-to-edge instead of sitting inside heavy cards. */
+@media (max-width: 767px) {
+  .mobile-flush .bg-card.rounded-lg,
+  .mobile-flush .bg-card.rounded-xl,
+  .mobile-flush .bg-card.rounded-2xl {
+    border-color: transparent;
+    box-shadow: none;
+  }
+
+  .mobile-flush .p-8 { padding: 1rem; }
+  .mobile-flush .p-6 { padding: 0.875rem; }
+  .mobile-flush .px-8 { padding-left: 1rem; padding-right: 1rem; }
+  .mobile-flush .px-6 { padding-left: 0.875rem; padding-right: 0.875rem; }
+}
+
+/* ---------------------------------------------------------------
+   Mobile typography + overflow guards.
+   Fixes squished titles, text stacking on itself, and content
+   hanging off the right edge on small screens.
+   --------------------------------------------------------------- */
+@media (max-width: 767px) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Step down oversized display type so headings wrap instead of clipping. */
+  .mobile-type h1,
+  .mobile-type .text-4xl,
+  .mobile-type .text-5xl,
+  .mobile-type .text-6xl {
+    font-size: 1.5rem;
+    line-height: 1.2;
+  }
+
+  .mobile-type h2,
+  .mobile-type .text-3xl {
+    font-size: 1.25rem;
+    line-height: 1.25;
+  }
+
+  .mobile-type .text-2xl {
+    font-size: 1.125rem;
+    line-height: 1.3;
+  }
+
+  /* Long words / emails / agency IDs shouldn't push the layout wide. */
+  .mobile-type h1,
+  .mobile-type h2,
+  .mobile-type h3,
+  .mobile-type p,
+  .mobile-type span,
+  .mobile-type label {
+    overflow-wrap: anywhere;
+  }
+
+  /* Grids that hardcode multiple columns collapse to a single column. */
+  .mobile-type .grid-cols-3,
+  .mobile-type .grid-cols-4,
+  .mobile-type .grid-cols-5,
+  .mobile-type .grid-cols-6 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Challenge podium stays three steps wide so 1st stays in the middle. */
+  .mobile-type .podium-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  /* Tab strips scroll horizontally instead of overlapping their labels. */
+  .mobile-type [role="tablist"] {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-type [role="tablist"]::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobile-type [role="tablist"] > * {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  /* Wide tables scroll rather than squeezing every column. */
+  .mobile-type table {
+    min-width: 560px;
+  }
+
+  /* iOS zooms in on focus when inputs are under 16px. */
+  .mobile-type input,
+  .mobile-type textarea,
+  .mobile-type select {
+    font-size: 16px;
+  }
+}
+
+button,
+a,
+[role="button"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+/* Sidebar section stagger: items reveal one-by-one on open */
+@keyframes sidebar-item-in {
+  0% { opacity: 0; transform: translateX(-10px) scale(0.97); }
+  60% { opacity: 1; }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+.sidebar-stagger-item {
+  animation: sidebar-item-in 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--enter-delay, 0ms);
+}
+@keyframes sidebar-item-out {
+  from { opacity: 1; transform: translateX(0) scale(1); }
+  40% { opacity: 1; }
+  to { opacity: 0; transform: translateX(-10px) scale(0.97); }
+}
+/* Collapsing unwinds in reverse order (last item leaves first) */
+[data-state="closed"] > * > * > .sidebar-stagger-item,
+[data-state="closed"] .sidebar-stagger-item {
+  animation: sidebar-item-out 200ms cubic-bezier(0.4, 0, 1, 1) both;
+  animation-delay: var(--exit-delay, 0ms);
+}
+
+/* Light purple hover wash + slight grow for sidebar rows */
+.sidebar-nav-item {
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 160ms ease-out, color 160ms ease-out, box-shadow 180ms ease-out;
+  transform-origin: left center;
+}
+.sidebar-nav-item:hover {
+  transform: scale(1.03);
+  background-color: hsl(262 83% 60% / 0.14) !important;
+  box-shadow: inset 0 0 0 1px hsl(262 83% 60% / 0.22);
+}
+/* New UI: plain muted hover. The selected row keeps its brand wash. */
+.ds-ui .sidebar-nav-item:hover {
+  transform: none;
+  box-shadow: none;
+  background-color: hsl(var(--muted)) !important;
+}
+.ds-ui .sidebar-nav-item[data-active="true"]:hover {
+  background-color: hsl(var(--brand-subtle)) !important;
+}
+.sidebar-nav-item:active {
+  transform: scale(0.99);
+}
+
+/* Sub-menu rows sit inside a padded, overflow-hidden collapsible, so the
+   highlight needs room on both sides to end cleanly with rounded corners
+   instead of getting clipped flat against the container edge. */
+.sidebar-submenu [data-sidebar="menu-button"] {
+  width: 100%;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+.sidebar-submenu .sidebar-nav-item:hover {
+  transform: scale(1.01);
+}
+
+/* "Add" button outline: dashed grey, double-width stroke clipped by border-radius. */
+.dashed-edit {
+  border: 0 !important;
+  border-radius: 10px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'><rect x='0' y='0' width='100%25' height='100%25' rx='10' ry='10' fill='none' stroke='hsl(220 8.9%25 46.1%25)' stroke-width='4' stroke-dasharray='10 7' /></svg>");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%;
+  background-clip: border-box;
+}
+
+/* Editable form containers: default = light grey solid border. */
+.dashed-edit-form {
+  border: 1px solid hsl(220 13% 91%) !important;
+  border-radius: 10px;
+  background-image: none;
+}
+
+/* When actively editing a form container, switch to dashed lines. */
+.dashed-edit-form:focus-within {
+  border: 0 !important;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'><rect x='0' y='0' width='100%25' height='100%25' rx='10' ry='10' fill='none' stroke='hsl(220 8.9%25 46.1%25)' stroke-width='4' stroke-dasharray='10 7' /></svg>");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%;
+  background-clip: border-box;
+}
+
+/* Video/image thumbnail placeholder: solid grey outline + soft gradient fill */
+.thumb-placeholder {
+  border: 1px solid hsl(220 8.9% 70%);
+  background-size: cover;
+  background-position: center;
+}
+
+/* Video testimonial cards: frosted glass surface + gold star accent */
+.glass-card {
+  background: linear-gradient(180deg, hsl(0 0% 100% / 0.85), hsl(0 0% 100% / 0.65));
+  backdrop-filter: blur(14px);
+  box-shadow: 0 10px 30px -12px hsl(222 47% 11% / 0.18);
+}
+.frost-border {
+  border: 1px solid hsl(220 13% 91%);
+}
+.text-gold {
+  color: hsl(43 96% 48%);
+}
+.fill-gold {
+  fill: hsl(43 96% 48%);
+}
+
+@keyframes user-activity-spin-in {
+  from { opacity: 0; transform: translate(-50%, -47%) scale(0.94) rotate(-2deg); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+}
+.user-activity-dialog[data-state="open"] {
+  animation: user-activity-spin-in 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}

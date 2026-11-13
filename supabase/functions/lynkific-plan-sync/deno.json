@@ -1,0 +1,5 @@
+{
+  "imports": {
+    "libphonenumber-js": "npm:libphonenumber-js@1.12.42"
+  }
+}

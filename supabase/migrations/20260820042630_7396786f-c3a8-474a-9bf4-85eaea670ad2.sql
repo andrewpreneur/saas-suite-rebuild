@@ -1,0 +1,1 @@
+DELETE FROM public.saas_suite_users WHERE email = 'signuptest+fixcheck@example.com';

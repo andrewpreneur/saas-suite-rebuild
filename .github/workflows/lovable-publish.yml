@@ -1,0 +1,71 @@
+# Publishes this Lovable project after a push to main.
+#
+# Lovable's GitHub app syncs the commit on its own. This workflow only calls
+# the publish API, after SYNC_WAIT_SECONDS, so the snapshot includes that push.
+# There is no API to check whether sync has finished. See
+# docs/lovable-auto-publish.md.
+#
+# LOVABLE_PROJECT_ID may be a UUID or a prj_ id. A UUID is a valid project id
+# and is published directly. An empty value uses this repo's project UUID.
+
+name: Publish to Lovable
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# One publish at a time. The running job is left alone so a newer push waits.
+# GitHub keeps a single pending run in the group, so a burst of pushes can
+# drop intermediate runs. The run that starts next publishes current main
+# after the sync wait.
+concurrency:
+  group: lovable-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish project
+    runs-on: ubuntu-latest
+    # Sync wait (default 90s) plus the 900s publish budget, with room for the
+    # runner to start. Raise this if you raise SYNC_WAIT_SECONDS.
+    timeout-minutes: 25
+    env:
+      # Seconds to wait for Lovable to ingest the GitHub push. Too short and
+      # the previous snapshot is what gets published.
+      SYNC_WAIT_SECONDS: "90"
+      # Wall clock for the publish POST and status polls, after the sync wait.
+      PUBLISH_TIMEOUT_SECONDS: "900"
+    steps:
+      - name: Require Lovable API key
+        env:
+          LOV_PUBLIC_API_KEY: ${{ secrets.LOV_PUBLIC_API_KEY }}
+          LOVABLE_PROJECT_ID: ${{ secrets.LOVABLE_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "${LOV_PUBLIC_API_KEY}" ]; then
+            echo "::error::LOV_PUBLIC_API_KEY is not set. Add it under Settings → Secrets and variables → Actions. Lovable reserves the name LOVABLE_API_KEY, so this workflow uses LOV_PUBLIC_API_KEY. See docs/lovable-auto-publish.md."
+            exit 1
+          fi
+          masked=${LOV_PUBLIC_API_KEY//'%'/'%25'}
+          masked=${masked//$'\r'/'%0D'}
+          masked=${masked//$'\n'/'%0A'}
+          echo "::add-mask::${masked}"
+          if [ -z "${LOVABLE_PROJECT_ID:-}" ]; then
+            echo "LOVABLE_PROJECT_ID is not set. The publish script will use this repo's project UUID."
+          fi
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Publish to Lovable
+        env:
+          LOV_PUBLIC_API_KEY: ${{ secrets.LOV_PUBLIC_API_KEY }}
+          LOVABLE_PROJECT_ID: ${{ secrets.LOVABLE_PROJECT_ID }}
+        run: bash scripts/lovable-publish.sh
