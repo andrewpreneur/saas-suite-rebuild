@@ -1,7 +1,6 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { componentTagger } from "lovable-tagger";
 import prerender from "@prerenderer/rollup-plugin";
 import { getAllPublicRoutes } from "./scripts/seo-routes";
 import { cleanPrerenderedHtml, deferFunnelModuleScript, preloadLanderLcpImage, shelveHomepageMedia } from "./scripts/prerenderPostProcess";
@@ -55,7 +54,7 @@ export default defineConfig(async ({ mode }) => {
   plugins: [
     appVersionPlugin(),
     react(),
-    mode === 'development' && componentTagger(),
+    // The Lovable editor tagger is not used here: this copy is not connected to Lovable, and it broke local previews.
     mode === 'production' && prerender({
       routes: prerenderRoutes,
       renderer: '@prerenderer/renderer-puppeteer',
