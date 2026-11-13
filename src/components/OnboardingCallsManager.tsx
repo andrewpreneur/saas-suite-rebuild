@@ -1,8 +1,9 @@
 import LocationList from "@/components/highlevel/LocationList";
 import { useGhl } from "@/components/highlevel/useGhl";
 import { PageHeader } from "@/components/platform/PageHeader";
-import { SectionCard } from "@/components/premium/SectionCard";
-import { OfferCard } from "@/components/premium/support/OfferCard";
+import { SettingItem, SettingList } from "@/components/premium/SettingList";
+import { StatStrip } from "@/components/premium/StatStrip";
+import { PanelCard } from "@/components/premium/support/PanelCard";
 import NumberTicker from "@/components/premium/21st/number-ticker";
 import { Tag } from "@/components/ui/tag";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -14,7 +15,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Popover,
@@ -39,6 +40,8 @@ import {
 } from "@/components/ui/table";
 import {
   CheckCircle,
+  CircleHelp,
+  CreditCard,
   ShoppingCart,
   X,
   Video,
@@ -85,6 +88,12 @@ const OnboardingCallsManager = () => {
   type AgencyClient = { user_id: string; user_name: string | null; user_email: string | null };
   const [agencyClients, setAgencyClients] = useState<AgencyClient[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [howOpen, setHowOpen] = useState(false);
+  // Coming back from card setup (?autopaySetup=...) must land in the payment panel,
+  // because the card inside it is what confirms the setup.
+  const [paymentOpen, setPaymentOpen] = useState(
+    () => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("autopaySetup"),
+  );
 
   const stripePromise = useMemo(() => loadStripe(STRIPE_PK), []);
 
@@ -314,52 +323,28 @@ const OnboardingCallsManager = () => {
     },
   ];
 
+  const whoCanBook = !deployConfigured
+    ? "Nobody can book until you save this"
+    : deployMode === "ALL"
+      ? "All sub-accounts"
+      : deployMode === "PLANS"
+        ? deployPlans.length === 0
+          ? "Off · no plans selected"
+          : `${deployPlans.length} ${deployPlans.length === 1 ? "plan" : "plans"}`
+        : deployUsers.length === 0
+          ? "Off · no users selected"
+          : `${deployUsers.length} ${deployUsers.length === 1 ? "user" : "users"}`;
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <PageHeader
         eyebrow="Done for you"
         title="Onboarding Calls"
         subtitle="We run a live 1-on-1 onboarding session with your client, so you don't have to."
-      />
-
-      {loadError && <LoadNotice error={loadError} onRetry={() => void fetchWallet()} />}
-
-      <OfferCard
-        title="A 1-on-1 onboarding call for your client"
-        description="Buy a call, share the booking link, and we take your client through their account live."
-        features={[
-          "One live session per call, booked by your client",
-          "The call lands in your balance the moment you pay",
-          "We send you the booking link",
-          "Buy as many calls as you need, any time",
-        ]}
-        price="$60"
-        priceUnit="per call"
-        priceNote={
-          <span className="flex flex-wrap items-center gap-2">
-            {loading ? (
-              <span className="px-skeleton inline-block h-5 w-28" />
-            ) : (
-              <span className="font-medium text-foreground">
-                <NumberTicker
-                  key={wallet}
-                  from={0}
-                  target={wallet}
-                  transition={{ duration: 0.8, type: "tween", ease: [0.16, 1, 0.3, 1] }}
-                />{" "}
-                {wallet === 1 ? "call" : "calls"} in your balance
-              </span>
-            )}
-            <Tag tone={access && wallet > 0 ? "success" : "neutral"}>
-              {access && wallet > 0 ? "Active" : "Inactive"}
-            </Tag>
-          </span>
-        }
-        action={
+        actions={
           <Button
             variant="accent"
-            size="lg"
-            className="h-auto min-h-11 gap-2 whitespace-normal"
+            className="min-h-11 gap-2 sm:min-h-0"
             onClick={() => {
               setCompleted(false);
               setCheckoutOpen(true);
@@ -369,25 +354,63 @@ const OnboardingCallsManager = () => {
             Buy an onboarding call
           </Button>
         }
-        footnote="Each booked call uses one call from your balance."
+        more={[
+          {
+            label: "How this works",
+            icon: <CircleHelp aria-hidden="true" />,
+            onSelect: () => setHowOpen(true),
+          },
+        ]}
       />
 
-      {/* Who can book */}
-      <SectionCard
-        icon={<Users />}
-        title="Who can book a call"
-        description="Choose which clients see onboarding calls. Nobody can book until you save this."
-        actions={
-          deployConfigured ? (
-            <Tag tone="success">
-              <CheckCircle aria-hidden="true" /> Saved
-            </Tag>
-          ) : (
-            <Tag tone="warning">Needs setup</Tag>
-          )
-        }
-        bodyClassName="space-y-4"
-      >
+      {loadError && <LoadNotice error={loadError} onRetry={() => void fetchWallet()} />}
+
+      <StatStrip
+        stats={[
+          {
+            label: "Calls in your balance",
+            value: loading ? (
+              <span className="px-skeleton inline-block h-6 w-8" />
+            ) : (
+              <NumberTicker
+                key={wallet}
+                from={0}
+                target={wallet}
+                transition={{ duration: 0.8, type: "tween", ease: [0.16, 1, 0.3, 1] }}
+              />
+            ),
+            hint: loading ? undefined : access && wallet > 0 ? "Active" : "Inactive",
+          },
+          { label: "Price", value: "$60", hint: "per call" },
+        ]}
+      />
+
+      <SettingList>
+        <SettingItem
+          icon={<Users />}
+          title="Who can book a call"
+          value={whoCanBook}
+          status={
+            deployConfigured ? (
+              <Tag tone="success">
+                <CheckCircle aria-hidden="true" /> Saved
+              </Tag>
+            ) : (
+              <Tag tone="warning">Needs setup</Tag>
+            )
+          }
+          panel={{
+            wide: true,
+            description: "Choose which clients see onboarding calls. Nobody can book until you save this.",
+            footer: (
+              <Button variant="accent" onClick={saveDeployment} disabled={savingDeploy} className="min-h-11 gap-2 sm:min-h-0">
+                <Save aria-hidden="true" />
+                {savingDeploy ? "Saving…" : "Save who can book"}
+              </Button>
+            ),
+          }}
+        >
+        <div className="space-y-4">
           <div className="grid sm:grid-cols-3 gap-3">
             {[
               {
@@ -578,34 +601,23 @@ const OnboardingCallsManager = () => {
             </div>
           )}
 
-          <div className="flex justify-end">
-            <Button onClick={saveDeployment} disabled={savingDeploy} className="gap-2">
-              <Save aria-hidden="true" />
-              {savingDeploy ? "Saving…" : "Save who can book"}
-            </Button>
-          </div>
-      </SectionCard>
-
-      {email && <OnboardingAutopayCard ownerEmail={email.trim().toLowerCase()} />}
-
-      <SectionCard title="How it works" description="Four steps, repeated for each client.">
-        <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            ["Buy a call", "Your balance goes up right away."],
-            ["Get the link", "Our team sends you the booking link."],
-            ["Client books", "One call leaves your balance when they book."],
-            ["Repeat", "Buy more whenever you need them."],
-          ].map(([title, text], index) => (
-            <li key={title} className="rounded-lg bg-muted/50 p-4">
-              <span className="flex size-6 items-center justify-center rounded-full bg-brand-subtle text-xs font-semibold text-brand">
-                {index + 1}
-              </span>
-              <p className="mt-2 text-sm font-semibold text-foreground">{title}</p>
-              <p className="mt-0.5 text-sm text-muted-foreground">{text}</p>
-            </li>
-          ))}
-        </ol>
-      </SectionCard>
+        </div>
+        </SettingItem>
+        {email ? (
+          <SettingItem
+            icon={<CreditCard />}
+            title="Payment for booked calls"
+            value="Pay manually, or auto-pay when a client books"
+            open={paymentOpen}
+            onOpenChange={setPaymentOpen}
+            panel={{ wide: true }}
+          >
+            <PanelCard>
+              <OnboardingAutopayCard ownerEmail={email.trim().toLowerCase()} />
+            </PanelCard>
+          </SettingItem>
+        ) : null}
+      </SettingList>
 
       {email && (
         <OnboardingCallRecorder
@@ -613,6 +625,45 @@ const OnboardingCallsManager = () => {
           onChanged={() => { fetchWallet(); fetchBookings(); }}
         />
       )}
+
+      <Dialog open={howOpen} onOpenChange={setHowOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>How onboarding calls work</DialogTitle>
+            <DialogDescription>
+              Buy a call, share the booking link, and we take your client through their account live.
+            </DialogDescription>
+          </DialogHeader>
+          <ol className="grid gap-3 sm:grid-cols-2">
+            {[
+              ["Buy a call", "Your balance goes up right away."],
+              ["Get the link", "Our team sends you the booking link."],
+              ["Client books", "One call leaves your balance when they book."],
+              ["Repeat", "Buy more whenever you need them."],
+            ].map(([title, text], index) => (
+              <li key={title} className="rounded-lg bg-muted/50 p-4">
+                <span className="flex size-6 items-center justify-center rounded-full bg-brand-subtle text-xs font-semibold text-brand">
+                  {index + 1}
+                </span>
+                <p className="mt-2 text-sm font-semibold text-foreground">{title}</p>
+                <p className="mt-0.5 text-sm text-muted-foreground">{text}</p>
+              </li>
+            ))}
+          </ol>
+          <ul className="space-y-2 border-t border-border pt-4">
+            {[
+              "One live session per call, booked by your client",
+              "The call lands in your balance the moment you pay",
+              "Buy as many calls as you need, any time",
+            ].map((feature) => (
+              <li key={feature} className="flex items-start gap-2 text-sm text-foreground">
+                <Check className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden="true" />
+                {feature}
+              </li>
+            ))}
+          </ul>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={checkoutOpen} onOpenChange={(v) => { if (!v) handleClose(); }}>
         <DialogContent

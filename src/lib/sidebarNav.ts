@@ -123,12 +123,14 @@ export const TOOL_LABELS: Record<string, string> = {
   settings: "Settings",
   walkthrough: "Walkthrough",
   copilot: "Copilot",
+  "support-features": "Customize Support",
 };
 
 /** Sidebar group a tool belongs to, for the top bar's "Group / Page" trail. */
 export function sectionLabelForTool(toolId: string): string | null {
   if ((SIDEBAR_HOME_TOOL_IDS as readonly string[]).includes(toolId)) return null;
   if (toolId === "settings") return "Account";
+  if (toolId === "support-features") return "Support";
   const id = toolId === "start-here" ? "learning" : toolId;
   return NEW_UI_SIDEBAR_SECTIONS.find((section) => section.toolIds.includes(id))?.label ?? null;
 }
