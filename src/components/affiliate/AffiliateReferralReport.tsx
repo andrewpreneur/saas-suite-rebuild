@@ -8,6 +8,8 @@ import { InfoTip } from "@/components/ui/info-tip";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { StatStrip } from "@/components/premium/StatStrip";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 export type ReferralPaymentRow = {
@@ -211,6 +213,7 @@ export function AffiliateReferralReport({
   showAffiliate,
   rangeControl,
   belowChart,
+  calm = false,
 }: {
   activity?: ReferralActivity | null;
   series?: ActivityPoint[] | null;
@@ -220,7 +223,11 @@ export function AffiliateReferralReport({
   showAffiliate?: boolean;
   rangeControl?: ReactNode;
   belowChart?: ReactNode;
+  /** Calm screens: the nine number cards become one strip and the chart legend carries the totals. */
+  calm?: boolean;
 }) {
+  // Two-up on phones leaves no room for a hint beside the number.
+  const hints = !useIsMobile();
   const safeSeries = Array.isArray(series) ? series : [];
   const safeReferrals = Array.isArray(referrals) ? referrals : [];
   const safePages = Array.isArray(pages) ? pages : [];
@@ -262,25 +269,38 @@ export function AffiliateReferralReport({
         <p key={notice} role="status" className="rounded-md border border-border bg-muted/50 p-3 text-sm text-muted-foreground">{notice}</p>
       ))}
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-        <KpiBox lead label="Commission earned" value={money(safeActivity.commission)} hint="Rate times amount paid in those dates" />
-        <KpiBox lead label="Pending payout" value={pendingLabel} hint="Invoice commissions not yet sent" />
-        <KpiBox
-          lead
-          label="Expected 14-day trial conversion revenue"
-          value={plusMoney(safeActivity.expectedTrialCommission)}
-          hint={expectedInfo}
-          info={expectedInfo}
+      {calm ? (
+        <StatStrip
+          stats={[
+            { label: "Commission earned", value: money(safeActivity.commission), hint: hints ? "in these dates" : undefined },
+            { label: "Pending payout", value: pendingLabel, hint: hints ? "not yet sent" : undefined },
+            { label: hints ? "Expected from trials" : `Expected, ${trialCount} ${trialWord}`, value: plusMoney(safeActivity.expectedTrialCommission), hint: hints ? `if ${trialCount} ${trialWord} convert` : undefined },
+            { label: hints ? "Active paying" : `Active, ${countLabel(safeActivity.trials)} on trial`, value: countLabel(safeActivity.active), hint: hints ? `${countLabel(safeActivity.trials)} on trial` : undefined },
+          ]}
         />
-      </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-6">
-        <KpiBox label="Views" value={countLabel(safeActivity.views)} hint="Page visits in the selected dates" />
-        <KpiBox label="Clicks" value={countLabel(safeActivity.clicks)} hint="Link and checkout clicks" />
-        <KpiBox label="Signups" value={countLabel(safeActivity.signups)} hint="Accounts created in the selected dates" />
-        <KpiBox label="Trials" value={countLabel(safeActivity.trials)} hint="Stripe trials right now" />
-        <KpiBox label="Active paying" value={countLabel(safeActivity.active)} hint="Stripe active subscriptions" />
-        <KpiBox label="Revenue" value={money(safeActivity.revenue)} hint="Amount paid in the selected dates" />
-      </div>
+      ) : (
+        <>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+          <KpiBox lead label="Commission earned" value={money(safeActivity.commission)} hint="Rate times amount paid in those dates" />
+          <KpiBox lead label="Pending payout" value={pendingLabel} hint="Invoice commissions not yet sent" />
+          <KpiBox
+            lead
+            label="Expected 14-day trial conversion revenue"
+            value={plusMoney(safeActivity.expectedTrialCommission)}
+            hint={expectedInfo}
+            info={expectedInfo}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-6">
+          <KpiBox label="Views" value={countLabel(safeActivity.views)} hint="Page visits in the selected dates" />
+          <KpiBox label="Clicks" value={countLabel(safeActivity.clicks)} hint="Link and checkout clicks" />
+          <KpiBox label="Signups" value={countLabel(safeActivity.signups)} hint="Accounts created in the selected dates" />
+          <KpiBox label="Trials" value={countLabel(safeActivity.trials)} hint="Stripe trials right now" />
+          <KpiBox label="Active paying" value={countLabel(safeActivity.active)} hint="Stripe active subscriptions" />
+          <KpiBox label="Revenue" value={money(safeActivity.revenue)} hint="Amount paid in the selected dates" />
+        </div>
+        </>
+      )}
 
       <section className="px-surface p-4 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -351,6 +371,11 @@ export function AffiliateReferralReport({
                 <div key={item.key} className="flex items-center gap-2">
                   <span className="size-2.5 rounded-full" style={{ backgroundColor: item.color }} aria-hidden="true" />
                   <span className="text-xs text-muted-foreground">{item.label}</span>
+                  {calm ? (
+                    <span className="text-xs font-semibold tabular-nums text-foreground">
+                      {item.key === "revenue" ? money(safeActivity.revenue) : countLabel(safeActivity[item.key])}
+                    </span>
+                  ) : null}
                 </div>
               ))}
             </div>

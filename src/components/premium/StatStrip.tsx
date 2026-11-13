@@ -21,7 +21,7 @@ export function StatStrip({ stats, className }: { stats: Stat[]; className?: str
             <dt className="truncate text-xs font-medium text-muted-foreground">{stat.label}</dt>
             <dd className="mt-0.5 flex items-baseline gap-2">
               <span className="text-xl font-semibold tabular-nums text-foreground">{stat.value}</span>
-              {stat.hint ? <span className="truncate text-xs text-muted-foreground">{stat.hint}</span> : null}
+              {stat.hint ? <span className="hidden truncate text-xs text-muted-foreground sm:inline">{stat.hint}</span> : null}
             </dd>
           </>
         );

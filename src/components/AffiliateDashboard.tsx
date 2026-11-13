@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,11 +6,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ArrowLeft, AtSign, ChevronRight, HandCoins, Link2, Pencil, TicketPercent, Wallet } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { AtSign, ChevronRight, CircleHelp, HandCoins, Link2, MessageCircle, TicketPercent, Wallet } from "lucide-react";
 import { Reveal, RevealItem } from "@/components/premium/Reveal";
 import { SectionCard } from "@/components/premium/SectionCard";
-import { Spotlight } from "@/components/premium/21st/spotlight";
+import { SettingItem, SettingList } from "@/components/premium/SettingList";
+import { HowItWorksDialog } from "@/components/premium/grow/HowItWorksDialog";
+import type { MoreMenuItem } from "@/components/premium/MoreMenu";
+import { PageHeader } from "@/components/platform/PageHeader";
+import { TextUsDialog } from "@/components/dashboard/SetupHelpPopup";
 import { EmptyState } from "@/components/premium/21st/empty-state";
 import { CopyConfirmIcon } from "@/components/premium/dashboard/CopyConfirmIcon";
 import AffiliateReferralsPanel from "@/components/affiliate/AffiliateReferralsPanel";
@@ -64,6 +69,10 @@ export default function AffiliateDashboard() {
   const [copiedPage, setCopiedPage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"dashboard" | "payout">("dashboard");
   const [commissionPercent, setCommissionPercent] = useState(30);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [pagesOpen, setPagesOpen] = useState(false);
+  const [howOpen, setHowOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   // Payout method state
   const [payoutType, setPayoutType] = useState<"bank" | "paypal">("bank");
@@ -123,7 +132,7 @@ export default function AffiliateDashboard() {
       }
       if (lastError) throw lastError;
 
-      toast.success("You're in! Your affiliate links are ready.");
+      toast.success("You're in. Your affiliate links are ready.");
       await loadData();
     } catch (err: any) {
       console.error(err);
@@ -305,7 +314,7 @@ export default function AffiliateDashboard() {
       toast.error("Failed to save payout method");
       return;
     }
-    toast.success("Payout method saved!");
+    toast.success("Payout method saved");
     await loadAffiliate();
   };
 
@@ -397,7 +406,7 @@ export default function AffiliateDashboard() {
 
     setAffiliate({ ...affiliate, affiliate_slug: slug });
     setEditingSlug(false);
-    toast.success("Affiliate ID updated!");
+    toast.success("Affiliate ID updated");
   };
 
   const copyLink = (path: string) => {
@@ -405,29 +414,70 @@ export default function AffiliateDashboard() {
     navigator.clipboard.writeText(url);
     setCopiedPage(path);
     setTimeout(() => setCopiedPage(null), 2000);
-    toast.success("Link copied!");
+    toast.success("Link copied");
   };
+
+  const header = (actions?: ReactNode, more?: MoreMenuItem[]) => (
+    <PageHeader
+      eyebrow="Grow"
+      title="Affiliate"
+      subtitle={`Share your link and earn ${commissionPercent}% recurring on every account that signs up.`}
+      actions={actions}
+      more={more}
+    />
+  );
+
+  const helpDialogs = (
+    <>
+      <HowItWorksDialog
+        open={howOpen}
+        onOpenChange={setHowOpen}
+        title="How the affiliate program works"
+        intro="Every account that signs up through one of your links is credited to you."
+        steps={[
+          { title: "Share your link", detail: "Use the main link, or pick the sales page that fits the person you are sending." },
+          { title: "They sign up", detail: "Referrals get 10% off at checkout with your discount code." },
+          { title: `You earn ${commissionPercent}% recurring`, detail: "Commission is your rate times the amount each referral pays, for as long as they stay." },
+          { title: "Get paid", detail: "Add a payout method once. Payouts start when your application is approved." },
+        ]}
+      />
+      <TextUsDialog
+        open={helpOpen}
+        onOpenChange={setHelpOpen}
+        title="Get help setting up"
+        description="Text us and we will guide you through installation and answer your questions."
+      />
+    </>
+  );
 
   if (loadError || loading) {
     return (
-      <LoadNotice
-        loading={loading}
-        error={loadError}
-        label="Loading affiliate dashboard…"
-        onRetry={() => setLoadAttempt((attempt) => attempt + 1)}
-      />
+      <div className="space-y-6">
+        {header()}
+        <LoadNotice
+          loading={loading}
+          error={loadError}
+          label="Loading affiliate dashboard…"
+          onRetry={() => setLoadAttempt((attempt) => attempt + 1)}
+        />
+      </div>
     );
   }
 
   if (!affiliate) {
     return (
-      <div className="mx-auto max-w-2xl">
-        <SectionCard
-          icon={<HandCoins />}
-          title="Become a SaaSSuite affiliate"
-          description="Earn recurring commission on every account you refer, on every plan. Apply below and your affiliate dashboard unlocks right here."
-          bodyClassName="space-y-4"
-        >
+      <div className="space-y-6">
+        {header(undefined, [
+          { label: "How this works", icon: <CircleHelp />, onSelect: () => setHowOpen(true) },
+          { label: "Get setup help", icon: <MessageCircle />, onSelect: () => setHelpOpen(true) },
+        ])}
+        <div className="mx-auto max-w-2xl">
+          <SectionCard
+            icon={<HandCoins />}
+            title="Become a SaaSSuite affiliate"
+            description="Apply below and your affiliate dashboard unlocks right here."
+            bodyClassName="space-y-4"
+          >
             <div className="space-y-2">
               <Label htmlFor="aff-name">Your full name *</Label>
               <Input
@@ -435,15 +485,6 @@ export default function AffiliateDashboard() {
                 value={applyName}
                 onChange={(e) => setApplyName(e.target.value)}
                 placeholder="Jane Smith"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="aff-company">Company / brand</Label>
-              <Input
-                id="aff-company"
-                value={applyCompany}
-                onChange={(e) => setApplyCompany(e.target.value)}
-                placeholder="Optional"
               />
             </div>
             <div className="space-y-2">
@@ -461,57 +502,218 @@ export default function AffiliateDashboard() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="aff-audience">How will you promote SaaSSuite?</Label>
-              <Textarea
-                id="aff-audience"
-                value={applyAudience}
-                onChange={(e) => setApplyAudience(e.target.value)}
-                placeholder="Agency owners, YouTube, GHL community, email list..."
-                rows={4}
-              />
-            </div>
+            <Collapsible>
+              <CollapsibleTrigger className="group inline-flex min-h-11 items-center gap-1.5 rounded-sm text-sm font-medium text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-9">
+                <ChevronRight className="size-4 transition-transform duration-200 ease-out group-data-[state=open]:rotate-90" aria-hidden="true" />
+                Add more detail (optional)
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-4 pt-2">
+                <div className="space-y-2">
+                  <Label htmlFor="aff-company">Company / brand</Label>
+                  <Input
+                    id="aff-company"
+                    value={applyCompany}
+                    onChange={(e) => setApplyCompany(e.target.value)}
+                    placeholder="Optional"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="aff-audience">How will you promote SaaSSuite?</Label>
+                  <Textarea
+                    id="aff-audience"
+                    value={applyAudience}
+                    onChange={(e) => setApplyAudience(e.target.value)}
+                    placeholder="Agency owners, YouTube, GHL community, email list..."
+                    rows={4}
+                  />
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
             <Button variant="accent" className="h-11 w-full" onClick={handleApply} disabled={applying}>
               {applying ? "Submitting…" : "Apply to become an affiliate"}
             </Button>
             <p className="text-center text-xs text-muted-foreground">
               You get your referral links at once. Payouts start when your application is approved.
             </p>
-        </SectionCard>
+          </SectionCard>
+        </div>
+        {helpDialogs}
       </div>
     );
   }
 
-  return (
-    <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Badge variant={affiliate.status === "APPROVED" ? "success" : "warning"}>
-          {affiliate.status === "APPROVED" ? "Approved affiliate" : `Status: ${affiliate.status}`}
-        </Badge>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-11 sm:h-9"
-          aria-pressed={activeTab === "payout"}
-          onClick={() => setActiveTab(activeTab === "payout" ? "dashboard" : "payout")}
-        >
-          {activeTab === "payout" ? (
-            <ArrowLeft className="mr-2 size-4" aria-hidden="true" />
-          ) : (
-            <Wallet className="mr-2 size-4" aria-hidden="true" />
-          )}
-          {activeTab === "payout" ? "Back to referrals" : "Payout method"}
-        </Button>
-      </div>
+  const mainLink = affiliateShareUrl("/", affiliate.affiliate_slug).replace("https://", "");
+  const couponCode = affiliate.affiliate_slug?.toUpperCase().replace(/[^A-Z0-9]/g, "") || "";
+  const copyCode = () => {
+    navigator.clipboard.writeText(couponCode);
+    setCopiedPage("__code");
+    setTimeout(() => setCopiedPage(null), 2000);
+    toast.success("Coupon code copied");
+  };
+  const openSlugEditor = (next: boolean) => {
+    if (next) setNewSlug(affiliate.affiliate_slug || "");
+    setEditingSlug(next);
+  };
+  const savedPayout = affiliate.payout_method;
+  const payoutSummary =
+    savedPayout?.type === "paypal"
+      ? `PayPal · ${savedPayout.paypal_email || "email not set"}`
+      : savedPayout?.type === "bank"
+        ? `Bank transfer · ${savedPayout.bank_name || "bank not set"}`
+        : "Not set up yet";
 
-      {activeTab === "payout" ? (
-        <SectionCard
-          className="mx-auto max-w-2xl"
-          icon={<Wallet />}
-          title="Payout method"
-          description="Choose how you'd like to be paid your affiliate commissions."
-          bodyClassName="space-y-4"
+  const sharePopover = (
+    <Popover open={shareOpen} onOpenChange={setShareOpen}>
+      <PopoverTrigger asChild>
+        <Button type="button" variant="accent" className="h-11 gap-2 sm:h-10" data-testid="affiliate-share">
+          <Link2 className="size-4" aria-hidden="true" />
+          Share link
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-[min(22rem,calc(100vw-2rem))] space-y-4 rounded-xl p-4">
+        <div className="space-y-1.5">
+          <p className="px-eyebrow">Affiliate link</p>
+          <div className="flex items-center gap-1 rounded-md border border-border bg-muted/50 py-1 pl-3 pr-1">
+            <p className="min-w-0 flex-1 truncate font-mono text-sm text-foreground">{mainLink}</p>
+            <Button type="button" variant="accent" size="sm" className="h-11 shrink-0 gap-1.5 sm:h-9" onClick={() => copyLink("/")}>
+              <CopyConfirmIcon copied={copiedPage === "/"} />
+              <span aria-live="polite">{copiedPage === "/" ? "Copied" : "Copy link"}</span>
+            </Button>
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <p className="px-eyebrow">Discount code, 10% off</p>
+          <div className="flex items-center gap-1 rounded-md border border-border bg-muted/50 py-1 pl-3 pr-1">
+            <p className="min-w-0 flex-1 truncate font-mono text-sm font-semibold tracking-wider text-foreground">{couponCode || "None yet"}</p>
+            <Button type="button" variant="ghost" size="sm" className="h-11 shrink-0 gap-1.5 sm:h-9" onClick={copyCode}>
+              <CopyConfirmIcon copied={copiedPage === "__code"} />
+              <span aria-live="polite">{copiedPage === "__code" ? "Copied" : "Copy code"}</span>
+            </Button>
+          </div>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11 w-full justify-between sm:h-10"
+          onClick={() => {
+            setShareOpen(false);
+            setPagesOpen(true);
+          }}
         >
+          Pick a sales page link
+          <ChevronRight className="size-4" aria-hidden="true" />
+        </Button>
+      </PopoverContent>
+    </Popover>
+  );
+
+  // One card of rows. It rides in the panel's `belowChart` slot so it sits between the chart and the customer list.
+  const linksCard = (
+    <SettingList label="Links and payout">
+      <SettingItem
+        icon={<Link2 />}
+        title="Sales page links"
+        value="Send people to the page that fits them"
+        status={`${SALES_PAGES.length} pages`}
+        open={pagesOpen}
+        onOpenChange={setPagesOpen}
+        panel={{ description: "Each link is credited to you. Copy the one that fits the person you are sending." }}
+        testId="affiliate-pages-row"
+      >
+            {SALES_PAGES.length === 0 ? (
+              <EmptyState
+                icon={<span className="px-icon-chip"><Link2 className="size-5" /></span>}
+                title="No sales pages yet"
+                description="Links to share will show up here."
+              />
+            ) : (
+              <ul className="divide-y divide-border">
+                {SALES_PAGES.map((page) => {
+                  const stat = pageStats.find((s) => s.page === page.id);
+                  return (
+                    <li key={page.id} data-affiliate-offer={page.id} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-foreground">{page.label}</p>
+                        <p className="break-all font-mono text-xs text-muted-foreground">
+                          {affiliateShareUrl(page.path, affiliate.affiliate_slug).replace("https://", "")}
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-between gap-4 text-xs tabular-nums text-muted-foreground sm:justify-end">
+                        <span>{stat?.views || 0} views</span>
+                        <span>{stat?.clicks || 0} clicks</span>
+                        <Button
+                          size="sm"
+                          aria-label={`Copy ${page.label} link`}
+                          variant="outline"
+                          className="h-11 gap-1.5 sm:h-9"
+                          onClick={() => copyLink(page.path)}
+                        >
+                          <CopyConfirmIcon copied={copiedPage === page.path} />
+                          {copiedPage === page.path ? "Copied" : "Copy"}
+                        </Button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+      </SettingItem>
+      <SettingItem
+        icon={<AtSign />}
+        title="Affiliate ID"
+        value={affiliate.affiliate_slug}
+        open={editingSlug}
+        onOpenChange={openSlugEditor}
+        panel={{
+          description: "The ending of every link you share.",
+          footer: (
+            <>
+              <Button variant="accent" className="h-11 sm:h-10" onClick={handleUpdateSlug}>Save affiliate ID</Button>
+              <Button variant="ghost" className="h-11 sm:mr-auto sm:h-10" onClick={() => setEditingSlug(false)}>Cancel</Button>
+            </>
+          ),
+        }}
+        testId="affiliate-id-row"
+      >
+        <div className="space-y-2">
+          <Label htmlFor="aff-slug">Affiliate ID</Label>
+          <Input
+            id="aff-slug"
+            value={newSlug}
+            onChange={(e) => setNewSlug(e.target.value)}
+            placeholder="your-slug"
+            className="h-11 font-mono sm:h-10"
+          />
+          <p className="break-all font-mono text-xs text-muted-foreground">
+            {affiliateShareUrl("/", newSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, "") || affiliate.affiliate_slug).replace("https://", "")}
+          </p>
+        </div>
+      </SettingItem>
+      <SettingItem
+        icon={<TicketPercent />}
+        title="Discount code"
+        value={`${couponCode || "None yet"} · referrals get 10% off at checkout`}
+        status={<span aria-live="polite">{copiedPage === "__code" ? "Copied" : "Copy"}</span>}
+        onOpen={copyCode}
+        testId="affiliate-code-row"
+      />
+      <SettingItem
+        icon={<Wallet />}
+        title="Payout method"
+        value={payoutSummary}
+        open={activeTab === "payout"}
+        onOpenChange={(next) => setActiveTab(next ? "payout" : "dashboard")}
+        panel={{
+          description: "Choose how you'd like to be paid your affiliate commissions.",
+          footer: (
+            <Button variant="accent" className="h-11 w-full sm:mr-auto sm:h-10 sm:w-auto" onClick={handleSavePayout} disabled={savingPayout}>
+              {savingPayout ? "Saving…" : "Save payout method"}
+            </Button>
+          ),
+        }}
+        testId="affiliate-payout-row"
+      >
+        <div className="space-y-4">
             <div className="space-y-2">
               <Label>Method</Label>
               <Select value={payoutType} onValueChange={(v) => setPayoutType(v as "bank" | "paypal")}>
@@ -638,152 +840,43 @@ export default function AffiliateDashboard() {
                 </div>
               </div>
             )}
+        </div>
+      </SettingItem>
+    </SettingList>
+  );
 
-            <Button variant="accent" className="h-11 w-full sm:h-10 sm:w-auto" onClick={handleSavePayout} disabled={savingPayout}>
-              {savingPayout ? "Saving…" : "Save payout method"}
-            </Button>
-        </SectionCard>
-      ) : (
+  return (
+    <div className="space-y-4 sm:space-y-6">
+      {header(
+        <>
+          <Badge variant={affiliate.status === "APPROVED" ? "success" : "warning"}>
+            {affiliate.status === "APPROVED" ? "Approved affiliate" : `Status: ${affiliate.status}`}
+          </Badge>
+          {sharePopover}
+        </>,
+        [
+          { label: "Payout method", icon: <Wallet />, onSelect: () => setActiveTab("payout") },
+          { label: "Change affiliate ID", icon: <AtSign />, onSelect: () => openSlugEditor(true) },
+          { label: "Copy discount code", icon: <TicketPercent />, onSelect: copyCode },
+          { label: "How this works", icon: <CircleHelp />, onSelect: () => setHowOpen(true), separated: true },
+          { label: "Get setup help", icon: <MessageCircle />, onSelect: () => setHelpOpen(true) },
+        ],
+      )}
+
       <Reveal className="space-y-4 sm:space-y-6">
-        {/* The one thing to do here: share the link. */}
-        <RevealItem>
-          <section className="px-brand-wash relative overflow-hidden rounded-xl p-5 shadow-card ring-1 ring-inset ring-brand/10 sm:p-6">
-            <Spotlight size={320} className="from-brand/20 via-brand/10 to-transparent" />
-            <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
-              <div className="flex min-w-0 items-start gap-4">
-                <span className="grid size-11 shrink-0 place-items-center rounded-md bg-card text-brand shadow-card" aria-hidden="true">
-                  <Link2 className="size-5" />
-                </span>
-                <div className="min-w-0">
-                  <p className="px-eyebrow !text-brand">Affiliate link</p>
-                  <h2 className="mt-1 text-h4 font-semibold tracking-tight text-foreground">
-                    Share your link, earn {commissionPercent}% recurring
-                  </h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Every account that signs up through it is credited to you.
-                  </p>
-                </div>
-              </div>
-              <div className="flex w-full min-w-0 items-center gap-1 rounded-md bg-card py-1 pl-3 pr-1 shadow-card lg:w-auto lg:max-w-md">
-                <p className="min-w-0 flex-1 truncate font-mono text-sm text-foreground">
-                  {affiliateShareUrl("/", affiliate.affiliate_slug).replace("https://", "")}
-                </p>
-                <Button type="button" variant="accent" size="sm" className="h-11 shrink-0 gap-1.5 sm:h-9" onClick={() => copyLink("/")}>
-                  <CopyConfirmIcon copied={copiedPage === "/"} />
-                  <span aria-live="polite">{copiedPage === "/" ? "Copied" : "Copy link"}</span>
-                </Button>
-              </div>
-            </div>
-          </section>
-        </RevealItem>
-
         <RevealItem>
           <AffiliateReferralsPanel
             mode="self"
+            calm
             affiliateId={affiliate.id}
             fallbackReferrals={referrals}
             fallbackPending={pendingPayouts}
             onCommissionRate={setCommissionPercent}
-            belowChart={(
-          <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
-            {/* Affiliate ID */}
-            <SectionCard icon={<AtSign />} title="Your affiliate ID" description="The ending of every link you share">
-              {editingSlug ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <Input
-                    value={newSlug}
-                    onChange={(e) => setNewSlug(e.target.value)}
-                    placeholder="your-slug"
-                    aria-label="Affiliate ID"
-                    className="h-11 min-w-0 flex-1 font-mono sm:h-10"
-                  />
-                  <Button variant="accent" size="sm" className="h-11 sm:h-10" onClick={handleUpdateSlug}>Save</Button>
-                  <Button size="sm" variant="ghost" className="h-11 sm:h-10" onClick={() => setEditingSlug(false)}>Cancel</Button>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/50 py-1 pl-3 pr-1">
-                  <span className="min-w-0 truncate font-mono text-base font-semibold text-foreground">{affiliate.affiliate_slug}</span>
-                  <Button size="sm" aria-label="Edit" variant="ghost" className="h-11 shrink-0 gap-1.5 sm:h-9" onClick={() => { setEditingSlug(true); setNewSlug(affiliate.affiliate_slug || ""); }}>
-                    <Pencil className="size-4" aria-hidden="true" />
-                    Edit
-                  </Button>
-                </div>
-              )}
-            </SectionCard>
-
-            {/* Coupon Code */}
-            <SectionCard icon={<TicketPercent />} title="Your discount code" description="Referrals get 10% off at checkout">
-              <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/50 py-1 pl-3 pr-1">
-                <span className="min-w-0 truncate font-mono text-base font-semibold tracking-wider text-foreground">
-                  {affiliate.affiliate_slug?.toUpperCase().replace(/[^A-Z0-9]/g, "") || "—"}
-                </span>
-                <Button
-                  size="sm"
-                  aria-label="Copy"
-                  variant="ghost"
-                  className="h-11 shrink-0 gap-1.5 sm:h-9"
-                  onClick={() => {
-                    const code = affiliate.affiliate_slug?.toUpperCase().replace(/[^A-Z0-9]/g, "") || "";
-                    navigator.clipboard.writeText(code);
-                    setCopiedPage("__code");
-                    setTimeout(() => setCopiedPage(null), 2000);
-                    toast.success("Coupon code copied!");
-                  }}
-                >
-                  <CopyConfirmIcon copied={copiedPage === "__code"} />
-                  {copiedPage === "__code" ? "Copied" : "Copy"}
-                </Button>
-              </div>
-            </SectionCard>
-          </div>
-            )}
+            belowChart={linksCard}
           />
         </RevealItem>
-
-        {/* Affiliate Links */}
-        <RevealItem>
-          <SectionCard icon={<Link2 />} title="All sales page links" description="Send people to the page that fits them. Each link is credited to you.">
-            {SALES_PAGES.length === 0 ? (
-              <EmptyState
-                icon={<span className="px-icon-chip"><Link2 className="size-5" /></span>}
-                title="No sales pages yet"
-                description="Links to share will show up here."
-              />
-            ) : (
-              <ul className="divide-y divide-border">
-                {SALES_PAGES.map((page) => {
-                  const stat = pageStats.find((s) => s.page === page.id);
-                  return (
-                    <li key={page.id} data-affiliate-offer={page.id} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-foreground">{page.label}</p>
-                        <p className="break-all font-mono text-xs text-muted-foreground">
-                          {affiliateShareUrl(page.path, affiliate.affiliate_slug).replace("https://", "")}
-                        </p>
-                      </div>
-                      <div className="flex items-center justify-between gap-4 text-xs tabular-nums text-muted-foreground sm:justify-end">
-                        <span>{stat?.views || 0} views</span>
-                        <span>{stat?.clicks || 0} clicks</span>
-                        <Button
-                          size="sm"
-                          aria-label={`Copy ${page.label} link`}
-                          variant="outline"
-                          className="h-11 gap-1.5 sm:h-9"
-                          onClick={() => copyLink(page.path)}
-                        >
-                          <CopyConfirmIcon copied={copiedPage === page.path} />
-                          {copiedPage === page.path ? "Copied" : "Copy"}
-                        </Button>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </SectionCard>
-        </RevealItem>
       </Reveal>
-      )}
+      {helpDialogs}
     </div>
   );
 }

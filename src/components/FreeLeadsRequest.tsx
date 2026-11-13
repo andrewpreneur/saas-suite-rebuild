@@ -9,7 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useUser } from "@/contexts/UserContext";
-import { ExternalLink, CheckCircle2, Clock, Target } from "lucide-react";
+import { CircleHelp, ExternalLink, CheckCircle2, Clock, FileText } from "lucide-react";
+import { SettingItem, SettingList } from "@/components/premium/SettingList";
+import { HowItWorksDialog } from "@/components/premium/grow/HowItWorksDialog";
 import { PageHeader } from "@/components/platform/PageHeader";
 import { LoadNotice } from "@/components/platform/LoadNotice";
 import { LOAD_TIMEOUT_MESSAGE, armLoadDeadline, loadErrorText, withDeadline } from "@/lib/loadSettle";
@@ -24,6 +26,7 @@ export function FreeLeadsRequest() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [leadsUrl, setLeadsUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("pending");
+  const [howOpen, setHowOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     businessKeywords: "",
@@ -111,8 +114,8 @@ export function FreeLeadsRequest() {
 
       setHasSubmitted(true);
       toast({
-        title: "Success!",
-        description: "Your free leads request has been submitted successfully.",
+        title: "Request sent",
+        description: "Your free leads request has been submitted.",
       });
     } catch (error: any) {
       console.error("Error submitting request:", error);
@@ -137,15 +140,35 @@ export function FreeLeadsRequest() {
     );
   }
 
+  const SHEET_URL =
+    "https://docs.google.com/spreadsheets/d/18sA5NE8hP_rb3OWyHNeem9lTv64GCMo4KjksOT1xk10/edit?usp=sharing";
   const header = (
-    <PageHeader
-      eyebrow="Grow"
-      title="Free leads"
-      subtitle="Tell us who you want to reach. You can submit this request once."
-    />
+    <>
+      <PageHeader
+        eyebrow="Grow"
+        title="Free leads"
+        subtitle="Tell us who you want to reach. You can submit this request once."
+        more={[
+          { label: "How this works", icon: <CircleHelp />, onSelect: () => setHowOpen(true) },
+          { label: "Open the Google Sheet", icon: <ExternalLink />, href: SHEET_URL },
+        ]}
+      />
+      <HowItWorksDialog
+        open={howOpen}
+        onOpenChange={setHowOpen}
+        title="How free leads work"
+        intro="One free list of leads, built from the businesses and place you choose."
+        steps={[
+          { title: "Add your categories to the Google Sheet", detail: "If you skip this step, you will not receive any leads." },
+          { title: "Describe who you want to reach", detail: "Business keywords or industries, separated by commas, plus a city and a country." },
+          { title: "Submit once", detail: "All three fields are required and the form can only be sent one time." },
+          { title: "Open your list", detail: "When the list is delivered, a button to open it shows on this page." },
+        ]}
+      />
+    </>
   );
 
-  const summary = (
+  const summaryDetails = (
     <dl className="grid gap-4 rounded-lg border border-border p-4 sm:grid-cols-3">
       <div className="min-w-0 sm:col-span-3">
         <dt className="text-xs text-muted-foreground">Business keywords or industries</dt>
@@ -160,6 +183,20 @@ export function FreeLeadsRequest() {
         <dd className="mt-0.5 break-words text-sm font-medium text-foreground">{formData.country}</dd>
       </div>
     </dl>
+  );
+
+  const summary = (
+    <SettingList>
+      <SettingItem
+        icon={<FileText />}
+        title="What you sent us"
+        value={`${formData.businessKeywords} · ${formData.city}, ${formData.country}`}
+        panel={{ description: "Your free leads request." }}
+        testId="leads-summary-row"
+      >
+        {summaryDetails}
+      </SettingItem>
+    </SettingList>
   );
 
   if (hasSubmitted) {
@@ -208,11 +245,7 @@ export function FreeLeadsRequest() {
   return (
     <div className="mx-auto w-full min-w-0 max-w-3xl space-y-6">
       {header}
-      <SectionCard
-        icon={<Target />}
-        title="Request your free leads"
-        description="Describe the businesses you want to reach and where they are."
-      >
+      <section className="px-surface p-4 sm:p-6" aria-label="Request your free leads">
         <form onSubmit={handleSubmit} className="space-y-6">
           <Banner
             tone="warning"
@@ -220,7 +253,7 @@ export function FreeLeadsRequest() {
             action={
               <Button asChild variant="outline" size="sm" className="h-11 sm:h-9">
                 <a
-                  href="https://docs.google.com/spreadsheets/d/18sA5NE8hP_rb3OWyHNeem9lTv64GCMo4KjksOT1xk10/edit?usp=sharing"
+                  href={SHEET_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -278,7 +311,7 @@ export function FreeLeadsRequest() {
             </Button>
           </SectionFooter>
         </form>
-      </SectionCard>
+      </section>
     </div>
   );
 }

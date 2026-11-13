@@ -29,7 +29,7 @@ export function SettingList({
 }) {
   return (
     <section className={className}>
-      {label ? <h2 className="px-eyebrow mb-2 px-1">{label}</h2> : null}
+      {label ? <h2 className="px-eyebrow mb-2 px-1 !text-[11px] !leading-4">{label}</h2> : null}
       <div className="px-surface divide-y divide-border/70 overflow-hidden">{children}</div>
     </section>
   );

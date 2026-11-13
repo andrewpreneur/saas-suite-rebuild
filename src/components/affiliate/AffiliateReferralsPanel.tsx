@@ -104,6 +104,7 @@ export default function AffiliateReferralsPanel({
   fallbackPending = null,
   onCommissionRate,
   belowChart,
+  calm = false,
 }: {
   mode: "self" | "admin";
   affiliateId?: string | null;
@@ -112,6 +113,8 @@ export default function AffiliateReferralsPanel({
   fallbackPending?: number | null;
   onCommissionRate?: (rate: number) => void;
   belowChart?: ReactNode;
+  /** Calm screens: one stat strip, one date chip. Off by default so the admin view is unchanged. */
+  calm?: boolean;
 }) {
   const [range, setRange] = useState<DateRange | undefined>(() => lastDays(45));
   const [choice, setChoice] = useState("");
@@ -244,7 +247,38 @@ export default function AffiliateReferralsPanel({
   const activeDays = range?.from && range?.to
     ? Math.round((endOfLocalDay(range.to).getTime() - range.from.getTime()) / 86400000)
     : 0;
-  const rangeControl = (
+  const rangeLabel = range?.from
+    ? `${format(range.from, "MMM d")} – ${format(range.to ?? range.from, "MMM d, yyyy")}`
+    : "Select date range";
+  const rangeControl = calm ? (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="h-11 gap-2 font-medium sm:h-9" aria-label={`Change dates, now ${rangeLabel}`}>
+          <CalendarIcon className="size-4 text-muted-foreground" aria-hidden="true" />
+          {rangeLabel}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto rounded-xl p-0" align="end">
+        <div className="flex gap-1 border-b border-border/70 p-2" role="group" aria-label="Quick date range">
+          {DAY_OPTIONS.map((option) => (
+            <button
+              key={option}
+              type="button"
+              aria-pressed={activeDays === option}
+              onClick={() => setRange(lastDays(option))}
+              className={
+                "h-11 flex-1 rounded-md px-3 text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-9 " +
+                (activeDays === option ? "bg-brand-subtle text-brand" : "text-muted-foreground hover:bg-muted hover:text-foreground")
+              }
+            >
+              Last {option} days
+            </button>
+          ))}
+        </div>
+        <Calendar mode="range" selected={range} onSelect={setRange} numberOfMonths={1} defaultMonth={range?.from} />
+      </PopoverContent>
+    </Popover>
+  ) : (
     <div className="flex flex-wrap items-center gap-2">
       <div className="inline-flex rounded-md border border-border bg-muted/50 p-0.5" role="group" aria-label="Quick date range">
         {DAY_OPTIONS.map((option) => (
@@ -358,6 +392,7 @@ export default function AffiliateReferralsPanel({
           showAffiliate={mode === "admin" && selectedId === "all"}
           rangeControl={rangeControl}
           belowChart={belowChart}
+          calm={calm}
         />
       ) : null}
     </div>

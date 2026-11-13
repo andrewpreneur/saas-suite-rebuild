@@ -7,7 +7,10 @@ import { Banner } from "@/components/ui/banner";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "@/components/premium/SectionCard";
 import { Field, SectionFooter } from "@/components/premium/settings/Field";
-import { Mail, CheckCircle2, Clock, Rocket } from "lucide-react";
+import { CircleHelp, ClipboardCopy, FileText, Mail, CheckCircle2, Clock, Rocket } from "lucide-react";
+import { SettingItem, SettingList } from "@/components/premium/SettingList";
+import { StatStrip } from "@/components/premium/StatStrip";
+import { HowItWorksDialog } from "@/components/premium/grow/HowItWorksDialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useUser } from "@/contexts/UserContext";
@@ -43,6 +46,8 @@ const EmailWarmupRequest = () => {
   const [profileImageLink, setProfileImageLink] = useState("");
   const [confirmedDomain, setConfirmedDomain] = useState(false);
   const [confirmedAdmin, setConfirmedAdmin] = useState(false);
+  const [howOpen, setHowOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   useEffect(() => {
     loadExistingRequest();
@@ -142,7 +147,7 @@ const EmailWarmupRequest = () => {
         }
       }
 
-      toast.success("Warmup request submitted successfully!");
+      toast.success("Warmup request submitted");
       
       // Clear form
       setAgencyName("");
@@ -204,17 +209,90 @@ const EmailWarmupRequest = () => {
     );
   }
 
+  const ADMIN_EMAIL = "admin@howtousehighlevel.com";
+  const header = (
+    <>
+      <PageHeader
+        eyebrow="Grow"
+        title="Email warmup"
+        subtitle="Ask SaaSSuite to warm a sending domain. It takes about four weeks."
+        more={[
+          { label: "How this works", icon: <CircleHelp />, onSelect: () => setHowOpen(true) },
+          {
+            label: "Copy admin email",
+            icon: <ClipboardCopy />,
+            onSelect: () => {
+              void navigator.clipboard.writeText(ADMIN_EMAIL);
+              toast.success("Admin email copied");
+            },
+          },
+          ...(recentRequests.length > 0
+            ? [{ label: "Recent submissions", icon: <Clock />, onSelect: () => setHistoryOpen(true) }]
+            : []),
+        ]}
+      />
+      <HowItWorksDialog
+        open={howOpen}
+        onOpenChange={setHowOpen}
+        title="How email warmup works"
+        intro="Warming builds the sending reputation that keeps you out of spam."
+        steps={[
+          { title: "Set up a dedicated sending domain", detail: "Add it in GoHighLevel and use an address on that domain as the sender email." },
+          {
+            title: "Add our admin to your subaccount",
+            detail: (
+              <>
+                Add <span className="break-all font-mono">{ADMIN_EMAIL}</span> as an admin. Our team will import our custom list
+                of contacts, email them and only them, and we will not interact with any other parts of the subaccount.
+              </>
+            ),
+          },
+          { title: "Send the request", detail: "Agency name, sender name, sender email and a square profile image link." },
+          { title: "Wait about four weeks", detail: "Nothing else is needed from you. This page shows the days remaining." },
+        ]}
+      />
+    </>
+  );
+  const historyList = (
+    <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border">
+      {recentRequests.slice(0, 5).map((r) => (
+        <li key={r.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+          <div className="min-w-0">
+            <p className="truncate font-medium text-foreground">{r.sender_email}</p>
+            <p className="truncate text-xs text-muted-foreground">
+              {new Date(r.created_at).toLocaleDateString()} · {r.agency_name}
+            </p>
+          </div>
+          {getStatusBadge(r)}
+        </li>
+      ))}
+    </ul>
+  );
+  const historyCard =
+    recentRequests.length > 0 ? (
+      <SettingList>
+        <SettingItem
+          icon={<Clock />}
+          title="Recent submissions"
+          value={`Latest: ${recentRequests[0].sender_email}`}
+          status={`${Math.min(5, recentRequests.length)} shown`}
+          open={historyOpen}
+          onOpenChange={setHistoryOpen}
+          panel={{ description: "Your last five warmup requests." }}
+          testId="warmup-history-row"
+        >
+          {historyList}
+        </SettingItem>
+      </SettingList>
+    ) : null;
+
   // Users with a credit wallet can always submit additional requests,
   // so we skip the "in progress" lockout and show the form below the history.
   if (credits === 0 && existingRequest && (existingRequest.status === 'sent' || existingRequest.status === 'in progress')) {
     const completed = isWarmupComplete(existingRequest);
     return (
       <div className="mx-auto w-full min-w-0 max-w-3xl space-y-6">
-        <PageHeader
-          eyebrow="Grow"
-          title="Email warmup"
-          subtitle="Ask SaaSSuite to warm a sending domain before you email your clients."
-        />
+        {header}
         {renderInProgress(existingRequest, completed)}
       </div>
     );
@@ -223,11 +301,7 @@ const EmailWarmupRequest = () => {
   if (credits === 0 && existingRequest && existingRequest.status === 'complete') {
     return (
       <div className="mx-auto w-full min-w-0 max-w-3xl space-y-6">
-      <PageHeader
-        eyebrow="Grow"
-          title="Email warmup"
-        subtitle="Ask SaaSSuite to warm a sending domain before you email your clients."
-      />
+        {header}
       <SectionCard
         icon={<Rocket />}
         title="Email warmup complete"
@@ -280,6 +354,14 @@ const EmailWarmupRequest = () => {
               />
             </div>
           )}
+          <SettingList>
+            <SettingItem
+              icon={<FileText />}
+              title="Request details"
+              value={`${existingRequest.sender_email} · ${existingRequest.agency_name}`}
+              panel={{ description: "What you sent us for this warmup." }}
+              testId="warmup-details-row"
+            >
           <dl className="grid gap-4 rounded-lg border border-border p-4 sm:grid-cols-2">
             <div className="min-w-0">
               <dt className="text-xs text-muted-foreground">Agency name</dt>
@@ -306,6 +388,8 @@ const EmailWarmupRequest = () => {
               </dd>
             </div>
           </dl>
+            </SettingItem>
+          </SettingList>
         </div>
       </SectionCard>
     );
@@ -313,49 +397,18 @@ const EmailWarmupRequest = () => {
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-3xl space-y-6">
-    <PageHeader
-      eyebrow="Grow"
-          title="Email warmup"
-      subtitle="Ask SaaSSuite to warm a sending domain before you email your clients."
-    />
+        {header}
     {credits > 0 && (
-      <section className="px-surface px-brand-wash flex flex-wrap items-center justify-between gap-3 p-4 sm:p-6">
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="px-icon-chip shrink-0 bg-card" aria-hidden="true">
-            <Rocket className="size-5" />
-          </span>
-          <div className="min-w-0">
-            <h2 className="text-base font-semibold text-foreground">Warmup wallet</h2>
-            <p className="text-sm text-muted-foreground">Each submission uses one credit.</p>
-          </div>
-        </div>
-        <Tag tone="brand" className="h-8 px-3 text-sm">
-          {credits} credit{credits === 1 ? '' : 's'} remaining
-        </Tag>
-      </section>
+      <StatStrip
+        stats={[
+          { label: "Warmup credits", value: credits, hint: "one per submission" },
+          { label: "Submissions", value: recentRequests.length },
+          { label: "Warming now", value: recentRequests.filter((r) => !isWarmupComplete(r)).length },
+        ]}
+      />
     )}
-    {credits > 0 && recentRequests.length > 0 && (
-      <SectionCard icon={<Clock />} title="Recent submissions" description="Your last five warmup requests.">
-        <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border">
-          {recentRequests.slice(0, 5).map((r) => (
-            <li key={r.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
-              <div className="min-w-0">
-                <p className="truncate font-medium text-foreground">{r.sender_email}</p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {new Date(r.created_at).toLocaleDateString()} · {r.agency_name}
-                </p>
-              </div>
-              {getStatusBadge(r)}
-            </li>
-          ))}
-        </ul>
-      </SectionCard>
-    )}
-    <SectionCard
-      icon={<Mail />}
-      title="Request a warmup"
-      description="Warming takes about four weeks and builds the sending reputation that keeps you out of spam."
-    >
+    {credits > 0 && historyCard}
+    <section className="px-surface p-4 sm:p-6" aria-label="Request a warmup">
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Agency name" htmlFor="agency-name">
@@ -405,9 +458,7 @@ const EmailWarmupRequest = () => {
         </div>
 
         <Banner tone="warning" title="Before you submit:">
-          add <span className="break-all font-mono">admin@howtousehighlevel.com</span> to your subaccount as an
-          admin. Our team will import our custom list of contacts, email them and only them, and we will not
-          interact with any other parts of the subaccount.
+          add <span className="break-all font-mono">{ADMIN_EMAIL}</span> to your subaccount as an admin.
         </Banner>
 
         <fieldset className="space-y-2">
@@ -452,7 +503,7 @@ const EmailWarmupRequest = () => {
           </Button>
         </SectionFooter>
       </form>
-    </SectionCard>
+    </section>
     </div>
   );
 };
