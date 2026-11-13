@@ -237,18 +237,18 @@ const SyncPlansDialog = ({ open, onOpenChange, agencyVersions, onSyncComplete }:
         <div className="space-y-4 py-4">
           {!connection.connected && <MultiPlanConnectionNotice />}
           {availablePlans.length < 2 ? (
-            <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-800">
-              <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <div className="flex items-start gap-3 rounded-md border border-warning bg-amber-50 p-4">
+              <AlertCircle className="mt-0.5 size-5 shrink-0 text-warning" />
               <div className="text-sm">
-                <p className="font-medium">At least 2 plan URLs required</p>
-                <p className="text-amber-700 mt-1">
+                <p className="font-medium text-foreground">At least 2 plan URLs required</p>
+                <p className="mt-1 text-muted-foreground">
                   Create URLs for at least two plans before you can sync settings between them.
                 </p>
               </div>
             </div>
           ) : (
             <>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <div className="flex-1 space-y-2">
                   <Label htmlFor="parent-plan" className="text-sm font-medium">
                     Parent Plan (source)
@@ -267,7 +267,7 @@ const SyncPlansDialog = ({ open, onOpenChange, agencyVersions, onSyncComplete }:
                   </Select>
                 </div>
 
-                <ArrowRight className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-6" />
+                <ArrowRight className="size-5 shrink-0 rotate-90 self-center text-muted-foreground sm:mt-6 sm:rotate-0" aria-hidden="true" />
 
                 <div className="flex-1 space-y-2">
                   <Label htmlFor="child-plan" className="text-sm font-medium">
@@ -289,8 +289,8 @@ const SyncPlansDialog = ({ open, onOpenChange, agencyVersions, onSyncComplete }:
               </div>
 
               {parentPlan && childPlan && parentPlan !== childPlan && (
-                <div className="p-3 rounded-lg bg-muted/50 border text-sm space-y-1">
-                  <p className="font-medium">This will copy:</p>
+                <div className="space-y-1 rounded-md bg-muted p-3 text-sm">
+                  <p className="font-medium text-foreground">This will copy:</p>
                   <ul className="text-muted-foreground list-disc list-inside space-y-0.5">
                     <li>Welcome message & video settings</li>
                     <li>Announcements configuration</li>
@@ -306,23 +306,24 @@ const SyncPlansDialog = ({ open, onOpenChange, agencyVersions, onSyncComplete }:
           )}
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter className="gap-2">
           <Button variant="outline" onClick={handleClose} disabled={isSyncing}>
             Cancel
           </Button>
           {availablePlans.length >= 2 && (
-            <Button 
-              onClick={handleSync} 
+            <Button
+              variant="accent"
+              onClick={handleSync}
               disabled={!parentPlan || !childPlan || parentPlan === childPlan || isSyncing || !connection.connected || plan !== "ADVANCED"}
             >
               {isSyncing ? (
                 <>
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  <RefreshCw className="animate-spin motion-reduce:animate-none" />
                   Syncing...
                 </>
               ) : (
                 <>
-                  <RefreshCw className="w-4 h-4 mr-2" />
+                  <RefreshCw />
                   Sync Plans
                 </>
               )}

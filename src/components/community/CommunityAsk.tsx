@@ -326,7 +326,7 @@ export default function CommunityAsk({
                 </div>
                 <p
                   className={cn(
-                    "w-fit max-w-full whitespace-pre-wrap break-words rounded-2xl px-3 py-2 text-left text-sm",
+                    "w-fit max-w-full whitespace-pre-wrap break-words rounded-lg px-3 py-2 text-left text-sm",
                     mine
                       ? "rounded-br-sm bg-brand text-brand-foreground"
                       : "rounded-bl-sm bg-muted text-foreground",

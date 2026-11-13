@@ -147,7 +147,7 @@ const VoiceAISupportPanel = ({ agencyId }: Props) => {
       <div className="flex items-center gap-2">
         <Mic className="w-5 h-5 text-muted-foreground" />
         <h3 className="font-semibold text-base">Voice AI Support</h3>
-        <Badge variant="secondary" className="text-[10px]">API</Badge>
+        <Badge variant="neutral">API</Badge>
       </div>
       <p className="text-xs text-muted-foreground">
         Connect an external Voice AI agent (e.g. GoHighLevel) to look up your users by name,
@@ -166,13 +166,13 @@ const VoiceAISupportPanel = ({ agencyId }: Props) => {
                 <span className="text-xs font-medium">{ep.label}</span>
               </div>
               <div className="flex gap-2">
-                <Input value={ep.url} readOnly className="font-mono text-[11px]" />
+                <Input value={ep.url} readOnly className="font-mono text-xs" />
                 <Button variant="outline" size="icon" aria-label="Copy" onClick={() => copy(ep.url, `${ep.label} URL copied`)}>
                   <Copy className="w-3.5 h-3.5" />
                 </Button>
               </div>
               {ep.note && (
-                <p className="text-[10px] text-muted-foreground">{ep.note}</p>
+                <p className="text-xs text-muted-foreground">{ep.note}</p>
               )}
             </div>
           ))}
@@ -181,8 +181,8 @@ const VoiceAISupportPanel = ({ agencyId }: Props) => {
 
       {/* Newly generated key (one-time display) */}
       {freshKey && (
-        <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 space-y-2">
-          <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 text-sm font-medium">
+        <div className="space-y-2 rounded-md border border-warning bg-amber-50 p-3">
+          <div className="flex items-center gap-2 text-sm font-medium text-warning">
             <AlertCircle className="w-4 h-4" />
             Copy this key now — it won't be shown again.
           </div>
@@ -200,7 +200,7 @@ const VoiceAISupportPanel = ({ agencyId }: Props) => {
 
       {/* Generate */}
       <div className="space-y-1.5">
-        <div className="rounded-md border bg-muted/30 px-3 py-2 text-[11px] text-muted-foreground">
+        <div className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
           Select <span className="font-mono font-semibold">"Bearer Token"</span> as your Authentication Method when configuring these endpoints in your Voice AI agent.
         </div>
         <Label className="text-xs">Generate a new API key</Label>
@@ -211,7 +211,7 @@ const VoiceAISupportPanel = ({ agencyId }: Props) => {
             placeholder="Label (e.g. GHL Voice Agent)"
             className="flex-1"
           />
-          <Button onClick={handleGenerate} disabled={generating || !agencyId}>
+          <Button variant="accent" onClick={handleGenerate} disabled={generating || !agencyId}>
             <Plus className="w-4 h-4 mr-1" />
             {generating ? "Generating..." : "Generate Key"}
           </Button>
@@ -237,10 +237,10 @@ const VoiceAISupportPanel = ({ agencyId }: Props) => {
                   <div className="flex items-center gap-2">
                     <span className="font-medium truncate">{k.label}</span>
                     {k.revoked_at ? (
-                      <Badge variant="destructive" className="text-[10px]">Revoked</Badge>
+                      <Badge variant="danger">Revoked</Badge>
                     ) : (
-                      <Badge variant="secondary" className="text-[10px] gap-1">
-                        <CheckCircle2 className="w-3 h-3 text-green-500" /> Active
+                      <Badge variant="success">
+                        <CheckCircle2 /> Active
                       </Badge>
                     )}
                   </div>

@@ -127,8 +127,8 @@ export default function CreateMenuLinkWidget({ agencyId, defaultUrl, onCreated, 
         Sub-accounts only (not your agency view), opens embedded inside HighLevel, no camera or microphone access, available to all user roles.
       </p>
 
-      <Button onClick={submit} disabled={busy || !agencyId || !title.trim() || !url.trim() || (scope === "one" && !loc)} className="w-full">
-        {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Install in HighLevel
+      <Button onClick={submit} disabled={busy || !agencyId || !title.trim() || !url.trim() || (scope === "one" && !loc)} variant="accent" className="w-full">
+        {busy && <Loader2 className="animate-spin" />} Install in HighLevel
       </Button>
     </div>
   );

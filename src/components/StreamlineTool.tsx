@@ -985,7 +985,7 @@ const StreamlineTool = ({
       )}
 
       {workflowType === "ai" && currentStep === 1 && (
-        <Card className="mb-8 border-2 border-success/30 shadow-lg">
+        <Card className="mb-8 border-2 border-success/30 shadow-card">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">

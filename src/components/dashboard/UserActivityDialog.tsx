@@ -28,7 +28,7 @@ function Count({ value }: { value: number }) {
 }
 
 function StatCard({ title, icon, children, dark = false }: { title: string; icon: ReactNode; children: ReactNode; dark?: boolean }) {
-  return <Card className={`h-full rounded-2xl ${dark ? "border-0 bg-foreground text-background" : "border-border/60 bg-card"}`}>
+  return <Card className={`h-full rounded-lg ${dark ? "border-0 bg-foreground text-background" : "border-border/60 bg-card"}`}>
     <CardContent className="p-5">
       <div className="mb-4 flex items-center justify-between gap-3"><h3 className="text-sm font-semibold">{title}</h3>{icon}</div>
       {children}
@@ -76,7 +76,7 @@ export default function UserActivityDialog({ user, agencyIds, onClose }: { user:
   const reveal = { hidden: { opacity: 0, y: reduced ? 0 : 14 }, visible: { opacity: 1, y: 0 } };
 
   return <Dialog open onOpenChange={open => { if (!open) onClose(); }}>
-    <DialogContent className="user-activity-dialog max-h-[90dvh] w-[calc(100%-1.5rem)] max-w-5xl overflow-y-auto rounded-2xl border-border/60 p-5 sm:p-7">
+    <DialogContent className="user-activity-dialog max-h-[90dvh] w-[calc(100%-1.5rem)] max-w-5xl overflow-y-auto rounded-xl border-border/60 p-5 sm:p-7">
       <DialogHeader className="pr-6 text-left">
         <div className="mb-1 flex items-center gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-foreground text-background"><UserRound className="h-5 w-5" /></div>
@@ -85,7 +85,7 @@ export default function UserActivityDialog({ user, agencyIds, onClose }: { user:
         </div>
       </DialogHeader>
       {error ? <div role="alert" className="py-10 text-center"><p className="mb-4 text-muted-foreground">{error}</p><Button variant="outline" onClick={() => setRetry(r => r + 1)}>Try again</Button></div>
-        : !data ? <div aria-label="Loading user activity" role="status" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-48 rounded-2xl" />)}</div>
+        : !data ? <div aria-label="Loading user activity" role="status" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-48 rounded-lg" />)}</div>
         : <motion.div variants={container} initial="hidden" animate="visible" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <motion.div variants={reveal}><StatCard title="Last login / hub access" icon={<Clock3 className="h-4 w-4 text-muted-foreground" />}>
             <p className="text-lg font-bold">{dateTime(data.progress?.last_accessed || user.last_accessed)}</p>

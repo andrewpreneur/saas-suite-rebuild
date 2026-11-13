@@ -445,7 +445,7 @@ function CoPilotShellInner({
         {/* Centered card */}
         <div
           className={cn(
-            "relative bg-card border border-border rounded-none md:rounded-2xl shadow-dialog",
+            "relative bg-card border border-border rounded-none md:rounded-xl shadow-dialog",
             "w-full h-full md:w-[640px] md:h-[720px] md:max-h-[85vh] flex flex-col overflow-hidden",
           )}
         >

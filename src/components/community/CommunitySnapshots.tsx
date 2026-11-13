@@ -26,31 +26,31 @@ const GRAPHICS: {
   {
     match: /email/i,
     icon: Mail,
-    gradient: "from-sky-500/25 via-sky-500/10 to-transparent",
+    gradient: "from-info/25 via-info/10 to-transparent",
     blurb: "Email campaigns & nurture automations",
   },
   {
     match: /webinar/i,
     icon: Video,
-    gradient: "from-violet-500/25 via-violet-500/10 to-transparent",
+    gradient: "from-brand/25 via-brand/10 to-transparent",
     blurb: "Webinar funnel, reminders & replays",
   },
   {
     match: /voice/i,
     icon: Mic,
-    gradient: "from-emerald-500/25 via-emerald-500/10 to-transparent",
+    gradient: "from-success/25 via-success/10 to-transparent",
     blurb: "Voice AI onboarding call flow",
   },
   {
     match: /onboard/i,
     icon: Rocket,
-    gradient: "from-amber-500/25 via-amber-500/10 to-transparent",
+    gradient: "from-warning/25 via-warning/10 to-transparent",
     blurb: "Client onboarding sequence",
   },
   {
     match: /lead|crm|pipeline/i,
     icon: Users,
-    gradient: "from-rose-500/25 via-rose-500/10 to-transparent",
+    gradient: "from-destructive/25 via-destructive/10 to-transparent",
     blurb: "Lead capture & pipeline automation",
   },
 ];

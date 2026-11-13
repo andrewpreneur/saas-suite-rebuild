@@ -73,7 +73,7 @@ const STATUS_STYLES: Record<string, string> = {
   // In development → purple
   in_progress: "bg-[hsl(270_85%_60%/0.15)] text-[hsl(270_85%_65%)]",
   // Live → green
-  implemented: "bg-emerald-500/15 text-emerald-500",
+  implemented: "bg-success/15 text-success",
 };
 
 const STATUS_OPTIONS = [
@@ -88,7 +88,7 @@ const CARD_STYLES: Record<string, string> = {
   pending: "border-border bg-muted/20",
   planned: "border-brand/50 bg-brand/[0.06]",
   in_progress: "border-[hsl(270_85%_60%/0.5)] bg-[hsl(270_85%_60%/0.07)]",
-  implemented: "border-emerald-500/50 bg-emerald-500/[0.07]",
+  implemented: "border-success/50 bg-success/[0.07]",
 };
 
 function canonicalStatus(status?: string | null) {
@@ -604,7 +604,7 @@ export default function CommunityIdeas({
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="flex items-center gap-1 text-emerald-500 hover:underline"
+                            className="flex items-center gap-1 text-success hover:underline"
                           >
                             <ExternalLink className="h-3 w-3" /> View the post
                           </a>

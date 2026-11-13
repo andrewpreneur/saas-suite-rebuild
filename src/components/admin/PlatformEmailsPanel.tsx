@@ -28,7 +28,7 @@ const EMAIL_TYPE_LABELS: Record<string, string> = {
 const PLAN_COLORS: Record<string, string> = {
   STARTER: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
   BASIC: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  ADVANCED: "bg-purple-500/20 text-purple-400 border-purple-500/30",
+  ADVANCED: "bg-brand-subtle text-brand border-brand/30",
 };
 
 const PlatformEmailsPanel = () => {

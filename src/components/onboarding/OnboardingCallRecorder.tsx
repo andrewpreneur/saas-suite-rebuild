@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionCard } from "@/components/premium/SectionCard";
+import { EmptyState } from "@/components/premium/21st/empty-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -7,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ExternalLink, Plus, Video, FileText } from "lucide-react";
+import { ExternalLink, PhoneCall, Plus, Video, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -87,23 +88,30 @@ const OnboardingCallRecorder = ({ ownerEmail, title = "Your Onboarding Calls", o
   const fmt = (d?: string) => (d ? new Date(d).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "—");
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
-        <CardTitle className="text-base">{title}</CardTitle>
-        <Button size="sm" className="gap-1" onClick={() => { setForm({ ...empty, owner: lookup }); setOpen(true); }}>
-          <Plus className="w-4 h-4" /> Record a call
+    <SectionCard
+      icon={<PhoneCall />}
+      title={title}
+      description="Every call booked or recorded for this account."
+      actions={
+        <Button variant="outline" onClick={() => { setForm({ ...empty, owner: lookup }); setOpen(true); }}>
+          <Plus /> Record a call
         </Button>
-      </CardHeader>
-      <CardContent className="space-y-3">
+      }
+      bodyClassName="space-y-3"
+    >
         {!ownerEmail && (
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <Input placeholder="Account email (e.g. owner@agency.com)" value={lookup} onChange={(e) => setLookup(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && load()} />
             <Button variant="outline" onClick={load}>Load calls</Button>
           </div>
         )}
         {calls.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4 text-center">No onboarding calls yet.</p>
+          <EmptyState
+            className="py-8"
+            title="No onboarding calls yet."
+            description="Calls appear here as soon as a client books, or you can record one yourself."
+          />
         ) : (
           <div className="overflow-x-auto">
             <Table>
@@ -122,7 +130,7 @@ const OnboardingCallRecorder = ({ ownerEmail, title = "Your Onboarding Calls", o
                   return (
                     <TableRow key={b.id}>
                       <TableCell className="whitespace-nowrap">{fmt(b.scheduled_at)}</TableCell>
-                      <TableCell>{b.name || "—"}{b.is_manual && <Badge variant="outline" className="ml-2 text-[10px]">Manual</Badge>}</TableCell>
+                      <TableCell>{b.name || "—"}{b.is_manual && <Badge variant="neutral" className="ml-2">Manual</Badge>}</TableCell>
                       <TableCell className="whitespace-nowrap">{b.email || "—"}</TableCell>
                       <TableCell className="space-x-3 whitespace-nowrap">
                         {b.meeting_link && <a href={b.meeting_link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-brand hover:underline">Meeting <ExternalLink className="w-3 h-3" /></a>}
@@ -132,7 +140,7 @@ const OnboardingCallRecorder = ({ ownerEmail, title = "Your Onboarding Calls", o
                       </TableCell>
                       <TableCell>
                         {done ? (
-                          <Badge variant="secondary">{b.charge_status === "charged" ? "Charged $60" : "Consumed"}</Badge>
+                          <Badge variant="success">{b.charge_status === "charged" ? "Charged $60" : "Consumed"}</Badge>
                         ) : (
                           <Button size="sm" variant="outline" disabled={busyId === b.id} onClick={() => consume_(b.id)}>
                             {busyId === b.id ? "…" : "Consume"}
@@ -146,16 +154,15 @@ const OnboardingCallRecorder = ({ ownerEmail, title = "Your Onboarding Calls", o
             </Table>
           </div>
         )}
-      </CardContent>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Record an onboarding call</DialogTitle></DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-4 [&_label]:mb-1.5 [&_label]:block">
             {!ownerEmail && (
               <div><Label>Account email</Label><Input value={form.owner} onChange={set("owner")} placeholder="owner@agency.com" /></div>
             )}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div><Label>Name</Label><Input value={form.name} onChange={set("name")} /></div>
               <div><Label>Email</Label><Input type="email" value={form.email} onChange={set("email")} /></div>
             </div>
@@ -166,7 +173,7 @@ const OnboardingCallRecorder = ({ ownerEmail, title = "Your Onboarding Calls", o
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" disabled={saving} onClick={() => save(false)}>Save only</Button>
-            <Button disabled={saving} onClick={() => save(true)}>{saving ? "Saving…" : "Save & consume call"}</Button>
+            <Button variant="accent" disabled={saving} onClick={() => save(true)}>{saving ? "Saving…" : "Save & consume call"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -174,10 +181,10 @@ const OnboardingCallRecorder = ({ ownerEmail, title = "Your Onboarding Calls", o
       <Dialog open={!!transcriptView} onOpenChange={(v) => !v && setTranscriptView(null)}>
         <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Transcript</DialogTitle></DialogHeader>
-          <p className="text-sm whitespace-pre-wrap">{transcriptView}</p>
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{transcriptView}</p>
         </DialogContent>
       </Dialog>
-    </Card>
+    </SectionCard>
   );
 };
 

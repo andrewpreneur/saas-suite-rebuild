@@ -945,7 +945,7 @@ export default function CommunityAcademy({
                   id={skill.slug ? `skill-${skill.slug}` : undefined}
                   className={
                     highlighted
-                      ? "relative flex h-full flex-col border-brand ring-2 ring-brand shadow-lg shadow-brand/20 transition-colors"
+                      ? "relative flex h-full flex-col border-brand ring-2 ring-brand shadow-raised transition-colors"
                       : skill.is_new
                       ? "relative flex h-full flex-col border-brand/60 ring-1 ring-brand/30 transition-colors hover:border-brand"
                       : "relative flex h-full flex-col transition-colors hover:border-brand/40"
