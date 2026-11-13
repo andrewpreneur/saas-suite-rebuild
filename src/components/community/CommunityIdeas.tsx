@@ -508,6 +508,8 @@ export default function CommunityIdeas({
 
   return (
     <div className="space-y-4">
+      {/* With nothing to filter, the empty state below carries the one Submit button. */}
+      {!loading && ideas.length === 0 ? null : (
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2">
           {categories.map((cat) => (
@@ -526,6 +528,7 @@ export default function CommunityIdeas({
           <Plus className="h-3.5 w-3.5" /> Submit idea
         </Button>
       </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-10">

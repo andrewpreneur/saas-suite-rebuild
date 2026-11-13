@@ -6,11 +6,13 @@ import {
   BookOpen,
   CalendarCheck,
   Check,
+  ChevronDown,
   Clapperboard,
-  Compass,
+  FolderOpen,
   Layers,
   LayoutGrid,
   LifeBuoy,
+  List,
   ListChecks,
   MessageSquareText,
   Palette,
@@ -29,11 +31,12 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Tag } from "@/components/ui/tag";
 import { Reveal, RevealItem } from "@/components/premium/Reveal";
-import { SectionCard } from "@/components/premium/SectionCard";
-import { FolderCard } from "@/components/premium/21st/folder-card";
 import { EmptyState, EmptyStateIllustration } from "@/components/premium/21st/empty-state";
 import { FilterChips } from "@/components/premium/learn/FilterChips";
 import { TrainingCard } from "@/components/premium/learn/TrainingCard";
+import { TrainingFolders, type TrainingFolder } from "@/components/premium/learn/TrainingFolders";
+import type { ArtPreset } from "@/components/premium/21st/glass-folder-cards";
+import type { MoreMenuItem } from "@/components/premium/MoreMenu";
 import { VideoPlayerDialog } from "@/components/premium/learn/VideoPlayerDialog";
 import { useWatched } from "@/components/premium/learn/useWatched";
 import { popIn } from "@/lib/motion";
@@ -102,6 +105,14 @@ const TOPICS: { id: Category; label: string; blurb: string; icon: LucideIcon }[]
   { id: "menu", label: "Menu links", blurb: "Tidy the HighLevel menu", icon: Zap },
 ];
 
+const FOLDER_ART: Record<Category, ArtPreset> = {
+  setup: "aurora",
+  "client-hub": "glacier",
+  branding: "dusk",
+  menu: "ember",
+};
+const RESOURCES_FOLDER = "free-resources";
+
 const GUIDE_ICONS: Record<string, LucideIcon> = {
   support: LifeBuoy,
   streamline: Zap,
@@ -139,12 +150,18 @@ export default function StartHere() {
   const [type, setType] = useState<TypeFilter>("all");
   const [category, setCategory] = useState<CategoryFilter>("all");
   const [watching, setWatching] = useState<StartHereVideo | null>(null);
+  const [progressLoaded, setProgressLoaded] = useState(false);
+  // Setup collapses to one row once it is done; "Review" opens the steps again.
+  const [reviewing, setReviewing] = useState(false);
+  const [listView, setListView] = useState(false);
   const { watched, isWatched, setWatched } = useWatched(email);
 
   useEffect(() => {
     let active = true;
     void loadSetupProgress(email).then((next) => {
-      if (active) setProgress(next);
+      if (!active) return;
+      setProgress(next);
+      setProgressLoaded(true);
     });
     return () => {
       active = false;
@@ -208,241 +225,242 @@ export default function StartHere() {
     : null;
   const topicLabel = (id: Category) => TOPICS.find((topic) => topic.id === id)?.label ?? "Training";
 
+  const folders: TrainingFolder[] = [
+    ...groups.map((group) => ({
+      id: group.id,
+      label: group.label,
+      meta: `${group.count} ${group.count === 1 ? "training" : "trainings"}${
+        group.seen === group.count ? " · done" : group.seen ? ` · ${group.seen} watched` : ""
+      }`,
+      art: FOLDER_ART[group.id],
+      items: LESSONS.filter((lesson) => lesson.category === group.id).map((lesson) => ({
+        id: lesson.id,
+        name: lesson.title,
+        meta: lengthLabel(lesson),
+        done: isWatched(lesson.id),
+      })),
+    })),
+    {
+      id: RESOURCES_FOLDER,
+      label: "Free resources",
+      meta: "Shared by other agencies",
+      art: "verdant",
+      items: FREE_RESOURCES.map((item) => ({
+        id: item.id,
+        name: item.title,
+        meta: RESOURCE_META[item.id]?.blurb,
+      })),
+    },
+  ];
+  const openFolderItem = (folderId: string, itemId: string) => {
+    if (folderId === RESOURCES_FOLDER) {
+      const resource = FREE_RESOURCES.find((item) => item.id === itemId);
+      if (resource) navigate(resource.path);
+      return;
+    }
+    const lesson = LESSONS.find((item) => item.id === itemId);
+    if (lesson) openLesson(lesson);
+  };
+
+  const watchedCount = LESSONS.filter((lesson) => watched.includes(lesson.id)).length;
+  const showSteps = !allDone || reviewing;
+  const showList = listView || filtered;
+  const walkthroughItems: MoreMenuItem[] = [
+    { label: "Watch the video walkthrough", icon: <Clapperboard />, onSelect: () => navigate("/app/walkthrough") },
+    ...WALKTHROUGH_LINKS.map((item) => {
+      const Icon = GUIDE_ICONS[item.id] ?? BookOpen;
+      return { label: item.title, icon: <Icon />, onSelect: () => open(item.id, item.path) };
+    }),
+  ];
+
   return (
-    <div className="mx-auto w-full max-w-5xl min-w-0 space-y-8">
+    <div className="mx-auto w-full max-w-5xl min-w-0 space-y-6">
       <PageHeader
         eyebrow="Learn"
         title="Learning Hub"
-        subtitle="Finish the three setup steps, then pick up trainings and resources whenever you need them."
+        subtitle={
+          allDone || !progressLoaded
+            ? "Open a folder to start a training."
+            : "Finish the three setup steps, then open a folder to start a training."
+        }
+        actions={
+          progressLoaded && !allDone ? (
+            <Button type="button" variant="accent" className="h-11 sm:h-10" onClick={() => startWalkthrough("nav")}>
+              <Play />
+              Start the interactive walkthrough
+            </Button>
+          ) : undefined
+        }
+        more={
+          allDone
+            ? [
+                { label: "Start the interactive walkthrough", icon: <Sparkles />, onSelect: () => startWalkthrough("nav") },
+                ...walkthroughItems,
+              ]
+            : walkthroughItems
+        }
       />
 
-      <Reveal className="space-y-8">
+      <Reveal className="space-y-6">
         <RevealItem>
           <section aria-label="Getting started with SaaSSuite" className="px-surface overflow-hidden">
-            <div className="px-brand-wash flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-              <div className="flex min-w-0 items-start gap-3">
-                <span className="px-icon-chip shrink-0 bg-card [&_svg]:size-5" aria-hidden="true">
-                  <ListChecks />
+            {!progressLoaded ? (
+              <div className="px-skeleton h-14" aria-busy="true" aria-label="Loading setup progress" />
+            ) : allDone ? (
+              <button
+                type="button"
+                aria-expanded={reviewing}
+                aria-controls="learning-setup-steps"
+                onClick={() => setReviewing((value) => !value)}
+                className="group flex min-h-14 w-full items-center gap-3 px-4 py-2.5 text-left transition-colors duration-150 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-6"
+              >
+                <span
+                  className="flex size-7 shrink-0 items-center justify-center rounded-full bg-success text-success-foreground"
+                  aria-hidden="true"
+                >
+                  <Check className="size-4" />
                 </span>
-                <div className="min-w-0">
-                  <h2 className="text-base font-semibold text-foreground">Getting started with SaaSSuite</h2>
-                  <p className="mt-0.5 text-sm text-muted-foreground">
-                    {allDone
-                      ? "All three steps are done. Your hub is ready for clients."
-                      : `Next: ${nextStep?.title ?? "finish setup"}.`}
-                  </p>
-                </div>
-              </div>
-              <div className="w-full shrink-0 sm:w-56">
-                <div className="mb-1.5 flex items-center justify-between text-sm">
-                  <span className="font-medium text-foreground">
-                    {finished} of {SETUP_STEPS.length} done
+                <span className="min-w-0 flex-1 text-sm font-semibold text-foreground">
+                  Setup complete
+                  <span className="ml-2 font-normal text-muted-foreground">
+                    {finished} of {SETUP_STEPS.length} steps done
                   </span>
-                  {allDone ? (
-                    <Tag tone="success">
-                      <Check aria-hidden="true" />
-                      Complete
-                    </Tag>
-                  ) : (
-                    <span className="tabular-nums text-muted-foreground">
-                      {Math.round((finished / SETUP_STEPS.length) * 100)}%
-                    </span>
+                </span>
+                <span className="shrink-0 text-sm font-medium text-muted-foreground group-hover:text-foreground">
+                  {reviewing ? "Hide steps" : "Review"}
+                </span>
+                <ChevronDown
+                  className={cn(
+                    "size-4 shrink-0 text-muted-foreground transition-transform duration-200 ease-out motion-reduce:transition-none",
+                    reviewing && "rotate-180",
                   )}
-                </div>
-                <Progress
-                  value={(finished / SETUP_STEPS.length) * 100}
-                  aria-label={`${finished} of ${SETUP_STEPS.length} setup steps done`}
-                  className="bg-card"
+                  aria-hidden="true"
                 />
-              </div>
-            </div>
-            <ol className="divide-y divide-border border-t border-border">
-              {SETUP_STEPS.map((step, index) => {
-                const complete = done(step.id);
-                const current = !complete && nextStep?.id === step.id;
-                return (
-                  <li key={step.id}>
-                    <button
-                      type="button"
-                      onClick={() => open(step.id, step.path)}
-                      className="group flex min-h-[64px] w-full items-center gap-3 px-4 py-3 text-left transition-colors duration-150 hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none sm:px-6"
-                    >
-                      <span
-                        className={cn(
-                          "flex size-8 shrink-0 items-center justify-center rounded-full border text-sm font-semibold",
-                          complete
-                            ? "border-success bg-success text-success-foreground"
-                            : current
-                              ? "border-brand bg-brand-subtle text-brand"
-                              : "border-border bg-card text-muted-foreground",
-                        )}
-                        aria-hidden="true"
-                      >
-                        <AnimatePresence mode="wait" initial={false}>
-                          {complete ? (
-                            <motion.span key="done" variants={popIn} initial="hidden" animate="show" exit="exit">
-                              <Check className="size-4" />
-                            </motion.span>
-                          ) : (
-                            <motion.span key="todo" variants={popIn} initial="hidden" animate="show" exit="exit">
-                              {index + 1}
-                            </motion.span>
-                          )}
-                        </AnimatePresence>
+              </button>
+            ) : (
+              <div className="px-brand-wash flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="px-icon-chip shrink-0 bg-card [&_svg]:size-5" aria-hidden="true">
+                    <ListChecks />
+                  </span>
+                  <div className="min-w-0">
+                    <h2 className="text-base font-semibold text-foreground">Getting started with SaaSSuite</h2>
+                    <p className="mt-0.5 text-sm text-muted-foreground">
+                      {allDone
+                        ? "All three steps are done. Your hub is ready for clients."
+                        : `Next: ${nextStep?.title ?? "finish setup"}.`}
+                    </p>
+                  </div>
+                </div>
+                <div className="w-full shrink-0 sm:w-56">
+                  <div className="mb-1.5 flex items-center justify-between text-sm">
+                    <span className="font-medium text-foreground">
+                      {finished} of {SETUP_STEPS.length} done
+                    </span>
+                    {allDone ? (
+                      <Tag tone="success">
+                        <Check aria-hidden="true" />
+                        Complete
+                      </Tag>
+                    ) : (
+                      <span className="tabular-nums text-muted-foreground">
+                        {Math.round((finished / SETUP_STEPS.length) * 100)}%
                       </span>
-                      <span className="min-w-0 flex-1">
+                    )}
+                  </div>
+                  <Progress
+                    value={(finished / SETUP_STEPS.length) * 100}
+                    aria-label={`${finished} of ${SETUP_STEPS.length} setup steps done`}
+                    className="bg-card"
+                  />
+                </div>
+              </div>
+            )}
+            {progressLoaded && showSteps ? (
+              <div id="learning-setup-steps">
+              <ol className="divide-y divide-border border-t border-border">
+                {SETUP_STEPS.map((step, index) => {
+                  const complete = done(step.id);
+                  const current = !complete && nextStep?.id === step.id;
+                  return (
+                    <li key={step.id}>
+                      <button
+                        type="button"
+                        onClick={() => open(step.id, step.path)}
+                        className="group flex min-h-[64px] w-full items-center gap-3 px-4 py-3 text-left transition-colors duration-150 hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none sm:px-6"
+                      >
                         <span
                           className={cn(
-                            "block text-sm font-semibold",
-                            complete ? "text-muted-foreground" : "text-foreground",
+                            "flex size-8 shrink-0 items-center justify-center rounded-full border text-sm font-semibold",
+                            complete
+                              ? "border-success bg-success text-success-foreground"
+                              : current
+                                ? "border-brand bg-brand-subtle text-brand"
+                                : "border-border bg-card text-muted-foreground",
+                          )}
+                          aria-hidden="true"
+                        >
+                          <AnimatePresence mode="wait" initial={false}>
+                            {complete ? (
+                              <motion.span key="done" variants={popIn} initial="hidden" animate="show" exit="exit">
+                                <Check className="size-4" />
+                              </motion.span>
+                            ) : (
+                              <motion.span key="todo" variants={popIn} initial="hidden" animate="show" exit="exit">
+                                {index + 1}
+                              </motion.span>
+                            )}
+                          </AnimatePresence>
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span
+                            className={cn(
+                              "block text-sm font-semibold",
+                              complete ? "text-muted-foreground" : "text-foreground",
+                            )}
+                          >
+                            {step.title}
+                          </span>
+                          <span className="mt-0.5 block text-xs text-muted-foreground">
+                            {complete ? "Done. Open it to make changes." : step.description}
+                          </span>
+                        </span>
+                        <span
+                          className={cn(
+                            "hidden shrink-0 text-sm font-medium sm:inline",
+                            current ? "text-brand" : "text-muted-foreground",
                           )}
                         >
-                          {step.title}
+                          {complete ? "Review" : current ? "Continue" : "Open"}
                         </span>
-                        <span className="mt-0.5 block text-xs text-muted-foreground">
-                          {complete ? "Done. Open it to make changes." : step.description}
-                        </span>
-                      </span>
-                      <span
-                        className={cn(
-                          "hidden shrink-0 text-sm font-medium sm:inline",
-                          current ? "text-brand" : "text-muted-foreground",
-                        )}
-                      >
-                        {complete ? "Review" : current ? "Continue" : "Open"}
-                      </span>
-                      <ArrowRight
-                        className={cn(
-                          "size-4 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5",
-                          current ? "text-brand" : "text-muted-foreground",
-                        )}
-                        aria-hidden="true"
-                      />
-                    </button>
-                  </li>
-                );
-              })}
-            </ol>
+                        <ArrowRight
+                          className={cn(
+                            "size-4 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5",
+                            current ? "text-brand" : "text-muted-foreground",
+                          )}
+                          aria-hidden="true"
+                        />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+              </div>
+            ) : null}
           </section>
         </RevealItem>
 
         <RevealItem>
-          <SectionCard
-            icon={<Compass />}
-            title="Walkthroughs"
-            description="Optional guides for everything past the three setup steps."
-          >
-            <div className="flex flex-col gap-3 rounded-lg border border-brand/30 bg-brand-subtle p-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="px-brand-fill flex size-10 shrink-0 items-center justify-center rounded-md" aria-hidden="true">
-                  <Sparkles className="size-5" />
-                </span>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-foreground">Interactive walkthrough</p>
-                  <p className="text-xs text-muted-foreground">
-                    We point at each part of the app, one step at a time. About two minutes.
-                  </p>
-                </div>
-              </div>
-              <Button
-                type="button"
-                variant="accent"
-                className="h-11 shrink-0 sm:h-10"
-                onClick={() => startWalkthrough("nav")}
-              >
-                <Play />
-                Start the interactive walkthrough
-              </Button>
-            </div>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <GuideTile
-                icon={Clapperboard}
-                title="Video walkthrough"
-                onClick={() => navigate("/app/walkthrough")}
-              />
-              {WALKTHROUGH_LINKS.map((item) => (
-                <GuideTile
-                  key={item.id}
-                  icon={GUIDE_ICONS[item.id] ?? BookOpen}
-                  title={item.title}
-                  onClick={() => open(item.id, item.path)}
-                />
-              ))}
-            </div>
-          </SectionCard>
-        </RevealItem>
-
-        <RevealItem>
-          <section aria-label="Lessons" className="space-y-4">
+          <section aria-label="Trainings" className="space-y-4">
             <div className="flex flex-wrap items-end justify-between gap-3">
-              <div className="min-w-0">
-                <h2 className="text-h4 text-foreground">Trainings</h2>
-                <p className="mt-0.5 text-sm text-muted-foreground">
-                  {LESSONS.length} trainings in {TOPICS.length} groups. Pick a group or search.
-                </p>
-              </div>
+              <h2 className="text-h4 text-foreground">Trainings</h2>
               <span className="text-sm text-muted-foreground">
-                <span className="font-semibold tabular-nums text-foreground">
-                  {LESSONS.filter((lesson) => watched.includes(lesson.id)).length}
-                </span>{" "}
-                of {LESSONS.length} watched
+                <span className="font-semibold tabular-nums text-foreground">{watchedCount}</span> of {LESSONS.length}{" "}
+                watched
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              {groups.map((group) => {
-                const selected = category === group.id;
-                const Icon = group.icon;
-                return (
-                  <FolderCard
-                    key={group.id}
-                    role="button"
-                    tabIndex={0}
-                    aria-pressed={selected}
-                    aria-label={`${group.label}: ${group.count} trainings`}
-                    onClick={() => setCategory(selected ? "all" : group.id)}
-                    onKeyDown={(event: React.KeyboardEvent) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        setCategory(selected ? "all" : group.id);
-                      }
-                    }}
-                    icon={
-                      <span className="flex items-center justify-between gap-2">
-                        <span
-                          className={cn(
-                            "flex size-10 items-center justify-center rounded-md transition-colors duration-150",
-                            selected ? "px-brand-fill" : "bg-brand-subtle text-brand",
-                          )}
-                        >
-                          <Icon className="size-5" aria-hidden="true" />
-                        </span>
-                        {group.seen === group.count ? (
-                          <Tag tone="success">
-                            <Check aria-hidden="true" />
-                            Done
-                          </Tag>
-                        ) : (
-                          <span className="text-xs tabular-nums text-muted-foreground">
-                            {group.seen}/{group.count}
-                          </span>
-                        )}
-                      </span>
-                    }
-                    title={group.label}
-                    size={`${group.count} ${group.count === 1 ? "training" : "trainings"}${
-                      group.minutes ? ` · ${group.minutes} min` : ` · ${group.blurb}`
-                    }`}
-                    className={cn(
-                      "min-h-[132px] cursor-pointer rounded-lg bg-card bg-none shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                      selected ? "border-brand ring-1 ring-brand" : "border-border hover:border-brand/40",
-                    )}
-                  />
-                );
-              })}
-            </div>
-
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+            <div className="flex items-center gap-2">
               <div className="relative min-w-0 flex-1">
                 <Search
                   className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
@@ -466,114 +484,95 @@ export default function StartHere() {
                   </button>
                 ) : null}
               </div>
-              <FilterChips<TypeFilter>
-                label="Type"
-                value={type}
-                onChange={setType}
-                options={[
-                  { value: "all", label: "All" },
-                  { value: "video", label: "Videos", icon: <Play /> },
-                  { value: "lesson", label: "Lessons", icon: <BookOpen /> },
-                ]}
-              />
+              <Button
+                type="button"
+                variant="ghost"
+                aria-pressed={listView}
+                onClick={() => {
+                  if (showList) clearFilters();
+                  setListView(!showList);
+                }}
+                className="h-11 shrink-0 gap-2 px-3 text-muted-foreground sm:h-10"
+              >
+                {showList ? <FolderOpen aria-hidden="true" /> : <List aria-hidden="true" />}
+                <span className="hidden sm:inline">{showList ? "Show folders" : "Show as a list"}</span>
+                <span className="sr-only sm:hidden">{showList ? "Show folders" : "Show as a list"}</span>
+              </Button>
             </div>
 
-            {lessons.length === 0 ? (
-              <div className="px-surface">
-                <EmptyState
-                  icon={
-                    <EmptyStateIllustration className="rounded-lg border-border bg-muted text-muted-foreground">
-                      <SearchX className="size-7" aria-hidden="true" />
-                    </EmptyStateIllustration>
-                  }
-                  title="No trainings match"
-                  description="Try a different word, or clear the filters to see every training."
-                  action={
-                    <Button type="button" variant="outline" onClick={clearFilters}>
-                      Clear filters
-                    </Button>
-                  }
-                />
-              </div>
-            ) : (
+            {showList ? (
               <>
-                <p className="text-sm text-muted-foreground" aria-live="polite">
-                  {filtered
-                    ? `Showing ${lessons.length} of ${LESSONS.length} trainings`
-                    : "Showing every training"}
-                  {filtered ? (
-                    <>
-                      {" · "}
-                      <button
-                        type="button"
-                        onClick={clearFilters}
-                        className="font-medium text-brand underline-offset-4 hover:underline"
-                      >
+              <FilterChips<TypeFilter>
+                  label="Type"
+                  value={type}
+                  onChange={setType}
+                  options={[
+                    { value: "all", label: "All" },
+                    { value: "video", label: "Videos", icon: <Play /> },
+                    { value: "lesson", label: "Lessons", icon: <BookOpen /> },
+                  ]}
+                />
+                {lessons.length === 0 ? (
+                <div className="px-surface">
+                  <EmptyState
+                    icon={
+                      <EmptyStateIllustration className="rounded-lg border-border bg-muted text-muted-foreground">
+                        <SearchX className="size-7" aria-hidden="true" />
+                      </EmptyStateIllustration>
+                    }
+                    title="No trainings match"
+                    description="Try a different word, or clear the filters to see every training."
+                    action={
+                      <Button type="button" variant="outline" onClick={clearFilters}>
                         Clear filters
-                      </button>
-                    </>
-                  ) : null}
-                </p>
-                <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
-                  {lessons.map((lesson) => {
-                    const topic = TOPICS.find((item) => item.id === lesson.category);
-                    const Icon = topic?.icon ?? BookOpen;
-                    return (
-                      <TrainingCard
-                        key={lesson.id}
-                        title={lesson.title}
-                        length={lengthLabel(lesson)}
-                        topic={topic?.label ?? "Training"}
-                        poster={lesson.poster || undefined}
-                        icon={<Icon aria-hidden="true" />}
-                        kind={lesson.src ? "video" : "lesson"}
-                        watched={isWatched(lesson.id)}
-                        onOpen={() => openLesson(lesson)}
-                      />
-                    );
-                  })}
+                      </Button>
+                    }
+                  />
                 </div>
+              ) : (
+                <>
+                  <p className="text-sm text-muted-foreground" aria-live="polite">
+                    {filtered
+                      ? `Showing ${lessons.length} of ${LESSONS.length} trainings`
+                      : "Showing every training"}
+                    {filtered ? (
+                      <>
+                        {" · "}
+                        <button
+                          type="button"
+                          onClick={clearFilters}
+                          className="font-medium text-brand underline-offset-4 hover:underline"
+                        >
+                          Clear filters
+                        </button>
+                      </>
+                    ) : null}
+                  </p>
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+                    {lessons.map((lesson) => {
+                      const topic = TOPICS.find((item) => item.id === lesson.category);
+                      const Icon = topic?.icon ?? BookOpen;
+                      return (
+                        <TrainingCard
+                          key={lesson.id}
+                          title={lesson.title}
+                          length={lengthLabel(lesson)}
+                          topic={topic?.label ?? "Training"}
+                          poster={lesson.poster || undefined}
+                          icon={<Icon aria-hidden="true" />}
+                          kind={lesson.src ? "video" : "lesson"}
+                          watched={isWatched(lesson.id)}
+                          onOpen={() => openLesson(lesson)}
+                        />
+                      );
+                    })}
+                  </div>
+                </>
+              )}
               </>
+            ) : (
+              <TrainingFolders folders={folders} onSelect={openFolderItem} />
             )}
-          </section>
-        </RevealItem>
-
-        <RevealItem>
-          <section aria-label="Free resources" className="space-y-4">
-            <div>
-              <h2 className="text-h4 text-foreground">Free resources</h2>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                Shared by other agencies in the community. Take what helps.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {FREE_RESOURCES.map((item) => {
-                const meta = RESOURCE_META[item.id];
-                const Icon = meta?.icon ?? BookOpen;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => navigate(item.path)}
-                    className="px-surface-interactive group flex min-h-[72px] items-center gap-3 p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  >
-                    <span className="px-icon-chip shrink-0 [&_svg]:size-5" aria-hidden="true">
-                      <Icon />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-semibold text-foreground">{item.title}</span>
-                      {meta ? (
-                        <span className="block text-xs text-muted-foreground">{meta.blurb}</span>
-                      ) : null}
-                    </span>
-                    <ArrowRight
-                      className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-brand"
-                      aria-hidden="true"
-                    />
-                  </button>
-                );
-              })}
-            </div>
           </section>
         </RevealItem>
       </Reveal>
@@ -588,35 +587,5 @@ export default function StartHere() {
         onPlayNext={(video) => setWatching(videos.find((item) => item.id === video.id) ?? null)}
       />
     </div>
-  );
-}
-
-function GuideTile({
-  icon: Icon,
-  title,
-  onClick,
-  className,
-}: {
-  icon: LucideIcon;
-  title: string;
-  onClick: () => void;
-  className?: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "group flex min-h-[56px] items-center gap-3 rounded-lg border border-border bg-card p-3 text-left transition-colors duration-150 hover:border-brand/40 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-        className,
-      )}
-    >
-      <Icon className="size-4 shrink-0 text-brand" aria-hidden="true" />
-      <span className="min-w-0 flex-1 text-sm font-medium text-foreground">{title}</span>
-      <ArrowRight
-        className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5"
-        aria-hidden="true"
-      />
-    </button>
   );
 }

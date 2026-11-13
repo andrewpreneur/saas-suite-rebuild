@@ -201,6 +201,12 @@ html.ds-ui[data-skin="glass"] body.ds-app .px-brand-fill {
     backdrop-filter: none;
   }
 }
+/* The floating Copilot button steps aside while a panel or dialog is open, so it never covers a Save button. */
+body:has([role="dialog"][data-state="open"]) .copilot-launcher {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-fast, 120ms) ease-out;
+}
 @keyframes px-shimmer {
   to { background-position: -135% 0; }
 }

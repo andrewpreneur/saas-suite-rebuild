@@ -24,6 +24,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { EmptyState, EmptyStateIllustration } from "@/components/premium/21st/empty-state";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AuthorLine, MemberAvatar } from "./shared";
 import { GifPicker, GifPreview, MediaAttachment, type GifSelection } from "./GifPicker";
 import type { CommunityProfile } from "@/hooks/useCommunityProfile";
@@ -422,28 +423,18 @@ export default function CommunityFeed({
               className="h-11 w-full rounded-md border border-input bg-card pl-9 pr-3 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 sm:h-10 sm:text-sm"
             />
           </div>
-          <div
-            role="radiogroup"
-            aria-label="Filter posts by topic"
-            className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden"
-          >
-            {["All", ...POST_CATEGORIES].map((c) => (
-              <button
-                key={c}
-                type="button"
-                role="radio"
-                aria-checked={categoryFilter === c}
-                onClick={() => setCategoryFilter(c)}
-                className={`inline-flex h-11 shrink-0 items-center rounded-full border px-4 text-sm font-medium transition-colors sm:h-9 sm:px-3 ${
-                  categoryFilter === c
-                    ? "border-brand bg-brand-subtle text-brand"
-                    : "border-border bg-card text-muted-foreground hover:border-brand/40 hover:text-foreground"
-                }`}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger aria-label="Filter posts by topic" className="h-11 w-full shrink-0 bg-card sm:h-10 sm:w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="end">
+              {["All", ...POST_CATEGORIES].map((c) => (
+                <SelectItem key={c} value={c} className="min-h-10">
+                  {c === "All" ? "All topics" : c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {loading ? (
