@@ -22,8 +22,10 @@ It is not the live app. The live app and its repository are separate and must ne
 
 ## Good to know
 - Read `AGENTS.md` (project decisions) before changing files; subfolders may have their own.
-- The app already has an opt-in new UI (design system v0.1, `src/lib/uiVersion.ts`, components in
-  `src/components/ui/ds`, tokens in `src/index.css`). Build on it rather than starting a third system, unless the task says otherwise.
+- There is one UI: "SaaSSuite Premium" (design system v1). Read `docs/design-system.md` before changing any screen and
+  follow it: tokens in `src/index.css`, motion presets in `src/lib/motion.ts`, primitives in `src/components/ui`, premium
+  pieces in `src/components/premium` (21st.dev components live in `premium/21st`, each credited at the top of its file).
+- `docs/rebuild-log.md` records what was rebuilt and what is left; `docs/rebuild/` holds screenshots and the walkthrough video.
 - This copy is **not connected to Lovable**: the Lovable publish workflow and script were removed (they pointed at the live
   project). Don't add any deploy or publish step that targets the live app.
 - All trackers are off in this copy: the Ospry tag is removed and `index.html` sets the tracking opt-out before anything
