@@ -97,8 +97,14 @@ export const TipsBotToast: React.FC = () => {
 
     const resolve = () => {
       if (cancelled) return;
-      const direct = pick(currentTip.targetSelector);
       const tool = currentTip.navigation?.selectTool;
+      // Sidebar groups are closed unless you are in them; ask the sidebar to open the one this step points at.
+      window.dispatchEvent(
+        new CustomEvent("ss-sidebar-reveal", {
+          detail: { targets: [currentTip.targetSelector, tool ? `sidebar-${tool}` : ""] },
+        }),
+      );
+      const direct = pick(currentTip.targetSelector);
       const pointer = direct ? null : tool ? pick(`sidebar-${tool}`) : null;
       const el = direct ?? pointer;
 

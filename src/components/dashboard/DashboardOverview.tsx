@@ -47,6 +47,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import type { DateRange } from "react-day-picker";
 import { useDayPicker } from "react-day-picker";
 import { cn } from "@/lib/utils";
+import { StatStrip } from "@/components/premium/StatStrip";
+import { WorkspaceFolders } from "@/components/premium/dashboard/WorkspaceFolders";
 import { format } from "date-fns";
 import {
   AlertDialog,
@@ -69,7 +71,6 @@ import { Reveal, RevealItem } from "@/components/premium/Reveal";
 import { SectionCard } from "@/components/premium/SectionCard";
 import AnimatedTabs from "@/components/premium/21st/animated-tabs";
 import { EmptyState } from "@/components/premium/21st/empty-state";
-import { KpiCard } from "@/components/premium/dashboard/KpiCard";
 import { NextStepCard, type NextStep } from "@/components/premium/dashboard/NextStepCard";
 import SetupHelpPopup from "@/components/dashboard/SetupHelpPopup";
 import { chartColors } from "@/lib/chart-colors";
@@ -169,6 +170,8 @@ export default function DashboardOverview({ hubCard }: { hubCard?: ReactNode }) 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [metric, setMetric] = useState<Metric>("all");
+  // The dashboard shows one thing at a time under the numbers: where to go, who the clients are, or the charts.
+  const [dashTab, setDashTab] = useState<"workspace" | "clients" | "insights">("workspace");
 
   const [range, setRange] = useState<DateRange | undefined>(() => {
     const to = new Date();
@@ -555,8 +558,10 @@ export default function DashboardOverview({ hubCard }: { hubCard?: ReactNode }) 
 
   const openTool = (tool: string) =>
     window.dispatchEvent(new CustomEvent("tipbot-select-tool", { detail: { tool } }));
-  const scrollToClients = () =>
-    clientsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const scrollToClients = () => {
+    setDashTab("clients");
+    window.setTimeout(() => clientsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+  };
   const newInRange = series.reduce((sum, d) => sum + d.users, 0);
   const active7Pct = stats.total ? Math.round((stats.active7 / stats.total) * 100) : 0;
 
@@ -623,37 +628,37 @@ export default function DashboardOverview({ hubCard }: { hubCard?: ReactNode }) 
         </RevealItem>
 
         <RevealItem className="lg:col-span-3">
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-            <KpiCard
-              label="Clients"
-              value={stats.total}
-              icon={<Users />}
-              hint={`+${newInRange.toLocaleString()} in this period`}
-              onClick={scrollToClients}
-            />
-            <KpiCard
-              label="Active this week"
-              value={stats.active7}
-              icon={<Activity />}
-              hint={`${active7Pct}% of your clients`}
-            />
-            <KpiCard
-              label="Lesson completion"
-              value={stats.avgCompletion}
-              suffix="%"
-              icon={<GraduationCap />}
-              hint="Average across onboarding"
-            />
-            <KpiCard
-              label="Open tickets"
-              value={stats.openTickets}
-              icon={<LifeBuoy />}
-              hint={`${stats.waitingOnCustomer} waiting on customer · ${stats.closedTickets} closed`}
-              onClick={() => openTool("support")}
-            />
-          </div>
+          <StatStrip
+            stats={[
+              { label: "Clients", value: stats.total.toLocaleString(), hint: `+${newInRange.toLocaleString()} this period`, onClick: () => setDashTab("clients") },
+              { label: "Active this week", value: stats.active7.toLocaleString(), hint: `${active7Pct}%`, onClick: () => setDashTab("insights") },
+              { label: "Lesson completion", value: `${stats.avgCompletion}%`, hint: "average", onClick: () => setDashTab("insights") },
+              { label: "Open tickets", value: stats.openTickets.toLocaleString(), hint: `${stats.waitingOnCustomer} waiting`, onClick: () => openTool("support") },
+            ]}
+          />
         </RevealItem>
 
+        <RevealItem className="lg:col-span-3">
+          <AnimatedTabs
+            variant="segment"
+            activeTab={dashTab}
+            onChange={(id) => setDashTab(id as typeof dashTab)}
+            tabs={[
+              { id: "workspace", label: "Workspace" },
+              { id: "clients", label: "Clients" },
+              { id: "insights", label: "Insights" },
+            ]}
+          />
+        </RevealItem>
+
+        {dashTab === "workspace" ? (
+          <RevealItem className="lg:col-span-3">
+            <WorkspaceFolders />
+          </RevealItem>
+        ) : null}
+
+        {dashTab === "insights" ? (
+        <>
         {/* Main chart */}
         <RevealItem className="lg:col-span-2">
           <section className="px-surface h-full p-4 sm:p-6">
@@ -890,12 +895,16 @@ export default function DashboardOverview({ hubCard }: { hubCard?: ReactNode }) 
           </SectionCard>
         </RevealItem>
 
+        </>
+        ) : null}
+
         <RevealItem className="lg:col-span-3">
           <SetupHelpPopup />
         </RevealItem>
       </Reveal>
 
       {/* Clients table */}
+      {dashTab === "clients" ? (
       <section
         ref={clientsRef}
         className={cn(
@@ -1178,8 +1187,9 @@ export default function DashboardOverview({ hubCard }: { hubCard?: ReactNode }) 
           </div>
         )}
       </section>
+      ) : null}
 
-      <AnnouncementsCard />
+      {dashTab === "workspace" ? <AnnouncementsCard /> : null}
 
       {activityUser && (
         <UserActivityDialog

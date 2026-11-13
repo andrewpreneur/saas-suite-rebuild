@@ -423,6 +423,19 @@ export function AppSidebar({ selectedTool, onSelectTool }: AppSidebarProps) {
     if (activeSectionId) setOpenSection(activeSectionId);
   }, [activeSectionId]);
 
+  // The guided tour points at links inside groups; open the group it needs.
+  useEffect(() => {
+    const onReveal = (event: Event) => {
+      const targets = ((event as CustomEvent).detail?.targets ?? []) as string[];
+      const match = sections.find((section) =>
+        section.items.some((item) => targets.includes(`sidebar-${item.id}`)),
+      );
+      if (match) setOpenSection(match.id);
+    };
+    window.addEventListener("ss-sidebar-reveal", onReveal);
+    return () => window.removeEventListener("ss-sidebar-reveal", onReveal);
+  }, [sections]);
+
   const initials = (viewer.displayName || viewer.displayEmail || "?")
     .split(/[ @.]/)
     .filter(Boolean)
