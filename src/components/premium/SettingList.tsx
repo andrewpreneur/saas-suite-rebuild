@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode, type RefObject } from "react";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -74,11 +74,13 @@ export function SettingItem({
     onOpenChange?.(next);
   };
   const isMobile = useIsMobile();
+  const rowRef = useRef<HTMLButtonElement>(null);
   const opens = Boolean(children) || Boolean(onOpen);
 
   return (
     <div className="flex items-stretch">
       <button
+        ref={rowRef}
         type="button"
         disabled={disabled || !opens}
         data-testid={testId}
@@ -123,6 +125,7 @@ export function SettingItem({
           footer={panel?.footer}
           wide={panel?.wide}
           side={isMobile ? "bottom" : "right"}
+          returnFocusTo={rowRef}
         >
           {children}
         </EditorPanel>
@@ -144,6 +147,7 @@ export function EditorPanel({
   children,
   wide,
   side,
+  returnFocusTo,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -153,6 +157,8 @@ export function EditorPanel({
   children: ReactNode;
   wide?: boolean;
   side?: "right" | "bottom";
+  /** Where keyboard focus goes when the panel closes (the row or button that opened it). */
+  returnFocusTo?: RefObject<HTMLElement>;
 }) {
   const isMobile = useIsMobile();
   const resolved = side ?? (isMobile ? "bottom" : "right");
@@ -160,6 +166,12 @@ export function EditorPanel({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side={resolved}
+        onCloseAutoFocus={(event) => {
+          if (returnFocusTo?.current) {
+            event.preventDefault();
+            returnFocusTo.current.focus();
+          }
+        }}
         className={cn(
           "flex flex-col gap-0 p-0",
           resolved === "right"

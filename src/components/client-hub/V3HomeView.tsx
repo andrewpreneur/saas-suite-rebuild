@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { HubSection } from "@/components/premium/hub/HubSection";
+import { PanelActions } from "@/components/premium/hub/PanelActions";
+import { SettingItem, SettingList } from "@/components/premium/SettingList";
 import { AddRowButton, OnOffSwitch } from "@/components/premium/hub/HubBits";
 import { HaloDropzone } from "@/components/premium/21st/halo-dropzone";
 import { Reveal, RevealItem } from "@/components/premium/Reveal";
@@ -165,8 +166,13 @@ const V3HomeView = ({
     load();
   }, [selectedPlanAgencyId]);
 
-  const update = (patch: Partial<HomeSettings>) =>
+  // True from the first edit until the next save, so the save bar only shows when needed.
+  const [touched, setTouched] = useState(false);
+  useEffect(() => setTouched(false), [selectedPlanAgencyId]);
+  const update = (patch: Partial<HomeSettings>) => {
+    setTouched(true);
     setHomeSettings((prev) => ({ ...prev, ...patch }));
+  };
 
   const addAnnouncement = () => {
     update({
@@ -394,38 +400,62 @@ const V3HomeView = ({
   const ringClass = (key: string) =>
     highlight === key ? "ring-2 ring-brand ring-offset-2 animate-pulse" : "";
 
+  // Calm layout: every section is one row; its editor opens in a side panel.
+  const saveAll = async () => {
+    await saveDailyChecklistItems();
+    await saveHomeSettings();
+    setTouched(false);
+  };
+  const saveFooter = (
+    <PanelActions note={touched ? "Not saved yet" : undefined}>
+      <Button variant="accent" onClick={saveAll} disabled={isSaving}>
+        <Save className="size-4" aria-hidden="true" />
+        {isSaving ? "Saving…" : "Save Home page"}
+      </Button>
+    </PanelActions>
+  );
+  const linkCount = linkSlots.filter(
+    ({ idx }) => (homeSettings as any)[`custom_link_${idx}_text`] || (homeSettings as any)[`custom_link_${idx}_url`],
+  ).length;
+  const nextStepLabel: Record<string, string> = {
+    onboarding_videos: "Onboarding videos",
+    checklist: "Checklist items",
+    custom_text: "Custom text",
+    custom_url: "Custom URL",
+  };
+  const videoAdded = !!(homeSettings.welcome_video_enabled || homeSettings.welcome_video_url);
+  const removeButton = (label: string, onClick: () => void) => (
+    <Button
+      type="button"
+      variant="ghost"
+      className="mt-6 text-muted-foreground hover:text-destructive"
+      onClick={onClick}
+    >
+      <Trash2 className="size-4" aria-hidden="true" />
+      {label}
+    </Button>
+  );
+
   return (
     <div className="min-w-0">
       <Reveal className="space-y-4">
-        <RevealItem className="space-y-4">
-          {/* Welcome Section */}
-          <HubSection
-            data-tip-target="v3-home-welcome"
-            icon={<Hand />}
-            title="Welcome message"
-            description="The headline clients read first."
-            off={!homeSettings.welcome_enabled}
-            actions={
-              <>
-                <OnOffSwitch
-                  checked={!!homeSettings.welcome_enabled}
-                  onCheckedChange={() => update({ welcome_enabled: !homeSettings.welcome_enabled })}
-                  label="Show the welcome message"
-                />
-                <SectionMenu
-                  enabled={homeSettings.welcome_enabled}
-                  onToggle={() => update({ welcome_enabled: !homeSettings.welcome_enabled })}
-                  onDelete={() =>
-                    update({
-                      welcome_enabled: false,
-                      welcome_headline: "",
-                      welcome_subheadline: "",
-                    })
-                  }
-                />
-              </>
-            }
-          >
+        <RevealItem>
+          <SettingList>
+            <div data-tip-target="v3-home-welcome">
+              <SettingItem
+                testId="home-row-welcome"
+                icon={<Hand />}
+                title="Welcome message"
+                value={homeSettings.welcome_headline || "No headline yet"}
+                toggle={
+                  <OnOffSwitch
+                    checked={!!homeSettings.welcome_enabled}
+                    onCheckedChange={() => update({ welcome_enabled: !homeSettings.welcome_enabled })}
+                    label="Show the welcome message"
+                  />
+                }
+                panel={{ description: "The headline clients read first.", footer: saveFooter }}
+              >
             <div className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="home-welcome-headline">Headline</Label>
@@ -449,62 +479,45 @@ const V3HomeView = ({
                 />
               </div>
             </div>
-          </HubSection>
+                {removeButton("Clear welcome message", () =>
+                  update({ welcome_enabled: false, welcome_headline: "", welcome_subheadline: "" }),
+                )}
+              </SettingItem>
+            </div>
 
-          {/* Add buttons for sections not yet present */}
-          <div className="flex flex-col gap-3 empty:hidden sm:flex-row [&>*]:flex-1" data-tip-target="v3-home-add-sections">
-            {homeSettings.announcements_headline === null && (
-              <AddRowButton
-                onClick={handleAddAnnouncement}
-                data-tip-target="v3-home-add-announcement"
-                icon={<Megaphone className="size-4" aria-hidden="true" />}
-              >
-                Add an announcement
-              </AddRowButton>
-            )}
-            {!homeSettings.welcome_video_url && !homeSettings.welcome_video_enabled && (
-              <AddRowButton onClick={addWelcomeVideo} icon={<Video className="size-4" aria-hidden="true" />}>
-                Add a welcome video
-              </AddRowButton>
-            )}
-          </div>
-
-          {/* Announcement Bar */}
-          {homeSettings.announcements_headline !== null && (
-            <HubSection
-              ref={announcementRef}
-              data-tip-target="v3-home-announcement"
-              icon={<Megaphone />}
-              title="Announcement"
-              description="A highlighted note with an optional image."
-              off={!homeSettings.announcements_enabled}
-              className={ringClass("announcement")}
-              actions={
-                <>
+            <div data-tip-target="v3-home-announcement" ref={announcementRef}>
+              <SettingItem
+                testId="home-row-announcement"
+                icon={<Megaphone />}
+                title="Announcement"
+                value={
+                  homeSettings.announcements_headline === null
+                    ? "Not added yet"
+                    : homeSettings.announcements_headline || "No headline yet"
+                }
+                toggle={
                   <OnOffSwitch
-                    checked={!!homeSettings.announcements_enabled}
-                    onCheckedChange={() =>
-                      update({ announcements_enabled: !homeSettings.announcements_enabled })
+                    checked={!!homeSettings.announcements_enabled && homeSettings.announcements_headline !== null}
+                    onCheckedChange={(checked) =>
+                      homeSettings.announcements_headline === null && checked
+                        ? addAnnouncement()
+                        : update({ announcements_enabled: !homeSettings.announcements_enabled })
                     }
                     label="Show the announcement"
                   />
-                  <SectionMenu
-                    enabled={!!homeSettings.announcements_enabled}
-                    onToggle={() =>
-                      update({ announcements_enabled: !homeSettings.announcements_enabled })
-                    }
-                    onDelete={() =>
-                      update({
-                        announcements_enabled: false,
-                        announcements_headline: null,
-                        announcements_paragraph: null,
-                        announcements_image_url: null,
-                      })
-                    }
-                  />
-                </>
-              }
-            >
+                }
+                panel={{ description: "A highlighted note with an optional image.", footer: saveFooter }}
+              >
+                {homeSettings.announcements_headline === null ? (
+                  <AddRowButton
+                    onClick={addAnnouncement}
+                    data-tip-target="v3-home-add-announcement"
+                    icon={<Megaphone className="size-4" aria-hidden="true" />}
+                  >
+                    Add an announcement
+                  </AddRowButton>
+                ) : (
+                  <>
               <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-start">
                 <button
                   type="button"
@@ -541,40 +554,110 @@ const V3HomeView = ({
                   />
                 </div>
               </div>
-            </HubSection>
-          )}
+                    {removeButton("Remove announcement", () =>
+                      update({
+                        announcements_enabled: false,
+                        announcements_headline: null,
+                        announcements_paragraph: null,
+                        announcements_image_url: null,
+                      }),
+                    )}
+                  </>
+                )}
+      <Dialog open={imageDialogOpen} onOpenChange={setImageDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Announcement Image</DialogTitle>
+            <DialogDescription>Upload an image or paste an image URL.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleImageUpload(f);
+                }}
+              />
+              <HaloDropzone
+                accept="image/*"
+                disabled={uploadingImage}
+                emptyLabel={uploadingImage ? "Uploading…" : "Drop an image, or click to choose"}
+                formatHint="PNG or JPG, 16:9 looks best"
+                successLabel="Image added"
+                showSuccessThumbnails={false}
+                successResetMs={1800}
+                onFiles={(files) => {
+                  if (files[0]) handleImageUpload(files[0]);
+                }}
+              />
+            </div>
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">or</span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-medium">Image URL</label>
+              <Input
+                value={tempImageUrl}
+                onChange={(e) => setTempImageUrl(e.target.value)}
+                placeholder="https://..."
+              />
+            </div>
+            {tempImageUrl && (
+              <div className="rounded-md border overflow-hidden aspect-video bg-muted/20">
+                <img src={tempImageUrl} alt="Preview" className="w-full h-full object-cover" />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setImageDialogOpen(false)}>Cancel</Button>
+            <Button variant="accent"
+              onClick={() => {
+                update({ announcements_image_url: tempImageUrl || null });
+                setImageDialogOpen(false);
+              }}
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+              </SettingItem>
+            </div>
 
-          {/* Welcome Video */}
-          {(homeSettings.welcome_video_enabled || homeSettings.welcome_video_url) && (
-            <HubSection
-              ref={welcomeVideoRef}
-              data-tip-target="v3-home-welcome-video"
-              icon={<Video />}
-              title="Welcome video"
-              description="One video at the top of Home. Paste a link or pick one of your lessons."
-              off={!homeSettings.welcome_video_enabled}
-              className={ringClass("welcome-video")}
-              actions={
-                <>
+            <div data-tip-target="v3-home-welcome-video" ref={welcomeVideoRef}>
+              <SettingItem
+                testId="home-row-video"
+                icon={<Video />}
+                title="Welcome video"
+                value={
+                  !videoAdded
+                    ? "Not added yet"
+                    : homeSettings.welcome_video_source === "library"
+                      ? "A training video"
+                      : homeSettings.welcome_video_source === "custom"
+                        ? "One of your videos"
+                        : homeSettings.welcome_video_url || "No video chosen yet"
+                }
+                toggle={
                   <OnOffSwitch
                     checked={!!homeSettings.welcome_video_enabled}
-                    onCheckedChange={() =>
-                      update({ welcome_video_enabled: !homeSettings.welcome_video_enabled })
-                    }
+                    onCheckedChange={() => update({ welcome_video_enabled: !homeSettings.welcome_video_enabled })}
                     label="Show the welcome video"
                   />
-                  <SectionMenu
-                    enabled={!!homeSettings.welcome_video_enabled}
-                    onToggle={() =>
-                      update({ welcome_video_enabled: !homeSettings.welcome_video_enabled })
-                    }
-                    onDelete={() =>
-                      update({ welcome_video_enabled: false, welcome_video_url: null })
-                    }
-                  />
-                </>
-              }
-            >
+                }
+                panel={{
+                  description: "One video at the top of Home. Paste a link or pick one of your lessons.",
+                  footer: saveFooter,
+                  wide: true,
+                }}
+              >
               <div className="flex flex-col sm:flex-row gap-4">
                 {/* LEFT: thumbnail uploader */}
                  <div className="space-y-1.5 sm:w-48 sm:shrink-0" data-tip-target="v3-home-video-thumbnail">
@@ -745,7 +828,7 @@ const V3HomeView = ({
                       onClick={() => setVideoPreviewOpen(true)}
                       className="w-auto self-start"
                     >
-                      Preview Video
+                      Preview video
                     </Button>
                   )}
                 </div>
@@ -784,7 +867,7 @@ const V3HomeView = ({
                         .update({ welcome_video_thumbnail_url: signedUrl } as any)
                         .eq("agency_id", selectedPlanAgencyId);
                       if (saveErr) throw saveErr;
-                      toast.success("Thumbnail uploaded & saved");
+                      toast.success("Thumbnail uploaded and saved");
                     } catch (err: any) {
                       toast.error(err?.message || "Upload failed");
                     } finally {
@@ -794,26 +877,61 @@ const V3HomeView = ({
                   }}
                 />
               </div>
-            </HubSection>
+                {videoAdded
+                  ? removeButton("Remove welcome video", () =>
+                      update({ welcome_video_enabled: false, welcome_video_url: null }),
+                    )
+                  : null}
+      <Dialog open={videoPreviewOpen} onOpenChange={setVideoPreviewOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Welcome Video Preview</DialogTitle>
+            <DialogDescription>Preview how your welcome video will render.</DialogDescription>
+          </DialogHeader>
+          {homeSettings.welcome_video_url && (
+            <div className="rounded-md overflow-hidden border bg-muted/30">
+              {homeSettings.welcome_video_is_embed ? (
+                <div dangerouslySetInnerHTML={{ __html: homeSettings.welcome_video_url }} />
+              ) : getYoutubeEmbed(homeSettings.welcome_video_url) ? (
+                <div className="aspect-video">
+                  <iframe
+                    src={getYoutubeEmbed(homeSettings.welcome_video_url)!}
+                    title="Welcome video"
+                    className="w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              ) : (
+                <video
+                  src={homeSettings.welcome_video_url}
+                  controls
+                  className="w-full"
+                />
+              )}
+            </div>
           )}
-        </RevealItem>
+        </DialogContent>
+      </Dialog>
+              </SettingItem>
+            </div>
 
-        <RevealItem className="space-y-4">
-          {/* Daily Checklist (inline) */}
-          <HubSection
-            ref={checklistRef}
-            data-tip-target="v3-home-checklist"
-            icon={<ListChecks />}
-            title="Onboarding checklist"
-            description="Steps a new client ticks off once. Each step can link to a video. Items save as you type."
-            className={ringClass("checklist-title")}
-            actions={
-              <span className="text-xs tabular-nums text-muted-foreground">
-                {checklistItems.length} item{checklistItems.length === 1 ? "" : "s"}
-              </span>
-            }
-          >
-
+            <div data-tip-target="v3-home-checklist">
+              <SettingItem
+                testId="home-row-checklist"
+                icon={<ListChecks />}
+                title="Onboarding checklist"
+                value={
+                  checklistItems.length === 0
+                    ? "No steps yet"
+                    : `${checklistItems.length} step${checklistItems.length === 1 ? "" : "s"}`
+                }
+                panel={{
+                  description: "Steps a new client ticks off once. Each step can link to a video. Items save as you type.",
+                  wide: true,
+                }}
+              >
+                <div ref={checklistRef} className={ringClass("checklist-title")}>
             <div className="space-y-2">
               {checklistItems.map((item, idx) => (
                 <div
@@ -962,15 +1080,16 @@ const V3HomeView = ({
             <AddRowButton className={checklistItems.length ? "mt-3" : ""} onClick={addChecklistItem}>
               Add checklist item
             </AddRowButton>
-          </HubSection>
+                </div>
+              </SettingItem>
+            </div>
 
-          {/* What to do next */}
-          <HubSection
-            icon={<Compass />}
-            title="What to do next"
-            description="A nudge on Home that points each client to their next step."
-            off={!homeSettings.next_steps_enabled}
-            actions={
+            <SettingItem
+              testId="home-row-next"
+              icon={<Compass />}
+              title="What to do next"
+              value={nextStepLabel[homeSettings.next_steps_priority as string] ?? "Points each client to their next step"}
+              toggle={
                 <OnOffSwitch
                   id="next-steps-toggle-v3"
                   label="Show What to do next"
@@ -985,8 +1104,12 @@ const V3HomeView = ({
                     if (error) toast.error('Failed to save');
                   }}
                 />
-            }
-          >
+              }
+              panel={{ description: "A nudge on Home that points each client to their next step. Saves as you go." }}
+            >
+              {!homeSettings.next_steps_enabled && (
+                <p className="text-sm text-muted-foreground">Turn this on to choose where it sends clients.</p>
+              )}
             {homeSettings.next_steps_enabled && (
               <div className="space-y-3">
                 <div className="space-y-1.5">
@@ -1057,26 +1180,24 @@ const V3HomeView = ({
                 )}
               </div>
             )}
-          </HubSection>
+            </SettingItem>
 
-          {/* Daily Checklist (plan-specific) */}
-          <HubSection
-            ref={dailyChecklistRef}
-            data-tip-target="v3-home-daily"
-            icon={<CalendarCheck />}
-            title="Daily checklist"
-            description="Three habits that reset every day for each client."
-            off={!dailyChecklistEnabled}
-            className={ringClass("daily-checklist")}
-            actions={
-              <OnOffSwitch
-                id="daily-toggle-v3"
-                label="Show the daily checklist"
-                checked={dailyChecklistEnabled}
-                onCheckedChange={(c) => toggleDailyChecklist(c)}
-              />
-            }
-          >
+            <div data-tip-target="v3-home-daily" ref={dailyChecklistRef}>
+              <SettingItem
+                testId="home-row-daily"
+                icon={<CalendarCheck />}
+                title="Daily checklist"
+                value={dailyChecklistTitle || "Three habits that reset every day"}
+                toggle={
+                  <OnOffSwitch
+                    id="daily-toggle-v3"
+                    label="Show the daily checklist"
+                    checked={dailyChecklistEnabled}
+                    onCheckedChange={(c) => toggleDailyChecklist(c)}
+                  />
+                }
+                panel={{ description: "Three habits that reset every day for each client.", footer: saveFooter }}
+              >
             <div className="mb-3 space-y-1.5">
               <Label htmlFor="daily-checklist-title">Title clients see</Label>
               <Input
@@ -1094,57 +1215,40 @@ const V3HomeView = ({
                   <span className="w-4 text-sm tabular-nums text-muted-foreground">{idx + 1}.</span>
                   <Input
                     value={dailyChecklistItems[key]}
-                    onChange={(e) =>
-                      setDailyChecklistItems((prev) => ({ ...prev, [key]: e.target.value }))
-                    }
+                    onChange={(e) => {
+                      setTouched(true);
+                      setDailyChecklistItems((prev) => ({ ...prev, [key]: e.target.value }));
+                    }}
                     placeholder={`Daily task ${idx + 1}`}
                     aria-label={`Daily task ${idx + 1}`}
                   />
                 </div>
               ))}
             </div>
-          </HubSection>
+              </SettingItem>
+            </div>
 
-          {/* Custom Buttons & Links */}
-          <HubSection
-            ref={customLinksRef}
-            data-tip-target="v3-home-custom-links"
-            icon={<LinkIcon />}
-            title="Buttons and links"
-            description="Up to three buttons that send clients anywhere you choose."
-            off={!homeSettings.custom_links_enabled && hasAnyLink}
-            className={ringClass("custom-links")}
-            actions={
-              <>
-                {hasAnyLink ? (
-                  <OnOffSwitch
-                    checked={!!homeSettings.custom_links_enabled}
-                    onCheckedChange={() =>
-                      update({ custom_links_enabled: !homeSettings.custom_links_enabled })
-                    }
-                    label="Show buttons and links"
-                  />
-                ) : null}
-                <SectionMenu
-                  enabled={!!homeSettings.custom_links_enabled}
-                  onToggle={() =>
-                    update({ custom_links_enabled: !homeSettings.custom_links_enabled })
-                  }
-                  onDelete={() =>
-                    update({
-                      custom_links_enabled: false,
-                      custom_link_1_text: null,
-                      custom_link_1_url: null,
-                      custom_link_2_text: null,
-                      custom_link_2_url: null,
-                      custom_link_3_text: null,
-                      custom_link_3_url: null,
-                    } as any)
-                  }
-                />
-              </>
-            }
-          >
+            <div data-tip-target="v3-home-custom-links" ref={customLinksRef}>
+              <SettingItem
+                testId="home-row-links"
+                icon={<LinkIcon />}
+                title="Buttons and links"
+                value={linkCount === 0 ? "No buttons yet" : `${linkCount} of 3 buttons`}
+                toggle={
+                  hasAnyLink ? (
+                    <OnOffSwitch
+                      checked={!!homeSettings.custom_links_enabled}
+                      onCheckedChange={() => update({ custom_links_enabled: !homeSettings.custom_links_enabled })}
+                      label="Show buttons and links"
+                    />
+                  ) : undefined
+                }
+                panel={{
+                  description: "Up to three buttons that send clients anywhere you choose.",
+                  footer: saveFooter,
+                  wide: true,
+                }}
+              >
             <div className="space-y-3">
               {linkSlots.map(({ idx }) => {
                 const text = (homeSettings as any)[`custom_link_${idx}_text`] as string | null;
@@ -1235,138 +1339,46 @@ const V3HomeView = ({
                 );
               })()}
             </div>
-          </HubSection>
+                {linkCount > 0
+                  ? removeButton("Remove all buttons", () =>
+                      update({
+                        custom_links_enabled: false,
+                        custom_link_1_text: null,
+                        custom_link_1_url: null,
+                        custom_link_2_text: null,
+                        custom_link_2_url: null,
+                        custom_link_3_text: null,
+                        custom_link_3_url: null,
+                      } as any),
+                    )
+                  : null}
+              </SettingItem>
+            </div>
 
-          {/* Client login: shared by every plan, so it sits apart from the page sections */}
-          <HubSection
-            icon={<LogIn />}
-            title="Client login"
-            description="How clients sign in, and which page opens first. Shared by all plans."
-            actions={
-              <Button variant="outline" onClick={onOpenLoginDialog}>
-                Customize login
-              </Button>
-            }
-          />
+            {/* Client login: shared by every plan */}
+            <SettingItem
+              testId="home-row-login"
+              icon={<LogIn />}
+              title="Client login"
+              value="How clients sign in, and which page opens first. Shared by all plans."
+              onOpen={onOpenLoginDialog}
+            />
+          </SettingList>
         </RevealItem>
       </Reveal>
 
-      {/* Save bar: the one primary action of the Home page */}
-      <div className="px-glass sticky bottom-3 z-10 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3 shadow-raised">
-        <p className="min-w-0 flex-1 basis-48 text-sm text-muted-foreground">
-          Saves the welcome message, announcement, video, daily checklist and buttons for this plan.
-        </p>
-        <Button
-          variant="accent"
-          onClick={async () => {
-            await saveDailyChecklistItems();
-            await saveHomeSettings();
-          }}
-          disabled={isSaving}
-        >
-          <Save className="size-4" />
-          {isSaving ? "Saving…" : "Save Home page"}
-        </Button>
-      </div>
-
-      {/* Announcement image dialog */}
-      <Dialog open={imageDialogOpen} onOpenChange={setImageDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Announcement Image</DialogTitle>
-            <DialogDescription>Upload an image or paste an image URL.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) handleImageUpload(f);
-                }}
-              />
-              <HaloDropzone
-                accept="image/*"
-                disabled={uploadingImage}
-                emptyLabel={uploadingImage ? "Uploading…" : "Drop an image, or click to choose"}
-                formatHint="PNG or JPG, 16:9 looks best"
-                successLabel="Image added"
-                showSuccessThumbnails={false}
-                successResetMs={1800}
-                onFiles={(files) => {
-                  if (files[0]) handleImageUpload(files[0]);
-                }}
-              />
-            </div>
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">or</span>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-medium">Image URL</label>
-              <Input
-                value={tempImageUrl}
-                onChange={(e) => setTempImageUrl(e.target.value)}
-                placeholder="https://..."
-              />
-            </div>
-            {tempImageUrl && (
-              <div className="rounded-md border overflow-hidden aspect-video bg-muted/20">
-                <img src={tempImageUrl} alt="Preview" className="w-full h-full object-cover" />
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setImageDialogOpen(false)}>Cancel</Button>
-            <Button variant="accent"
-              onClick={() => {
-                update({ announcements_image_url: tempImageUrl || null });
-                setImageDialogOpen(false);
-              }}
-            >
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Welcome video preview dialog */}
-      <Dialog open={videoPreviewOpen} onOpenChange={setVideoPreviewOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Welcome Video Preview</DialogTitle>
-            <DialogDescription>Preview how your welcome video will render.</DialogDescription>
-          </DialogHeader>
-          {homeSettings.welcome_video_url && (
-            <div className="rounded-md overflow-hidden border bg-muted/30">
-              {homeSettings.welcome_video_is_embed ? (
-                <div dangerouslySetInnerHTML={{ __html: homeSettings.welcome_video_url }} />
-              ) : getYoutubeEmbed(homeSettings.welcome_video_url) ? (
-                <div className="aspect-video">
-                  <iframe
-                    src={getYoutubeEmbed(homeSettings.welcome_video_url)!}
-                    title="Welcome video"
-                    className="w-full h-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                </div>
-              ) : (
-                <video
-                  src={homeSettings.welcome_video_url}
-                  controls
-                  className="w-full"
-                />
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Save bar: only while there is something to save */}
+      {touched ? (
+        <div className="px-glass sticky bottom-3 z-10 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3 shadow-raised" role="status">
+          <p className="min-w-0 flex-1 basis-48 text-sm text-muted-foreground">
+            You have changes on this page that are not saved yet.
+          </p>
+          <Button variant="accent" data-testid="home-save" onClick={saveAll} disabled={isSaving}>
+            <Save className="size-4" aria-hidden="true" />
+            {isSaving ? "Saving…" : "Save Home page"}
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 };

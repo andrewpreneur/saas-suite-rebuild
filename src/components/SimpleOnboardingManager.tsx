@@ -2,14 +2,11 @@ import { PageHeader } from "@/components/platform/PageHeader";
 import { LoadNotice } from "@/components/platform/LoadNotice";
 import { LOAD_TIMEOUT_MESSAGE, armLoadDeadline, loadErrorText } from "@/lib/loadSettle";
 import { useEffect, useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowDown, ArrowUp, Check, Library, Link2, ListVideo, Plus, Save, Trash2, Type, Video } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, Copy, ExternalLink, Link2, ListVideo, Plus, Save, Trash2, Type, Video } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { SPRING_SOFT } from "@/lib/motion";
 import { SectionCard } from "@/components/premium/SectionCard";
@@ -17,7 +14,9 @@ import { Reveal, RevealItem } from "@/components/premium/Reveal";
 import AnimatedTabs from "@/components/premium/21st/animated-tabs";
 import { EmptyState } from "@/components/premium/21st/empty-state";
 import { HubEmptyIcon } from "@/components/premium/hub/HubBits";
-import { HubLinkBar } from "@/components/premium/hub/HubLinkBar";
+import { PanelActions } from "@/components/premium/hub/PanelActions";
+import { HubPlanChip } from "@/components/premium/hub/HubPlanChip";
+import { EditorPanel, SettingItem, SettingList } from "@/components/premium/SettingList";
 import { HubListSkeleton, HubRow } from "@/components/premium/hub/HubBits";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,6 +47,9 @@ interface PageVideoRow {
   display_order: number;
 }
 
+const rowsKeyOf = (list: PageVideoRow[]) =>
+  list.map((r) => `${r.source}:${r.category_id ?? ""}:${r.module_id ?? ""}:${r.custom_video_id ?? ""}`).join("|");
+
 const PUBLIC_BASE = "https://yoursoftwareonboarding.com/simple";
 
 const SimpleOnboardingManager = () => {
@@ -64,6 +66,7 @@ const SimpleOnboardingManager = () => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [savedRowsKey, setSavedRowsKey] = useState("");
 
   const currentAgencyId = useMemo(() => {
     if (selectedPlan === "plan1") return agencyVersions.basic_id;
@@ -115,6 +118,7 @@ const SimpleOnboardingManager = () => {
   useEffect(() => {
     if (!currentAgencyId) {
       setRows([]);
+      setSavedRowsKey("");
       setPageTitle("");
       setSavedTitle("");
       setCustomVideos([]);
@@ -151,6 +155,7 @@ const SimpleOnboardingManager = () => {
         setPageTitle(title);
         setSavedTitle(title);
         setRows((videos.data || []) as PageVideoRow[]);
+        setSavedRowsKey(rowsKeyOf((videos.data || []) as PageVideoRow[]));
         setCustomVideos((customs.data || []) as CustomVideo[]);
         setLoadError(null);
       } catch (error) {
@@ -263,7 +268,7 @@ const SimpleOnboardingManager = () => {
         const { error } = await supabase.from("simple_page_videos").insert(insertRows);
         if (error) throw error;
       }
-      toast.success("Saved!");
+      toast.success("Saved");
       // refresh ids
       const { data } = await supabase
         .from("simple_page_videos")
@@ -271,6 +276,7 @@ const SimpleOnboardingManager = () => {
         .eq("agency_id", currentAgencyId)
         .order("display_order", { ascending: true });
       setRows((data || []) as PageVideoRow[]);
+      setSavedRowsKey(rowsKeyOf((data || []) as PageVideoRow[]));
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Failed to save");
@@ -289,11 +295,19 @@ const SimpleOnboardingManager = () => {
   });
 
   const [libraryTab, setLibraryTab] = useState<"standard" | "custom">("standard");
+  const [libraryOpen, setLibraryOpen] = useState(false);
+
+  // The save bar only shows while something differs from what was last loaded or saved.
+  const rowsKey = useMemo(() => rowsKeyOf(rows), [rows]);
+  const dirty = !loading && (rowsKey !== savedRowsKey || pageTitle !== savedTitle);
+
+  const copyLink = () => { navigator.clipboard.writeText(publicUrl); toast.success("Link copied"); };
+  const openLink = () => window.open(publicUrl, "_blank");
 
   const planSelect =
     availablePlans.length > 1 ? (
       <Select value={selectedPlan} onValueChange={(v) => { if (v === "plan1" || (plan === "ADVANCED" && connection.connected)) setSelectedPlan(v as Plan); }}>
-        <SelectTrigger className="h-11 w-full lg:w-[150px]" aria-label="Plan you are editing"><SelectValue /></SelectTrigger>
+        <SelectTrigger className="h-11 w-full" aria-label="Plan you are editing"><SelectValue /></SelectTrigger>
         <SelectContent>
           {availablePlans.map((p) => (
             <SelectItem key={p} value={p} disabled={p !== "plan1" && (plan !== "ADVANCED" || !connection.connected)}>{planLabel(p)}</SelectItem>
@@ -302,12 +316,34 @@ const SimpleOnboardingManager = () => {
       </Select>
     ) : undefined;
 
+  const addButton = (added: boolean, name: string, onAdd: () => void) => (
+    <Button size="sm" className="shrink-0" variant={added ? "ghost" : "outline"} disabled={added} aria-label={added ? `${name} added` : `Add ${name}`} onClick={onAdd}>
+      {added ? <><Check className="size-3.5" /> Added</> : <><Plus className="size-3.5" /> Add</>}
+    </Button>
+  );
+
   return (
     <div className="min-w-0 space-y-6">
       <PageHeader
         eyebrow="Client Hub"
         title="Simplified Onboarding"
-        subtitle="One page with only the videos you pick. Use it instead of Hub Pages when a client just needs to watch a few videos, without Home or Support."
+        subtitle="One page with only the videos you pick."
+        actions={
+          currentAgencyId ? (
+            <Button variant="accent" data-testid="simple-add-videos" onClick={() => setLibraryOpen(true)}>
+              <Plus className="size-4" aria-hidden="true" />
+              Add videos
+            </Button>
+          ) : undefined
+        }
+        more={
+          currentAgencyId
+            ? [
+                { label: "Open page", icon: <ExternalLink />, onSelect: openLink },
+                { label: "Copy page link", icon: <Copy />, onSelect: copyLink },
+              ]
+            : undefined
+        }
       />
 
       {!connection.connected && <MultiPlanConnectionNotice />}
@@ -317,7 +353,7 @@ const SimpleOnboardingManager = () => {
           <EmptyState
             icon={<HubEmptyIcon><Link2 className="size-6" /></HubEmptyIcon>}
             title="Create your hub link first"
-            description="Simplified Onboarding uses the same link as your hub. Set it up in Hub Pages, then come back."
+            description="Simplified Onboarding uses the same link as your hub."
             action={
               <Button
                 variant="accent"
@@ -330,34 +366,54 @@ const SimpleOnboardingManager = () => {
         </div>
       ) : (
         <>
-          <HubLinkBar
+          <HubPlanChip
+            testId="simple-plan-chip"
+            planLabel={availablePlans.length > 1 ? planLabel(selectedPlan) : undefined}
+            planSelect={planSelect}
             label="Page link"
             url={publicUrl}
-            planSelect={planSelect}
-            onCopy={() => { navigator.clipboard.writeText(publicUrl); toast.success("Copied"); }}
-            onOpen={() => window.open(publicUrl, "_blank")}
+            onCopy={copyLink}
+            onOpen={openLink}
           />
 
-          <Reveal className="grid min-w-0 items-start gap-4 lg:grid-cols-2">
-            <RevealItem className="space-y-4">
-              <SectionCard
-                icon={<Type />}
-                title="Page title"
-                description='Shown at the top of the page. Leave it blank to use "Software Onboarding".'
-              >
-                <Label htmlFor="simple-page-title" className="sr-only">Page title</Label>
-                <Input
-                  id="simple-page-title"
-                  value={pageTitle}
-                  onChange={(e) => setPageTitle(e.target.value)}
-                  placeholder="Software Onboarding"
-                />
-              </SectionCard>
+          <Reveal className="min-w-0 space-y-4">
+            <RevealItem>
+              <SettingList>
+                <SettingItem
+                  testId="simple-title-row"
+                  icon={<Type />}
+                  title="Page title"
+                  value={pageTitle || "Software Onboarding (default)"}
+                  status={pageTitle !== savedTitle ? "Not saved" : undefined}
+                  panel={{
+                    description: 'Shown at the top of the page. Leave it blank to use "Software Onboarding".',
+                    footer: (
+                      <PanelActions>
+                        <Button variant="accent" onClick={save} disabled={saving}>
+                          <Save className="size-4" aria-hidden="true" />
+                          {saving ? "Saving…" : "Save title"}
+                        </Button>
+                      </PanelActions>
+                    ),
+                  }}
+                >
+                  <Label htmlFor="simple-page-title">Page title</Label>
+                  <Input
+                    id="simple-page-title"
+                    className="mt-1.5"
+                    value={pageTitle}
+                    onChange={(e) => setPageTitle(e.target.value)}
+                    placeholder="Software Onboarding"
+                  />
+                </SettingItem>
+              </SettingList>
+            </RevealItem>
 
+            <RevealItem>
               <SectionCard
                 icon={<ListVideo />}
                 title="Videos on this page"
-                description="Clients watch them top to bottom. Use the arrows to reorder."
+                description="Clients watch them top to bottom."
                 actions={
                   !loading && !loadError && rows.length > 0 ? (
                     <span className="text-xs tabular-nums text-muted-foreground">
@@ -375,7 +431,13 @@ const SimpleOnboardingManager = () => {
                     className="py-8"
                     icon={<HubEmptyIcon><ListVideo className="size-6" /></HubEmptyIcon>}
                     title="No videos yet"
-                    description="Add videos from the library and they line up here in the order clients will watch them."
+                    description="Pick the videos clients should watch."
+                    action={
+                      <Button variant="outline" onClick={() => setLibraryOpen(true)}>
+                        <Plus className="size-4" aria-hidden="true" />
+                        Add videos
+                      </Button>
+                    }
                   />
                 ) : (
                   <ol className="space-y-2">
@@ -399,13 +461,13 @@ const SimpleOnboardingManager = () => {
                             meta={r.source === "custom" ? "Your video" : (moduleLabel(r.category_id, r.module_id).split(" → ")[1] ? moduleLabel(r.category_id, r.module_id).split(" → ")[0] : "Standard video")}
                             trailing={
                               <>
-                                <Button size="icon" aria-label="Move up" variant="ghost" className="size-9" onClick={() => move(idx, -1)} disabled={idx === 0}>
+                                <Button size="icon" aria-label="Move up" variant="ghost" className="size-11 sm:size-9" onClick={() => move(idx, -1)} disabled={idx === 0}>
                                   <ArrowUp className="size-4" />
                                 </Button>
-                                <Button size="icon" aria-label="Move down" variant="ghost" className="size-9" onClick={() => move(idx, 1)} disabled={idx === rows.length - 1}>
+                                <Button size="icon" aria-label="Move down" variant="ghost" className="size-11 sm:size-9" onClick={() => move(idx, 1)} disabled={idx === rows.length - 1}>
                                   <ArrowDown className="size-4" />
                                 </Button>
-                                <Button size="icon" aria-label="Delete" variant="ghost" className="size-9 text-muted-foreground hover:text-destructive" onClick={() => removeRow(idx)}>
+                                <Button size="icon" aria-label="Remove video" variant="ghost" className="size-11 text-muted-foreground hover:text-destructive sm:size-9" onClick={() => removeRow(idx)}>
                                   <Trash2 className="size-4" />
                                 </Button>
                               </>
@@ -418,88 +480,94 @@ const SimpleOnboardingManager = () => {
                 )}
               </SectionCard>
             </RevealItem>
+          </Reveal>
 
-            <RevealItem>
-              <SectionCard
-                icon={<Library />}
-                title="Video library"
-                description="Add any video to the page. Your own videos come from Education in Hub Pages."
-              >
-                <AnimatedTabs
-                  variant="segment"
-                  layoutId="simple-onboarding-library"
-                  className="mb-3 flex w-full"
-                  activeTab={libraryTab}
-                  onChange={(id) => setLibraryTab(id as "standard" | "custom")}
-                  tabs={[
-                    { id: "standard", label: "Standard" },
-                    { id: "custom", label: `Yours (${customVideos.length})` },
-                  ]}
-                />
-                <div className="-mr-2 max-h-[520px] space-y-4 overflow-auto pr-2">
-                  {libraryTab === "standard" ? (
-                    VIDEO_CATEGORIES.map((cat) => (
-                      <div key={cat.id}>
-                        <h3 className="px-eyebrow mb-1">{cat.name}</h3>
-                        <div className="divide-y divide-border">
-                          {cat.modules.map((m) => {
-                            const added = rows.some((r) => r.source === "standard" && r.category_id === cat.id && r.module_id === m.id);
-                            return (
-                              <div key={m.id} className="flex min-h-11 min-w-0 items-center justify-between gap-2 py-1.5 text-sm">
-                                <span className="min-w-0 flex-1 truncate">{m.name}</span>
-                                <Button size="sm" className="shrink-0" variant={added ? "ghost" : "outline"} disabled={added} onClick={() => addStandard(cat.id, m.id)}>
-                                  {added ? <><Check className="size-3.5" /> Added</> : <><Plus className="size-3.5" /> Add</>}
-                                </Button>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))
-                  ) : customVideos.length === 0 ? (
-                    <EmptyState
-                      className="py-8"
-                      icon={<HubEmptyIcon><Video className="size-6" /></HubEmptyIcon>}
-                      title="No videos of your own yet"
-                      description="Upload a custom video in Hub Pages, under Education, and it appears here."
-                      action={
-                        <Button
-                          variant="outline"
-                          onClick={() => window.dispatchEvent(new CustomEvent("tipbot-select-tool", { detail: { tool: "client-hub" } }))}
-                        >
-                          Open Hub Pages
-                        </Button>
-                      }
-                    />
-                  ) : (
+          <EditorPanel
+            open={libraryOpen}
+            onOpenChange={setLibraryOpen}
+            title="Add videos"
+            description="Add any video to the page. Your own videos come from Education in Hub Pages."
+            footer={
+              <PanelActions note={`${rows.length} video${rows.length === 1 ? "" : "s"} on the page`}>
+                <Button variant="outline" onClick={() => setLibraryOpen(false)}>Close</Button>
+                <Button variant="accent" disabled={saving || !dirty} onClick={async () => { await save(); setLibraryOpen(false); }}>
+                  <Save className="size-4" aria-hidden="true" />
+                  {saving ? "Saving…" : "Save changes"}
+                </Button>
+              </PanelActions>
+            }
+          >
+            <AnimatedTabs
+              variant="segment"
+              layoutId="simple-onboarding-library"
+              className="mb-3 flex w-full"
+              activeTab={libraryTab}
+              onChange={(id) => setLibraryTab(id as "standard" | "custom")}
+              tabs={[
+                { id: "standard", label: "Standard" },
+                { id: "custom", label: `Yours (${customVideos.length})` },
+              ]}
+            />
+            <div className="space-y-4">
+              {libraryTab === "standard" ? (
+                VIDEO_CATEGORIES.map((cat) => (
+                  <div key={cat.id}>
+                    <h3 className="px-eyebrow mb-1">{cat.name}</h3>
                     <div className="divide-y divide-border">
-                      {customVideos.map((v) => {
-                        const added = rows.some((r) => r.source === "custom" && r.custom_video_id === v.id);
+                      {cat.modules.map((m) => {
+                        const added = rows.some((r) => r.source === "standard" && r.category_id === cat.id && r.module_id === m.id);
                         return (
-                          <div key={v.id} className="flex min-h-11 min-w-0 items-center justify-between gap-2 py-1.5 text-sm">
-                            <span className="min-w-0 flex-1 truncate">{v.title}</span>
-                            <Button size="sm" className="shrink-0" variant={added ? "ghost" : "outline"} disabled={added} onClick={() => addCustom(v.id)}>
-                              {added ? <><Check className="size-3.5" /> Added</> : <><Plus className="size-3.5" /> Add</>}
-                            </Button>
+                          <div key={m.id} className="flex min-h-11 min-w-0 items-center justify-between gap-2 py-1.5 text-sm">
+                            <span className="min-w-0 flex-1 truncate">{m.name}</span>
+                            {addButton(added, m.name, () => addStandard(cat.id, m.id))}
                           </div>
                         );
                       })}
                     </div>
-                  )}
+                  </div>
+                ))
+              ) : customVideos.length === 0 ? (
+                <EmptyState
+                  className="py-8"
+                  icon={<HubEmptyIcon><Video className="size-6" /></HubEmptyIcon>}
+                  title="No videos of your own yet"
+                  description="Upload one in Hub Pages, under Education."
+                  action={
+                    <Button
+                      variant="outline"
+                      onClick={() => window.dispatchEvent(new CustomEvent("tipbot-select-tool", { detail: { tool: "client-hub" } }))}
+                    >
+                      Open Hub Pages
+                    </Button>
+                  }
+                />
+              ) : (
+                <div className="divide-y divide-border">
+                  {customVideos.map((v) => {
+                    const added = rows.some((r) => r.source === "custom" && r.custom_video_id === v.id);
+                    return (
+                      <div key={v.id} className="flex min-h-11 min-w-0 items-center justify-between gap-2 py-1.5 text-sm">
+                        <span className="min-w-0 flex-1 truncate">{v.title}</span>
+                        {addButton(added, v.title, () => addCustom(v.id))}
+                      </div>
+                    );
+                  })}
                 </div>
-              </SectionCard>
-            </RevealItem>
-          </Reveal>
+              )}
+            </div>
+          </EditorPanel>
 
-          <div className="px-glass sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3 shadow-raised">
-            <p className="min-w-0 flex-1 basis-48 text-sm text-muted-foreground">
-              Saves the title and video order for {planLabel(selectedPlan)}.
-            </p>
-            <Button variant="accent" onClick={save} disabled={saving}>
-              <Save className="size-4" />
-              {saving ? "Saving…" : "Save changes"}
-            </Button>
-          </div>
+          {dirty ? (
+            <div className="px-glass sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3 shadow-raised" role="status">
+              <p className="min-w-0 flex-1 basis-48 text-sm text-muted-foreground">
+                You have changes for {planLabel(selectedPlan)} that are not saved yet.
+              </p>
+              <Button variant="accent" data-testid="simple-save" onClick={save} disabled={saving}>
+                <Save className="size-4" />
+                {saving ? "Saving…" : "Save changes"}
+              </Button>
+            </div>
+          ) : null}
         </>
       )}
     </div>

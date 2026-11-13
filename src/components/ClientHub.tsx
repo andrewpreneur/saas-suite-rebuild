@@ -900,7 +900,7 @@ const ClientHub = () => {
       });
       if (error) {
         if ((error as any).code === "23505")
-          throw new Error("That agency name is already taken — try a slightly different one.");
+          throw new Error("That agency name is already taken. Try a slightly different one.");
         throw error;
       }
       const { data: versions } = await supabase.rpc("get_user_agency_versions", {
@@ -954,7 +954,7 @@ const ClientHub = () => {
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      toast.success("Copied to clipboard!");
+      toast.success("Copied to clipboard");
     } catch (err) {
       toast.error("Failed to copy");
     }
@@ -1046,7 +1046,7 @@ const ClientHub = () => {
 
       if (error) throw error;
       toast.success(
-        `Daily checklist saved for ${selectedPlan === "plan1" ? "Plan 1" : selectedPlan === "plan2" ? "Plan 2" : "Plan 3"}!`,
+        `Daily checklist saved for ${selectedPlan === "plan1" ? "Plan 1" : selectedPlan === "plan2" ? "Plan 2" : "Plan 3"}`,
       );
     } catch (error) {
       console.error("Error saving checklist:", error);
@@ -1119,7 +1119,7 @@ const ClientHub = () => {
 
       if (error) throw error;
       toast.success(
-        `Home settings saved for ${selectedPlan === "plan1" ? "Plan 1" : selectedPlan === "plan2" ? "Plan 2" : "Plan 3"}!`,
+        `Home settings saved for ${selectedPlan === "plan1" ? "Plan 1" : selectedPlan === "plan2" ? "Plan 2" : "Plan 3"}`,
       );
     } catch (error) {
       console.error("Error saving home settings:", error);
@@ -1204,7 +1204,7 @@ const ClientHub = () => {
         );
       if (error) throw error;
       if (!data || data.length === 0) {
-        toast.error("No row updated — check RLS / impersonation");
+        toast.error("No row updated. Check RLS / impersonation");
         return;
       }
       setPopupEnabled(enabled);
@@ -1259,7 +1259,7 @@ const ClientHub = () => {
       }
 
       setWebhookUrl(tempWebhookUrl);
-      toast.success("Webhook URL saved!");
+      toast.success("Webhook URL saved");
     } catch (error) {
       console.error("Error saving webhook URL:", error);
       toast.error("Failed to save webhook URL");
@@ -1398,7 +1398,7 @@ const ClientHub = () => {
         processTrainingDocContent(planAgencyId, tier, promptTrainingDoc || undefined);
       }
 
-      toast.success("AI Chat settings saved!");
+      toast.success("AI Chat settings saved");
       setActivePanel(null);
     } catch (error) {
       console.error("Error saving AI chat settings:", error);
@@ -1461,7 +1461,7 @@ const ClientHub = () => {
         processTrainingDocContent(planAgencyId, tier, promptTrainingDoc || undefined);
       }
 
-      toast.success("Support settings saved!");
+      toast.success("Support settings saved");
       setActivePanel(null);
     } catch (error) {
       console.error("Error saving support settings:", error);
@@ -1490,7 +1490,7 @@ const ClientHub = () => {
         .ilike("email", email);
 
       if (error) throw error;
-      toast.success("Login settings saved!");
+      toast.success("Login settings saved");
     } catch (error) {
       console.error("Error saving login settings:", error);
       toast.error("Failed to save login settings");
@@ -1520,11 +1520,11 @@ const ClientHub = () => {
       if (error) throw error;
       if (!updated || updated.length === 0) {
         toast.error(
-          "Couldn't save colors — your account record wasn't found. Refresh and try again.",
+          "Couldn't save colors. Your account record wasn't found. Refresh and try again.",
         );
         return;
       }
-      toast.success("Brand colors saved!");
+      toast.success("Brand colors saved");
       setActivePanel(null);
     } catch (error) {
       console.error("Error saving colors:", error);
@@ -1576,7 +1576,7 @@ const ClientHub = () => {
         body: { ticket_id: selectedTicket.id, response_text: ticketResponse.trim() },
       });
       if (error) throw error;
-      toast.success("Response sent — customer will receive an email shortly.");
+      toast.success("Response sent. The customer will receive an email shortly.");
       handleTicketResponseSent(selectedTicket.id, ticketResponse.trim());
       setSelectedTicket(null);
       setTicketResponse("");
@@ -1680,7 +1680,7 @@ const ClientHub = () => {
       }));
       setEditingTab(null);
       setEditingTabValue("");
-      toast.success("Tab name saved!");
+      toast.success("Tab name saved");
     } catch (error) {
       console.error("Error saving tab name:", error);
       toast.error("Failed to save tab name");
@@ -1722,7 +1722,7 @@ const ClientHub = () => {
       setChecklistTitle(editingChecklistTitleValue.trim());
       setEditingChecklistTitle(false);
       setEditingChecklistTitleValue("");
-      toast.success("Checklist title saved!");
+      toast.success("Checklist title saved");
     } catch (error) {
       console.error("Error saving checklist title:", error);
       toast.error("Failed to save checklist title");
@@ -1807,7 +1807,7 @@ const ClientHub = () => {
                     .eq("agency_id", planAgencyId);
                   if (error) throw error;
                   setTabNames((prev) => ({ ...prev, [tab]: value }));
-                  toast.success("Tab name saved!");
+                  toast.success("Tab name saved");
                 } catch (e) {
                   console.error(e);
                   toast.error("Failed to save tab name");

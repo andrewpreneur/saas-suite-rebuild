@@ -71,9 +71,9 @@ import {
 } from "@/constants/aiPromptDefaults";
 import ChatInterventionPanel from "@/components/client-hub/ChatInterventionPanel";
 import VoiceAISupportPanel from "@/components/client-hub/VoiceAISupportPanel";
-import { SectionCard } from "@/components/premium/SectionCard";
 import { Reveal, RevealItem } from "@/components/premium/Reveal";
-import { HubSection } from "@/components/premium/hub/HubSection";
+import { PanelActions } from "@/components/premium/hub/PanelActions";
+import { SettingItem, SettingList } from "@/components/premium/SettingList";
 import { AddRowButton, OnOffSwitch } from "@/components/premium/hub/HubBits";
 import { CopyButton } from "@/components/premium/hub/CopyButton";
 import { HaloDropzone } from "@/components/premium/21st/halo-dropzone";
@@ -318,7 +318,7 @@ const V3SupportView = ({
         body: { ticket_id: selectedTicket.id, response_text: ticketResponse.trim(), attachment_url },
       });
       if (error) throw error;
-      toast.success("Response sent — customer will receive an email shortly.");
+      toast.success("Response sent. The customer will receive an email shortly.");
       onTicketResponseSent?.(selectedTicket.id, ticketResponse.trim());
       setSelectedTicket(null);
       setTicketResponse("");
@@ -444,17 +444,40 @@ const V3SupportView = ({
 
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showAiAdvanced, setShowAiAdvanced] = useState(false);
+  const [touched, setTouched] = useState(false);
+  useEffect(() => setTouched(false), [selectedPlanAgencyId]);
+
+  // Calm layout: one row per setting, editor in a side panel. `touched` drives the save bar.
+  const touch = () => setTouched(true);
+  const saveSupport = async () => {
+    await saveSupportSettings();
+    setTouched(false);
+  };
+  const saveFooter = (
+    <PanelActions note={touched ? "Not saved yet" : undefined}>
+      <Button variant="accent" onClick={saveSupport} disabled={isSaving}>
+        <Save className="size-4" aria-hidden="true" />
+        {isSaving ? "Saving…" : "Save Support page"}
+      </Button>
+    </PanelActions>
+  );
 
   return (
     <div className="min-w-0">
       <Reveal className="space-y-4">
-        <RevealItem className="space-y-4">
-          {/* ===== Welcome text ===== */}
-          <SectionCard
-            icon={<MessageSquareText />}
-            title="Page text"
-            description="The headline and line of text at the top of your Support page."
-          >
+        <RevealItem>
+          <SettingList>
+            <SettingItem
+              testId="support-row-text"
+              icon={<MessageSquareText />}
+              title="Page text"
+              value={supportHeadline || "No headline yet"}
+              panel={{
+                description: "The headline and line of text at the top of your Support page.",
+                footer: saveFooter,
+              }}
+            >
+              <div onInput={touch}>
             <div className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="support-headline">Headline</Label>
@@ -477,20 +500,28 @@ const V3SupportView = ({
                 />
               </div>
             </div>
-          </SectionCard>
+              </div>
+            </SettingItem>
 
-          {/* ===== Support Links ===== */}
-          <SectionCard
-            icon={<LinkIcon />}
-            title="Support links"
-            description="Up to three buttons: book a call, open your help desk, anything with a link."
-            actions={
-              <span className="text-xs tabular-nums text-muted-foreground">{filledLinks.length} of 3</span>
-            }
-          >
+            <SettingItem
+              testId="support-row-links"
+              icon={<LinkIcon />}
+              title="Support links"
+              value={
+                filledLinks.length === 0
+                  ? "No buttons yet"
+                  : filledLinks.map((l) => l.text || "Untitled").join(", ")
+              }
+              status={`${filledLinks.length} of 3`}
+              panel={{
+                description: "Up to three buttons: book a call, open your help desk, anything with a link.",
+                footer: saveFooter,
+              }}
+            >
+              <div onInput={touch} onClick={touch} >
             <div className="space-y-3">
               {filledLinks.length > 0 && (
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                <div className="grid grid-cols-1 gap-3">
                   {filledLinks.map((l) => (
                     <div key={l.idx} className="space-y-2 rounded-md border border-border p-3">
                       <div className="flex items-center gap-2">
@@ -539,34 +570,45 @@ const V3SupportView = ({
               )}
               {emptyLink && <AddRowButton onClick={addSupportLink}>Add a support link</AddRowButton>}
             </div>
-          </SectionCard>
+              </div>
+            </SettingItem>
 
-          <SectionCard
-            icon={<Clock />}
-            title="Chat availability"
-            description="When clients can reach a person, and what they see when you are away."
-          >
-            {chatModeSettings}
-          </SectionCard>
+            <SettingItem
+              testId="support-row-availability"
+              icon={<Clock />}
+              title="Chat availability"
+              value="When clients can reach a person, and what they see when you are away"
+              panel={{
+                description: "When clients can reach a person, and what they see when you are away.",
+                wide: true,
+              }}
+            >
+              {chatModeSettings}
+            </SettingItem>
 
-          {/* ===== AI Chat ===== */}
-          {aiAccess && (
-            <HubSection
-              data-tip-target="v3-support-ai-chat"
-              icon={<Bot />}
-              title="AI assistant"
-              description="Answers client questions instantly, in your voice."
-              off={!aiChatEnabled}
-              actions={
+            {aiAccess && (
+              <div data-tip-target="v3-support-ai-chat">
+                <SettingItem
+                  testId="support-row-ai"
+                  icon={<Bot />}
+                  title="AI assistant"
+                  value={aiChatName || "AI Support Assistant"}
+                  toggle={
                 <OnOffSwitch
                   id="ai-chat-toggle-v3"
                   label="Turn the AI assistant on or off"
                   checked={aiChatEnabled}
                   onCheckedChange={toggleAiChat}
                 />
-              }
-            >
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_240px]">
+                  }
+                  panel={{
+                    description: "Answers client questions instantly, in your voice.",
+                    footer: saveFooter,
+                    wide: true,
+                  }}
+                >
+                  <div onInput={touch} onClick={touch}>
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-[1fr_220px]">
                 {/* LEFT: prompts */}
                 <div className="space-y-4">
                   <div className="space-y-1.5">
@@ -642,7 +684,7 @@ const V3SupportView = ({
                               onCopy={() => {
                                 const url = `${window.location.origin}/${selectedPlanAgencyId}/training-doc/${tier}`;
                                 navigator.clipboard.writeText(url);
-                                toast.success("Onboarding doc URL copied!");
+                                toast.success("Onboarding doc link copied");
                               }}
                             />
                           </div>
@@ -714,147 +756,7 @@ const V3SupportView = ({
                   </p>
                 </div>
               </div>
-            </HubSection>
-          )}
-        </RevealItem>
-
-        <RevealItem className="space-y-4">
-          {/* ===== Tickets / Conversations ===== */}
-          <HubSection
-            data-tip-target="v3-support-ticketing"
-            icon={<Ticket />}
-            title="Support tickets"
-            description="Let clients open tickets from the hub. You answer them, and AI chats, in Client Support."
-            actions={
-              <>
-                <OnOffSwitch
-                  id="ticketing-toggle-v3"
-                  label="Enable/Disable Support Ticketing"
-                  checked={ticketingEnabled}
-                  onCheckedChange={toggleTicketing}
-                />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    window.dispatchEvent(
-                      new CustomEvent("tipbot-select-tool", { detail: { tool: "support" } }),
-                    )
-                  }
-                >
-                  Open Client Support
-                  <ArrowRight className="size-4" />
-                </Button>
-              </>
-            }
-          />
-
-          {/* ===== Advanced: webhooks and voice ===== */}
-          <section className="px-surface min-w-0">
-            <button
-              type="button"
-              aria-expanded={showAdvanced}
-              onClick={() => setShowAdvanced((v) => !v)}
-              className="flex w-full items-center gap-3 rounded-lg p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-6"
-            >
-              <span className="px-icon-chip shrink-0 [&_svg]:size-5" aria-hidden="true">
-                <Webhook />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-base font-semibold text-foreground">Automations and voice</span>
-                <span className="mt-0.5 block text-sm text-muted-foreground">
-                  Send ticket events to HighLevel or Zapier{isAdvancedPlan ? ", and connect Voice AI" : ""}.
-                  {webhookUrl ? " A webhook is connected." : ""}
-                </span>
-              </span>
-              <ChevronDown
-                className={`size-5 shrink-0 text-muted-foreground transition-transform duration-200 ${showAdvanced ? "rotate-180" : ""}`}
-                aria-hidden="true"
-              />
-            </button>
-            {showAdvanced && (
-              <div className="space-y-6 border-t border-border p-4 sm:p-6">
-                {/* ===== Inbound webhook ===== */}
-                <div className="space-y-2">
-                  <Label htmlFor="support-ticket-webhook">Webhook for new tickets and status changes</Label>
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <Input
-                      id="support-ticket-webhook"
-                      type="url"
-                      placeholder="https://hooks.example.com/webhook..."
-                      value={tempWebhookUrl}
-                      onChange={(e) => setTempWebhookUrl(e.target.value)}
-                      className="flex-1"
-                    />
-                    <div className="flex gap-2">
-                      <Button
-                        className="flex-1 sm:flex-none"
-                        onClick={() => saveWebhookUrl()}
-                        disabled={isSavingWebhook || tempWebhookUrl === webhookUrl}
-                      >
-                        {isSavingWebhook ? "Saving..." : "Save webhook"}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="flex-1 sm:flex-none"
-                        onClick={() => testWebhook()}
-                        disabled={isTestingWebhook || !webhookUrl}
-                        title="Send a test payload to verify your webhook"
-                      >
-                        <Play className="size-4" />
-                        {isTestingWebhook ? "Testing..." : "Send test"}
-                      </Button>
-                    </div>
                   </div>
-                  {webhookUrl ? (
-                    <p className="flex items-center gap-1.5 text-sm text-success">
-                      <CheckCircle2 className="size-4" /> Webhook connected
-                    </p>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      We post here whenever a ticket is created or its status changes.
-                    </p>
-                  )}
-                </div>
-
-                {/* ===== Second inbound webhook: ticket updates ===== */}
-                <SupportUpdatesWebhookPanel />
-                <CustomerRepliesWebhookPanel />
-
-                {/* ===== Voice AI Support (external API access) ===== */}
-                {isAdvancedPlan && <VoiceAISupportPanel agencyId={selectedPlanAgencyId} />}
-              </div>
-            )}
-          </section>
-
-          {/* Done-for-you support */}
-          <div className="px-brand-wash flex flex-wrap items-center justify-between gap-3 rounded-lg border border-brand/20 p-4 sm:p-6">
-            <div className="min-w-0 flex-1 basis-64">
-              <p className="text-base font-semibold text-foreground">Rather have a person answer for you?</p>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                Add a trained customer support representative who replies to your clients under your brand.
-              </p>
-            </div>
-            <Button variant="outline" onClick={() => setRepDialogOpen(true)}>
-              <Sparkles className="size-4" />
-              See support rep plans
-            </Button>
-          </div>
-        </RevealItem>
-      </Reveal>
-
-      {/* ===== Save button: the one primary action of the Support page ===== */}
-      <div className="px-glass sticky bottom-3 z-10 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3 shadow-raised">
-        <p className="min-w-0 flex-1 basis-48 text-sm text-muted-foreground">
-          Saves the page text, support links and AI assistant for this plan.
-        </p>
-        <Button variant="accent" onClick={() => saveSupportSettings()} disabled={isSaving}>
-          <Save className="size-4" />
-          {isSaving ? "Saving…" : "Save Support page"}
-        </Button>
-      </div>
-
-      {/* ===== Icon dialog ===== */}
       <Dialog open={iconDialogOpen} onOpenChange={setIconDialogOpen}>
         <DialogContent className="sm:max-w-[420px]">
           <DialogHeader>
@@ -914,8 +816,6 @@ const V3SupportView = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* ===== Import default prompts confirm ===== */}
       <Dialog
         open={importDialogOpen}
         onOpenChange={(o) => {
@@ -959,6 +859,118 @@ const V3SupportView = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+                </SettingItem>
+              </div>
+            )}
+
+            <div data-tip-target="v3-support-ticketing">
+              <SettingItem
+                testId="support-row-tickets"
+                icon={<Ticket />}
+                title="Support tickets"
+                value="Clients open tickets from the hub. Answer them in Client Support."
+                toggle={
+                <OnOffSwitch
+                  id="ticketing-toggle-v3"
+                  label="Enable/Disable Support Ticketing"
+                  checked={ticketingEnabled}
+                  onCheckedChange={toggleTicketing}
+                />
+                }
+                onOpen={() =>
+                  window.dispatchEvent(new CustomEvent("tipbot-select-tool", { detail: { tool: "support" } }))
+                }
+              />
+            </div>
+
+            <SettingItem
+              testId="support-row-automations"
+              icon={<Webhook />}
+              title="Automations and voice"
+              value={`Send ticket events to HighLevel or Zapier${isAdvancedPlan ? ", and connect Voice AI" : ""}`}
+              status={webhookUrl ? "Webhook connected" : undefined}
+              panel={{
+                description: "Advanced. Each part here saves with its own button.",
+                wide: true,
+              }}
+            >
+              <div className="space-y-6">
+                {/* ===== Inbound webhook ===== */}
+                <div className="space-y-2">
+                  <Label htmlFor="support-ticket-webhook">Webhook for new tickets and status changes</Label>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Input
+                      id="support-ticket-webhook"
+                      type="url"
+                      placeholder="https://hooks.example.com/webhook..."
+                      value={tempWebhookUrl}
+                      onChange={(e) => setTempWebhookUrl(e.target.value)}
+                      className="flex-1"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        className="flex-1 sm:flex-none"
+                        onClick={() => saveWebhookUrl()}
+                        disabled={isSavingWebhook || tempWebhookUrl === webhookUrl}
+                      >
+                        {isSavingWebhook ? "Saving..." : "Save webhook"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="flex-1 sm:flex-none"
+                        onClick={() => testWebhook()}
+                        disabled={isTestingWebhook || !webhookUrl}
+                        title="Send a test payload to verify your webhook"
+                      >
+                        <Play className="size-4" />
+                        {isTestingWebhook ? "Testing..." : "Send test"}
+                      </Button>
+                    </div>
+                  </div>
+                  {webhookUrl ? (
+                    <p className="flex items-center gap-1.5 text-sm text-success">
+                      <CheckCircle2 className="size-4" /> Webhook connected
+                    </p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      We post here whenever a ticket is created or its status changes.
+                    </p>
+                  )}
+                </div>
+
+                {/* ===== Second inbound webhook: ticket updates ===== */}
+                <SupportUpdatesWebhookPanel />
+                <CustomerRepliesWebhookPanel />
+
+                {/* ===== Voice AI Support (external API access) ===== */}
+                {isAdvancedPlan && <VoiceAISupportPanel agencyId={selectedPlanAgencyId} />}
+              </div>
+            </SettingItem>
+
+            <SettingItem
+              testId="support-row-rep"
+              icon={<Sparkles />}
+              title="Done-for-you support"
+              value="Add a trained support rep who replies to your clients under your brand"
+              onOpen={() => setRepDialogOpen(true)}
+            />
+          </SettingList>
+        </RevealItem>
+      </Reveal>
+
+      {/* Save bar: only while there is something to save */}
+      {touched ? (
+        <div className="px-glass sticky bottom-3 z-10 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3 shadow-raised" role="status">
+          <p className="min-w-0 flex-1 basis-48 text-sm text-muted-foreground">
+            You have changes on this page that are not saved yet.
+          </p>
+          <Button variant="accent" onClick={saveSupport} disabled={isSaving}>
+            <Save className="size-4" aria-hidden="true" />
+            {isSaving ? "Saving…" : "Save Support page"}
+          </Button>
+        </div>
+      ) : null}
+
 
       <Dialog open={!!selectedTicket} onOpenChange={(open) => { if (!open) { setSelectedTicket(null); setTicketResponse(""); setTicketAttachment(null); } }}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
@@ -1008,7 +1020,7 @@ const V3SupportView = ({
                 <div className="flex items-start gap-2 rounded-md bg-muted/40 border p-3 text-xs text-muted-foreground">
                   <Sparkles className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" />
                   <span>
-                    Our AI will email <span className="font-medium">{selectedTicket.customer_email}</span> with their ticket update — including any attached image. The ticket will be marked as responded.
+                    Our AI will email <span className="font-medium">{selectedTicket.customer_email}</span> with their ticket update, including any attached image. The ticket will be marked as responded.
                   </span>
                 </div>
               </div>

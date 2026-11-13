@@ -28,6 +28,8 @@ import {
 import {
   BookOpen,
   Building2,
+  Copy,
+  ExternalLink,
   GraduationCap,
   Home,
   LifeBuoy,
@@ -65,9 +67,11 @@ import { SectionCard } from "@/components/premium/SectionCard";
 import { Reveal, RevealItem } from "@/components/premium/Reveal";
 import { EmptyState } from "@/components/premium/21st/empty-state";
 import { HubEmptyIcon } from "@/components/premium/hub/HubBits";
-import { HubLinkBar } from "@/components/premium/hub/HubLinkBar";
+import { HubPlanChip } from "@/components/premium/hub/HubPlanChip";
+import { PanelActions } from "@/components/premium/hub/PanelActions";
+import { EditorPanel, SettingItem, SettingList } from "@/components/premium/SettingList";
 import { HubSubNav, type HubSubNavItem } from "@/components/premium/hub/HubSubNav";
-import { HubListSkeleton, HubRow, OnOffSwitch } from "@/components/premium/hub/HubBits";
+import { AddRowButton, HubListSkeleton, HubRow, OnOffSwitch } from "@/components/premium/hub/HubBits";
 import { processTrainingDocContent } from "@/utils/compileTrainingDocContent";
 
 interface AgencyVersions {
@@ -1015,7 +1019,7 @@ const V3EducationView = ({
       id: "education",
       label: tabName,
       icon: <GraduationCap className="size-4" />,
-      hint: "The training library your clients watch. Switch videos on or off, reorder them and add your own. Changes save as you go.",
+      hint: "The training library your clients watch. Changes save as you go.",
     },
     {
       id: "home",
@@ -1046,85 +1050,72 @@ const V3EducationView = ({
       customVideosForCategory.filter((v) => (v.tiers || []).includes(tier)).length;
   const selectedTotalCount = selectedCategoryModules.length + customVideosForCategory.length;
 
+  const openRenamePage = () => {
+    if (!canRenamePage) return;
+    const page = livePreviewTab as "education" | "home" | "support";
+    setEditingTabId(page);
+    setEditingTabValue(pageLabel(page));
+  };
+  const goToTool = (tool: string) =>
+    window.dispatchEvent(new CustomEvent("tipbot-select-tool", { detail: { tool } }));
+  const activeSetupLabels = SUGGESTED_SETUPS.filter((setup) => activeSetups.has(setup.id)).map((setup) => setup.label);
+
   return (
     <div className="w-full min-w-0 space-y-6">
       <PageHeader
         eyebrow="Client Hub"
         title={newUi ? "Hub Pages" : "Edit Pages"}
-        subtitle="Everything your clients see when they open your hub. Pick a plan, then edit one page at a time."
+        subtitle="Everything your clients see when they open your hub."
         actions={
-          <>
-            <Button variant="outline" onClick={onOpenInstallationGuide}>
-              <BookOpen className="size-4" />
-              Installation guide
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" aria-label="More hub options">
-                  <MoreHorizontal className="size-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-60">
-                <DropdownMenuItem onClick={onLearnMore}>
-                  <Play className="mr-2 size-4" /> Watch the walkthrough
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={onSyncPlans} disabled={!isAdvancedPlan || !ghlConnected}>
-                  <RefreshCw className="mr-2 size-4" /> Sync plans
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                {onCustomizeUrl ? (
-                  <DropdownMenuItem onClick={onCustomizeUrl}>
-                    <Link2 className="mr-2 size-4" /> Customize hub link
-                  </DropdownMenuItem>
-                ) : null}
-                <DropdownMenuItem
-                  onClick={() =>
-                    window.dispatchEvent(
-                      new CustomEvent("tipbot-select-tool", { detail: { tool: "settings" } }),
-                    )
-                  }
-                >
-                  <Building2 className="mr-2 size-4" /> Agency name
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() =>
-                    window.dispatchEvent(
-                      new CustomEvent("tipbot-select-tool", { detail: { tool: "branding" } }),
-                    )
-                  }
-                >
-                  <Palette className="mr-2 size-4" /> Brand colors
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </>
+          <Button
+            variant="accent"
+            data-testid="hub-open-hub"
+            disabled={!hasSelectedPlanUrl}
+            onClick={() => window.open(selectedPlanUrl, "_blank", "noopener")}
+          >
+            <ExternalLink className="size-4" aria-hidden="true" />
+            Open hub
+          </Button>
         }
+        more={[
+          { label: "Copy hub link", icon: <Copy />, onSelect: () => copyToClipboard(selectedPlanUrl), disabled: !hasSelectedPlanUrl },
+          ...(canRenamePage ? [{ label: "Rename this page", icon: <Pencil />, onSelect: openRenamePage }] : []),
+          { label: "Installation guide", icon: <BookOpen />, onSelect: onOpenInstallationGuide, separated: true },
+          { label: "Watch the walkthrough", icon: <Play />, onSelect: onLearnMore },
+          { label: "Sync plans", icon: <RefreshCw />, onSelect: onSyncPlans, disabled: !isAdvancedPlan || !ghlConnected },
+          ...(onCustomizeUrl ? [{ label: "Customize hub link", icon: <Link2 />, onSelect: onCustomizeUrl, separated: true }] : []),
+          { label: "Agency name", icon: <Building2 />, onSelect: () => goToTool("settings"), separated: !onCustomizeUrl },
+          { label: "Brand colors", icon: <Palette />, onSelect: () => goToTool("branding") },
+        ]}
       />
 
-      {/* Plan + hub link */}
-      <HubLinkBar
-        data-tip-target="v3-edu-plan-url"
-        label="Hub link"
-        url={hasSelectedPlanUrl ? selectedPlanUrl : null}
-        onCopy={() => copyToClipboard(selectedPlanUrl)}
-        onOpen={() => window.open(selectedPlanUrl, "_blank", "noopener")}
-        planSelect={
-          <Select value={selectedPlan} onValueChange={(v) => setSelectedPlan(v as any)}>
-            <SelectTrigger className="h-11 w-full lg:w-[150px]" aria-label="Plan you are editing">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="plan1">Plan 1</SelectItem>
-              <SelectItem value="plan2" disabled={!isAdvancedPlan || !ghlConnected}>
-                Plan 2
-              </SelectItem>
-              <SelectItem value="plan3" disabled={!isAdvancedPlan || !ghlConnected}>
-                Plan 3
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        }
-      />
+      {/* Plan + hub link, in one chip */}
+      <div data-tip-target="v3-edu-plan-url">
+        <HubPlanChip
+          testId="hub-plan-chip"
+          planLabel={planLabel}
+          label="Hub link"
+          url={hasSelectedPlanUrl ? selectedPlanUrl : null}
+          onCopy={() => copyToClipboard(selectedPlanUrl)}
+          onOpen={() => window.open(selectedPlanUrl, "_blank", "noopener")}
+          planSelect={
+            <Select value={selectedPlan} onValueChange={(v) => setSelectedPlan(v as any)}>
+              <SelectTrigger className="h-11 w-full" aria-label="Plan you are editing">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="plan1">Plan 1</SelectItem>
+                <SelectItem value="plan2" disabled={!isAdvancedPlan || !ghlConnected}>
+                  Plan 2
+                </SelectItem>
+                <SelectItem value="plan3" disabled={!isAdvancedPlan || !ghlConnected}>
+                  Plan 3
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          }
+        />
+      </div>
 
       {/* The one sub-navigation */}
       <div data-tip-target="v3-edu-tab-names" data-testid="hub-open-page" data-page={livePreviewTab}>
@@ -1135,78 +1126,72 @@ const V3EducationView = ({
             setEditingTabId(null);
             setLivePreviewTab(id as any);
           }}
-          editing={
-            editingTabId ? (
-              <form
-                className="flex min-w-0 flex-1 flex-wrap items-center gap-2"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  commitTabName();
-                }}
-              >
-                <Label htmlFor="hub-page-name" className="text-sm text-muted-foreground">
-                  Page name
-                </Label>
-                <Input
-                  id="hub-page-name"
-                  autoFocus
-                  value={editingTabValue}
-                  onChange={(e) => setEditingTabValue(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") {
-                      setEditingTabId(null);
-                      setEditingTabValue("");
-                    }
-                  }}
-                  className="h-9 w-48"
-                />
-                <Button type="submit" size="sm" variant="accent" aria-label="Save tab name">
-                  Save name
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    setEditingTabId(null);
-                    setEditingTabValue("");
-                  }}
-                >
-                  Cancel
-                </Button>
-              </form>
-            ) : undefined
-          }
-          actions={
-            canRenamePage && !editingTabId ? (
-              <Button
-                size="sm"
-                variant="ghost"
-                aria-label="Rename this page"
-                onClick={() => {
-                  const page = livePreviewTab as "education" | "home" | "support";
-                  setEditingTabId(page);
-                  setEditingTabValue(pageLabel(page));
-                }}
-              >
-                <Pencil className="size-3.5" />
-                Rename page
-              </Button>
-            ) : null
-          }
         />
       </div>
+
+      {/* Rename page: opened from the "..." menu */}
+      <EditorPanel
+        open={!!editingTabId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingTabId(null);
+            setEditingTabValue("");
+          }
+        }}
+        title="Rename this page"
+        description="The name clients see on the tab in your hub."
+        footer={
+          <PanelActions>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setEditingTabId(null);
+                setEditingTabValue("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" form="hub-page-name-form" variant="accent" aria-label="Save tab name" disabled={!editingTabValue.trim()}>
+              Save name
+            </Button>
+          </PanelActions>
+        }
+      >
+        <form
+          id="hub-page-name-form"
+          className="space-y-1.5"
+          onSubmit={(e) => {
+            e.preventDefault();
+            commitTabName();
+          }}
+        >
+          <Label htmlFor="hub-page-name">Page name</Label>
+          <Input
+            id="hub-page-name"
+            autoFocus
+            value={editingTabValue}
+            onChange={(e) => setEditingTabValue(e.target.value)}
+          />
+        </form>
+      </EditorPanel>
 
       {/* Education */}
       {livePreviewTab === "education" && (
         <div data-tip-target="v3-edu-video-list">
         <Reveal className="space-y-4">
           <RevealItem>
-            <SectionCard
-              icon={<Sparkles />}
-              title="Quick set up"
-              description="Pick what your clients use and we switch on just the matching videos. Combine as many as you like."
-            >
+            <SettingList>
+              <SettingItem
+                testId="edu-row-quick-setup"
+                icon={<Sparkles />}
+                title="Quick set up"
+                value={activeSetupLabels.length ? activeSetupLabels.join(", ") : "Pick what your clients use and we switch on the matching videos"}
+                status={activeSetupLabels.length ? `${activeSetupLabels.length} picked` : undefined}
+                panel={{
+                  description: "Pick what your clients use and we switch on just the matching videos. Combine as many as you like. Saves as you go.",
+                }}
+              >
               <div className="flex flex-wrap gap-2">
                 {SUGGESTED_SETUPS.map((setup) => {
                   const isActive = activeSetups.has(setup.id);
@@ -1218,7 +1203,7 @@ const V3EducationView = ({
                       onClick={() => handleSetupToggle(setup.id)}
                       disabled={!hasSelectedPlanUrl}
                       className={cn(
-                        "inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+                        "inline-flex min-h-11 items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
                         isActive
                           ? "border-brand/40 bg-brand-subtle text-brand"
                           : "border-border bg-card text-muted-foreground hover:border-brand/40 hover:text-foreground",
@@ -1230,7 +1215,8 @@ const V3EducationView = ({
                   );
                 })}
               </div>
-            </SectionCard>
+              </SettingItem>
+            </SettingList>
           </RevealItem>
 
           <RevealItem className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
@@ -1238,19 +1224,6 @@ const V3EducationView = ({
             <SectionCard
               title="Modules"
               description="Groups of videos. Drag to reorder."
-              actions={
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setNewModuleTitle("");
-                    setShowAddModuleDialog(true);
-                  }}
-                >
-                  <Plus className="size-4" />
-                  Add module
-                </Button>
-              }
             >
               <div className="space-y-2">
                 {orderedCategories.map((row) => {
@@ -1344,7 +1317,7 @@ const V3EducationView = ({
                               e.stopPropagation();
                               beginRename(`cat::${row.key}`, row.displayName);
                             }}
-                            className="flex size-8 items-center justify-center rounded-sm text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
+                            className="flex size-11 items-center justify-center rounded-sm sm:size-8 text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
                             aria-label="Rename category"
                           >
                             <Pencil className="size-3.5" />
@@ -1356,7 +1329,7 @@ const V3EducationView = ({
                                 e.stopPropagation();
                                 toggleCategory(row.builtinId!);
                               }}
-                              className="flex size-8 items-center justify-center rounded-sm text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
+                              className="flex size-11 items-center justify-center rounded-sm sm:size-8 text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
                               aria-label={allHidden ? "Show every video in this module" : "Hide or show every video in this module"}
                             >
                               {allHidden ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -1367,6 +1340,14 @@ const V3EducationView = ({
                     </div>
                   );
                 })}
+                <AddRowButton
+                  onClick={() => {
+                    setNewModuleTitle("");
+                    setShowAddModuleDialog(true);
+                  }}
+                >
+                  Add module
+                </AddRowButton>
               </div>
             </SectionCard>
 
@@ -1381,9 +1362,9 @@ const V3EducationView = ({
                     : `${selectedVisibleCount} of ${selectedTotalCount} videos shown on ${planLabel}. Drag to reorder.`
               }
               actions={
-                !showInlineAdd ? (
+                (
                   <Button
-                    variant="accent"
+                    variant="outline"
                     size="sm"
                     id="v3-add-custom-video"
                     data-tip-target="v3-edu-add-custom-video"
@@ -1393,120 +1374,10 @@ const V3EducationView = ({
                     <Plus className="size-4" />
                     Add custom video
                   </Button>
-                ) : null
+                )
               }
             >
               <div className="space-y-3">
-                {showInlineAdd && (
-                  <div className="px-brand-wash space-y-4 rounded-md border border-brand/20 p-4">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-foreground">New custom video</p>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-8"
-                        onClick={() => {
-                          setShowInlineAdd(false);
-                          setInlineForm({ title: "", description: "", videoUrl: "", isEmbed: false });
-                        }}
-                        aria-label="Cancel"
-                      >
-                        <X className="size-4" />
-                      </Button>
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="inline-video-title">Title</Label>
-                        <Input
-                          id="inline-video-title"
-                          placeholder="Video title"
-                          value={inlineForm.title}
-                          onChange={(e) => setInlineForm((f) => ({ ...f, title: e.target.value }))}
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="inline-video-url">{inlineForm.isEmbed ? "Embed code" : "Video link"}</Label>
-                        <Input
-                          id="inline-video-url"
-                          placeholder={
-                            inlineForm.isEmbed ? "Paste embed code" : "Video URL (YouTube, Vimeo, etc.)"
-                          }
-                          value={inlineForm.videoUrl}
-                          onChange={(e) => setInlineForm((f) => ({ ...f, videoUrl: e.target.value }))}
-                        />
-                      </div>
-                      <div className="space-y-1.5 sm:col-span-2">
-                        <Label htmlFor="inline-video-desc">Description</Label>
-                        <Textarea
-                          id="inline-video-desc"
-                          placeholder="Short description"
-                          value={inlineForm.description}
-                          onChange={(e) => setInlineForm((f) => ({ ...f, description: e.target.value }))}
-                          rows={2}
-                          className="resize-none"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          id="inline-is-embed"
-                          checked={inlineForm.isEmbed}
-                          onCheckedChange={(c) => setInlineForm((f) => ({ ...f, isEmbed: c }))}
-                        />
-                        <Label htmlFor="inline-is-embed" className="text-sm font-normal text-muted-foreground">
-                          This is an embed code
-                        </Label>
-                      </div>
-                      <TranscribeOnSaveCheckbox
-                        id="inline-auto-transcribe"
-                        checked={autoTranscribe}
-                        onChange={setAutoTranscribe}
-                      />
-                    </div>
-                    {availablePlanTiers.length > 1 && (
-                      <div className="space-y-2 border-t border-border pt-3">
-                        <p className="text-sm font-medium text-foreground">Show this video on</p>
-                        <div className="flex flex-wrap gap-x-5 gap-y-2">
-                          {availablePlanTiers.map((p) => {
-                            const checked = inlinePlanTiers.has(p.id);
-                            return (
-                              <label key={p.id} className="flex min-h-9 cursor-pointer items-center gap-2 text-sm">
-                                <Checkbox
-                                  checked={checked}
-                                  onCheckedChange={(v) => {
-                                    setInlinePlanTiers((prev) => {
-                                      const next = new Set(prev);
-                                      if (v) next.add(p.id);
-                                      else next.delete(p.id);
-                                      if (next.size === 0) next.add(tier);
-                                      return next;
-                                    });
-                                  }}
-                                />
-                                <span>{p.label}</span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                    <div className="flex justify-end">
-                      <Button
-                        type="button"
-                        variant="accent"
-                        onClick={saveInlineVideo}
-                        disabled={savingInline}
-                        aria-label="Save video"
-                      >
-                        <Save className="size-4" />
-                        {savingInline ? "Saving…" : "Save video"}
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
                 {isLoading ? (
                   <HubListSkeleton rows={5} />
                 ) : selectedTotalCount === 0 ? (
@@ -1518,14 +1389,12 @@ const V3EducationView = ({
                       </HubEmptyIcon>
                     }
                     title="No videos in this module yet"
-                    description="Add your first video and it shows up here for your clients."
+                    description="Add your first video for this module."
                     action={
-                      !showInlineAdd ? (
-                        <Button variant="outline" onClick={() => setShowInlineAdd(true)}>
-                          <Plus className="size-4" />
-                          Add custom video
-                        </Button>
-                      ) : undefined
+                      <Button variant="outline" onClick={() => setShowInlineAdd(true)}>
+                        <Plus className="size-4" />
+                        Add custom video
+                      </Button>
                     }
                   />
                 ) : (
@@ -1591,7 +1460,7 @@ const V3EducationView = ({
                                     e.stopPropagation();
                                     beginRename(`mod::${nameKey}`, displayName);
                                   }}
-                                  className="flex size-8 items-center justify-center rounded-sm text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
+                                  className="flex size-11 items-center justify-center rounded-sm sm:size-8 text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
                                   aria-label="Rename module"
                                 >
                                   <Pencil className="size-3.5" />
@@ -1638,7 +1507,7 @@ const V3EducationView = ({
                               <button
                                 type="button"
                                 onClick={() => openEditCustomVideo(v)}
-                                className="flex size-8 items-center justify-center rounded-sm text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
+                                className="flex size-11 items-center justify-center rounded-sm sm:size-8 text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
                                 aria-label="Edit video"
                               >
                                 <Pencil className="size-3.5" />
@@ -1646,7 +1515,7 @@ const V3EducationView = ({
                               <button
                                 type="button"
                                 onClick={() => deleteCustomVideo(v.id)}
-                                className="flex size-8 items-center justify-center rounded-sm text-muted-foreground/70 transition-colors hover:bg-destructive/10 hover:text-destructive"
+                                className="flex size-11 items-center justify-center rounded-sm sm:size-8 text-muted-foreground/70 transition-colors hover:bg-destructive/10 hover:text-destructive"
                                 aria-label="Delete video"
                               >
                                 <Trash2 className="size-3.5" />
@@ -1669,6 +1538,114 @@ const V3EducationView = ({
         </Reveal>
         </div>
       )}
+
+      {/* Add custom video: opens from the videos card */}
+      <EditorPanel
+        open={showInlineAdd}
+        onOpenChange={(open) => {
+          if (open) setShowInlineAdd(true);
+          else (() => {
+              setShowInlineAdd(false);
+              setInlineForm({ title: "", description: "", videoUrl: "", isEmbed: false });
+            })();
+        }}
+        title="Add custom video"
+        description={`Goes into ${selectedPanelTitle}.`}
+        footer={
+          <PanelActions>
+            <Button type="button" variant="outline" onClick={() => {
+              setShowInlineAdd(false);
+              setInlineForm({ title: "", description: "", videoUrl: "", isEmbed: false });
+            }}>
+              Cancel
+            </Button>
+            <Button type="button" variant="accent" onClick={saveInlineVideo} disabled={savingInline} aria-label="Save video">
+              <Save className="size-4" aria-hidden="true" />
+              {savingInline ? "Saving…" : "Save video"}
+            </Button>
+          </PanelActions>
+        }
+      >
+        <div className="space-y-4">
+                    <div className="grid gap-3">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="inline-video-title">Title</Label>
+                        <Input
+                          id="inline-video-title"
+                          placeholder="Video title"
+                          value={inlineForm.title}
+                          onChange={(e) => setInlineForm((f) => ({ ...f, title: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="inline-video-url">{inlineForm.isEmbed ? "Embed code" : "Video link"}</Label>
+                        <Input
+                          id="inline-video-url"
+                          placeholder={
+                            inlineForm.isEmbed ? "Paste embed code" : "Video URL (YouTube, Vimeo, etc.)"
+                          }
+                          value={inlineForm.videoUrl}
+                          onChange={(e) => setInlineForm((f) => ({ ...f, videoUrl: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="inline-video-desc">Description</Label>
+                        <Textarea
+                          id="inline-video-desc"
+                          placeholder="Short description"
+                          value={inlineForm.description}
+                          onChange={(e) => setInlineForm((f) => ({ ...f, description: e.target.value }))}
+                          rows={2}
+                          className="resize-none"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          id="inline-is-embed"
+                          checked={inlineForm.isEmbed}
+                          onCheckedChange={(c) => setInlineForm((f) => ({ ...f, isEmbed: c }))}
+                        />
+                        <Label htmlFor="inline-is-embed" className="text-sm font-normal text-muted-foreground">
+                          This is an embed code
+                        </Label>
+                      </div>
+                      <TranscribeOnSaveCheckbox
+                        id="inline-auto-transcribe"
+                        checked={autoTranscribe}
+                        onChange={setAutoTranscribe}
+                      />
+                    </div>
+                    {availablePlanTiers.length > 1 && (
+                      <div className="space-y-2 border-t border-border pt-3">
+                        <p className="text-sm font-medium text-foreground">Show this video on</p>
+                        <div className="flex flex-wrap gap-x-5 gap-y-2">
+                          {availablePlanTiers.map((p) => {
+                            const checked = inlinePlanTiers.has(p.id);
+                            return (
+                              <label key={p.id} className="flex min-h-9 cursor-pointer items-center gap-2 text-sm">
+                                <Checkbox
+                                  checked={checked}
+                                  onCheckedChange={(v) => {
+                                    setInlinePlanTiers((prev) => {
+                                      const next = new Set(prev);
+                                      if (v) next.add(p.id);
+                                      else next.delete(p.id);
+                                      if (next.size === 0) next.add(tier);
+                                      return next;
+                                    });
+                                  }}
+                                />
+                                <span>{p.label}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+        </div>
+      </EditorPanel>
 
       {/* Add Module Dialog */}
       <Dialog open={showAddModuleDialog} onOpenChange={setShowAddModuleDialog}>
