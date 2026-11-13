@@ -3,12 +3,10 @@ import { useUser } from "@/contexts/UserContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Banner } from "@/components/ui/banner";
-import { Tag } from "@/components/ui/tag";
-import { SectionCard } from "@/components/premium/SectionCard";
-import { Field, SectionFooter } from "@/components/premium/settings/Field";
+import { Field } from "@/components/premium/settings/Field";
+import { Disclosure, FieldError, PageSection, StatusRow } from "@/components/premium/settings/Page";
 import { useToast } from "@/hooks/use-toast";
-import { Globe, Loader2, CheckCircle2, Clock, ExternalLink } from "lucide-react";
+import { Loader2, ExternalLink } from "lucide-react";
 
 interface DomainState {
   custom_domain_access: boolean;
@@ -24,6 +22,7 @@ export function CustomDomainPanel() {
   const [submitting, setSubmitting] = useState(false);
   const [state, setState] = useState<DomainState | null>(null);
   const [domainInput, setDomainInput] = useState("");
+  const [domainError, setDomainError] = useState("");
 
   const load = async () => {
     if (!email) return;
@@ -43,9 +42,10 @@ export function CustomDomainPanel() {
   const handleSubmit = async () => {
     const raw = domainInput.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
     if (!/^([a-z0-9-]+\.)+[a-z]{2,}$/.test(raw)) {
-      toast({ title: "Invalid domain", description: "Enter a valid domain or subdomain (e.g. app.yoursite.com).", variant: "destructive" });
+      setDomainError("Enter a domain or subdomain without https://, like app.yoursite.com.");
       return;
     }
+    setDomainError("");
     setSubmitting(true);
     try {
       const { data, error } = await supabase.functions.invoke("submit-custom-domain", {
@@ -53,7 +53,7 @@ export function CustomDomainPanel() {
       });
       if (error) throw error;
       if (!(data as any)?.ok) throw new Error((data as any)?.error || "Failed to submit");
-      toast({ title: "Request received!", description: "We'll notify you once your domain is live." });
+      toast({ title: "Request received", description: "We'll notify you once your domain is live." });
       await load();
     } catch (e: any) {
       toast({ title: "Submission failed", description: e.message, variant: "destructive" });
@@ -65,25 +65,33 @@ export function CustomDomainPanel() {
   if (loading) {
     return (
       <div className="space-y-3" aria-busy="true" aria-label="Loading custom domain">
+        <div className="px-skeleton h-12 rounded-lg" />
         <div className="px-skeleton h-24 rounded-lg" />
-        <div className="px-skeleton h-40 rounded-lg" />
       </div>
     );
   }
 
   if (!state?.custom_domain_access) {
     return (
-      <SectionCard
-        icon={<Globe />}
-        title="Custom Domain"
-        description="This upgrade hasn't been purchased on your account yet."
-      >
-        <Button asChild variant="accent" className="h-11 sm:h-10">
-          <a href="https://link.saassuite.ai/payment-link/6a3af2039f7c6c76d1f86d4c" target="_blank" rel="noreferrer">
-            Purchase Custom Domain <ExternalLink className="w-4 h-4 ml-2" />
-          </a>
-        </Button>
-      </SectionCard>
+      <div>
+        <StatusRow tone="off" label="Not active" detail="An add-on. Buy it, then enter your domain here.">
+          <Button asChild variant="accent" className="h-11 flex-1 sm:h-10 sm:flex-none">
+            <a href="https://link.saassuite.ai/payment-link/6a3af2039f7c6c76d1f86d4c" target="_blank" rel="noreferrer">
+              Buy Custom Domain <ExternalLink aria-hidden="true" />
+            </a>
+          </Button>
+        </StatusRow>
+        <Disclosure label="How it works">
+          <ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
+            <li>
+              Buy the add-on. It replaces <span className="break-all font-mono">yoursoftwareonboarding.com</span> with
+              your own domain or subdomain, such as <span className="font-mono">app.yoursite.com</span>.
+            </li>
+            <li>Come back to this page and enter the exact domain you want.</li>
+            <li>Our team connects it and tells you the moment it is live.</li>
+          </ol>
+        </Disclosure>
+      </div>
     );
   }
 
@@ -91,64 +99,76 @@ export function CustomDomainPanel() {
   const isPending = !!state.custom_domain && !isLive;
 
   return (
-    <div className="space-y-6">
-      {isLive && (
-        <Banner tone="success" title="Your domain is live.">
-          <span className="break-all font-mono">{state.custom_domain}</span> now serves your SaaS experience.
-        </Banner>
-      )}
-
-      {isPending && (
-        <Banner tone="warning" title="Request received.">
-          <span className="break-all font-mono">{state.custom_domain}</span> is in the queue. We'll notify you once
-          it's live. Need to change it? Update it below and submit again.
-        </Banner>
-      )}
-
-      <SectionCard
-        icon={<Globe />}
-        title="Custom Domain"
-        description={
-          <>
-            Replace <span className="break-all font-mono">yoursoftwareonboarding.com</span> with your own domain or
-            subdomain across your SaaS experience.
-          </>
-        }
-        actions={
+    <form
+      noValidate
+      onSubmit={(event) => {
+        event.preventDefault();
+        void handleSubmit();
+      }}
+    >
+      <StatusRow
+        tone={isLive ? "on" : isPending ? "pending" : "off"}
+        label={
           isLive ? (
-            <Tag tone="success"><CheckCircle2 aria-hidden="true" />Live</Tag>
-          ) : isPending ? (
-            <Tag tone="warning"><Clock aria-hidden="true" />Pending</Tag>
-          ) : undefined
-        }
-      >
-        <Field
-          label="Domain or subdomain"
-          htmlFor="domain"
-          hint={
             <>
-              Use a root domain (<span className="font-mono">yoursite.com</span>) or a subdomain (
-              <span className="font-mono">app.yoursite.com</span>). After you submit, our team wires it up and
-              notifies you the moment it goes live.
+              Live on <span className="font-mono [overflow-wrap:anywhere]">{state.custom_domain}</span>
             </>
-          }
-        >
+          ) : isPending ? (
+            <>
+              Request received for <span className="font-mono [overflow-wrap:anywhere]">{state.custom_domain}</span>
+            </>
+          ) : (
+            "No domain yet"
+          )
+        }
+        detail={
+          isLive
+            ? "Your SaaS experience is served from this domain."
+            : isPending
+              ? "Our team is connecting it and will tell you when it is live."
+              : "Enter the domain you want and our team connects it for you."
+        }
+      />
+      <PageSection>
+        <Field label="Domain or subdomain" htmlFor="domain" hint="A root domain or a subdomain, like app.yoursite.com.">
           <Input
             id="domain"
             value={domainInput}
-            onChange={(e) => setDomainInput(e.target.value)}
+            onChange={(e) => {
+              setDomainInput(e.target.value);
+              setDomainError("");
+            }}
             placeholder="app.yoursite.com"
             className="font-mono sm:max-w-md"
+            inputMode="url"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             disabled={submitting}
+            aria-invalid={!!domainError}
+            aria-describedby={domainError ? "domain-error" : undefined}
           />
+          <FieldError id="domain-error">{domainError}</FieldError>
         </Field>
-        <SectionFooter note={!domainInput.trim() ? "Enter a domain to submit it." : undefined}>
-          <Button variant="accent" onClick={handleSubmit} disabled={submitting || !domainInput.trim()}>
-            {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            {isPending || isLive ? "Update domain" : "Submit domain"}
+        <div className="mt-4 flex justify-end">
+          <Button
+            type="submit"
+            variant="accent"
+            className="h-11 w-full sm:h-10 sm:w-auto"
+            disabled={submitting || !domainInput.trim()}
+          >
+            {submitting ? (
+              <>
+                <Loader2 className="animate-spin" aria-hidden="true" /> Sending domain
+              </>
+            ) : isPending || isLive ? (
+              "Update domain"
+            ) : (
+              "Submit domain"
+            )}
           </Button>
-        </SectionFooter>
-      </SectionCard>
-    </div>
+        </div>
+      </PageSection>
+    </form>
   );
 }

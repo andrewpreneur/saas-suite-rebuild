@@ -14,6 +14,7 @@ export interface TipNavigation {
   routePath?: string; // Router path the target lives on (e.g. '/slack-integration')
   communityTab?: 'feed' | 'snapshots' | 'academy' | 'ideas' | 'ask'; // Community hub page
   openSidebarSection?: string; // Expand a sidebar group (build / grow / support)
+  finishPath?: string; // Last step only: where "Finish tour" takes the person (e.g. '/app/highlevel')
 }
 
 export interface Tip {
@@ -279,14 +280,25 @@ export const ALL_TIPS: Tip[] = [
   },
   {
     id: 'finish_install',
-    title: 'Last step: install it in HighLevel',
-    description: 'Open the installation guide and add your portal as a custom menu link in HighLevel. That is the one thing left before clients can see it.',
+    title: 'Install it in HighLevel',
+    description: 'Open the installation guide and add your portal as a custom menu link in HighLevel. Clients cannot see it until that is done.',
     category: 'features',
     targetSelector: 'client-hub-install-guide',
     arrowPosition: 'left',
     priority: 21,
     checkCondition: () => true,
     navigation: { selectTool: 'client-hub' },
+  },
+  {
+    id: 'finish_highlevel',
+    title: 'Connect HighLevel',
+    description: 'Connect your HighLevel account here so your sub-accounts are ready to pick across SaaS Suite.',
+    category: 'features',
+    targetSelector: 'settings-tab-highlevel',
+    arrowPosition: 'right',
+    priority: 22,
+    checkCondition: () => true,
+    navigation: { selectTool: 'settings', finishPath: '/app/highlevel' },
   },
 ];
 
@@ -515,14 +527,25 @@ export const V3_TIPS: Tip[] = [
   },
   {
     id: 'v3_finish_install',
-    title: 'Last step: install it in HighLevel',
-    description: 'Open the installation guide and add your portal as a custom menu link in HighLevel. That is the one thing left before clients can see it.',
+    title: 'Install it in HighLevel',
+    description: 'Open the installation guide and add your portal as a custom menu link in HighLevel. Clients cannot see it until that is done.',
     category: 'features',
     targetSelector: 'client-hub-install-guide',
     arrowPosition: 'left',
     priority: 21,
     checkCondition: () => true,
     navigation: { selectTool: 'client-hub' },
+  },
+  {
+    id: 'v3_finish_highlevel',
+    title: 'Connect HighLevel',
+    description: 'Connect your HighLevel account here so your sub-accounts are ready to pick across SaaS Suite.',
+    category: 'features',
+    targetSelector: 'settings-tab-highlevel',
+    arrowPosition: 'right',
+    priority: 22,
+    checkCondition: () => true,
+    navigation: { selectTool: 'settings', finishPath: '/app/highlevel' },
   },
 ];
 
@@ -678,13 +701,24 @@ export function buildWalkthrough(isV3: boolean): Tip[] {
       id: 'tour_settings',
       title: 'Settings & billing',
       description:
-        'Branding, plan, add-ons and your account live here. That is the whole tour — go make the hub yours.',
+        'Your plan, add-ons, team and account live here. Settings opens from your profile card.',
       category: 'navigation',
-      targetSelector: 'sidebar-settings',
+      targetSelector: 'sidebar-profile',
       arrowPosition: 'left',
       priority: 0,
       checkCondition: () => true,
       navigation: { selectTool: 'settings' },
+    },
+    {
+      id: 'tour_highlevel',
+      title: 'Connect HighLevel',
+      description: HIGHLEVEL_FINISH_COPY,
+      category: 'features',
+      targetSelector: 'settings-tab-highlevel',
+      arrowPosition: 'right',
+      priority: 0,
+      checkCondition: () => true,
+      navigation: { selectTool: 'settings', finishPath: HIGHLEVEL_FINISH_PATH },
     },
   ];
 
@@ -754,6 +788,10 @@ export const COMMUNITY_TOUR: Tip[] = [
   },
 ];
 
+/** Every walkthrough ends on the HighLevel row in Settings, and "Finish tour" opens the connection page. */
+export const HIGHLEVEL_FINISH_PATH = '/app/highlevel';
+const HIGHLEVEL_FINISH_COPY = 'Connect your HighLevel account here so your sub-accounts are ready to pick across SaaS Suite.';
+
 /** Part 1 of the walkthrough: where everything lives in the sidebar. */
 export function buildNavTour(): Tip[] {
   const step = (
@@ -805,6 +843,7 @@ export function buildNavTour(): Tip[] {
     ),
     step('nav_billing', 'Billing', 'Manage your plan, payment method and invoices here.', 'settings-tab-billing', { selectTool: 'settings' }),
     step('nav_admins', 'Admins', 'Invite your team, choose what each person can see or edit, and set who gets notified.', 'settings-tab-admins', { selectTool: 'settings' }),
+    step('nav_highlevel', 'Connect HighLevel', HIGHLEVEL_FINISH_COPY, 'settings-tab-highlevel', { selectTool: 'settings', finishPath: HIGHLEVEL_FINISH_PATH }),
   ];
 }
 

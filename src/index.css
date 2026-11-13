@@ -218,6 +218,20 @@ html.ds-ui body.ds-app .bg-black\/80 {
   -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
 }
+/* Phone bottom bar: dense enough that the page never shows through the labels. */
+html.ds-ui .mobile-bar {
+  background: hsl(var(--card) / 0.94);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+  backdrop-filter: blur(20px) saturate(170%);
+}
+html.ds-ui[data-skin="glass"] .mobile-bar {
+  background: rgba(255, 255, 255, 0.86);
+}
+body:has([data-testid="mobile-bottom-bar"] [role="menu"]) .copilot-launcher {
+  opacity: 0 !important;
+  visibility: hidden;
+  pointer-events: none;
+}
 @keyframes px-shimmer {
   to { background-position: -135% 0; }
 }

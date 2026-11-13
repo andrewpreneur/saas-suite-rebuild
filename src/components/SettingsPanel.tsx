@@ -1,7 +1,8 @@
 import HighLevelIntegrationPanel from "@/components/highlevel/HighLevelIntegrationPanel";
-import { TextUsLink } from "@/components/TextUsLink";
 import { supportSmsUrl } from "@/lib/supportContact";
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/platform/PageHeader";
 import { useUser } from "@/contexts/UserContext";
 import { useViewerIdentity } from "@/hooks/useViewerIdentity";
@@ -13,10 +14,16 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Tag } from "@/components/ui/tag";
 import { Banner } from "@/components/ui/banner";
-import { SettingItem, SettingList } from "@/components/premium/SettingList";
-import AnimatedTabs from "@/components/premium/21st/animated-tabs";
-import { EmptyState, EmptyStateIllustration } from "@/components/premium/21st/empty-state";
-import { Field, SectionFooter } from "@/components/premium/settings/Field";
+import {
+  HideWhileSettingOpen,
+  SettingItem,
+  SettingList,
+  SettingPages,
+  useSettingPageOpen,
+} from "@/components/premium/SettingList";
+import { MoreMenu } from "@/components/premium/MoreMenu";
+import { Field } from "@/components/premium/settings/Field";
+import { Disclosure, FieldError, PageSection, StatusRow } from "@/components/premium/settings/Page";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -36,19 +43,13 @@ import {
   Globe,
   GraduationCap,
   Lock,
+  MessageCircle,
+  ReceiptText,
   Slack,
 } from "lucide-react";
 import { toAgencySlug, agencyIdentifiersMatch } from "@/utils/agencySlug";
 import StripeEmbeddedCheckout from "@/components/StripeEmbeddedCheckout";
 import SlackIntegration from "@/pages/SlackIntegration";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { CustomDomainPanel } from "@/components/CustomDomainPanel";
 import ExternalPlatformPanel from "@/components/ExternalPlatformPanel";
 import ExternalPlatformGate from "@/components/support/ExternalPlatformGate";
@@ -95,6 +96,7 @@ export function SettingsPanel({ onBack, initialTab = "profile", onTabChange }: S
   const [showAgencyWarning, setShowAgencyWarning] = useState(false);
   // The name as last loaded or saved: the URL warning only shows once it is edited.
   const [savedAgencyName, setSavedAgencyName] = useState("");
+  const [agencyNameError, setAgencyNameError] = useState("");
   const [agencyUserCount, setAgencyUserCount] = useState<number>(0);
 
   // Classic View state
@@ -118,7 +120,6 @@ export function SettingsPanel({ onBack, initialTab = "profile", onTabChange }: S
   // Custom domain access
   const [customDomainAccess, setCustomDomainAccess] = useState(false);
   const [domainAccessLoaded, setDomainAccessLoaded] = useState(false);
-  const [customDomainDialogOpen, setCustomDomainDialogOpen] = useState(false);
 
   const userPlan = plan || "ADVANCED";
 
@@ -346,6 +347,7 @@ export function SettingsPanel({ onBack, initialTab = "profile", onTabChange }: S
         err?.code === "23505"
           ? "That agency name is already used by another account. Try a slightly different name."
           : `Failed to save profile.${err?.message ? ` (${err.message})` : ""}`;
+      if (err?.code === "23505") setAgencyNameError(msg);
       toast({ title: "Error", description: msg, variant: "destructive" });
     }
   };
@@ -355,597 +357,643 @@ export function SettingsPanel({ onBack, initialTab = "profile", onTabChange }: S
   };
 
   const [checkoutPlan, setCheckoutPlan] = useState<CheckoutPlan | null>(null);
-  const [slackSub, setSlackSub] = useState<"connection" | "copilot" | "report">("connection");
+
+  // Save feedback and field errors for the forms on these pages.
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [adminEmailError, setAdminEmailError] = useState("");
+  const saveProfile = async () => {
+    if (savingProfile) return;
+    setSavingProfile(true);
+    try {
+      await handleSaveProfile();
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+  const inviteAdmin = () => {
+    if (!/^\S+@\S+\.\S+$/.test(newAdminEmail.trim())) {
+      setAdminEmailError("Enter a full email address, like name@agency.com.");
+      return;
+    }
+    setAdminEmailError("");
+    void handleAddAdmin();
+  };
+
+  // Known once the Slack or HighLevel page has been opened; until then the row keeps its description.
+  const [slackStatus, setSlackStatus] = useState<{ connected: boolean; name?: string | null } | null>(null);
+  const [highLevelStatus, setHighLevelStatus] = useState<{ connected: boolean; name?: string | null } | null>(null);
+  const connectionLabel = (status: { connected: boolean; name?: string | null } | null, fallback: string) =>
+    !status ? fallback : status.connected ? (status.name ? `Connected to ${status.name}` : "Connected") : "Not connected";
 
   const languageLabel =
     LANGUAGE_OPTIONS.find((option) => option.value === language)?.label || language;
 
   type SettingsTab = NonNullable<SettingsPanelProps["initialTab"]>;
-  /** Every row that opens a side panel. The first seven also have their own URL. */
+  /** Every row that opens its own page. */
   type PanelKey = SettingsTab | "logo" | "language";
   const planLabel =
     userPlan === "STARTER" ? t.common_starter : userPlan === "BASIC" ? t.common_basic : t.common_advanced;
 
-  // `/app/settings` shows the calm list. `/app/billing`, `/app/admins` and the
-  // other old sub-routes land here with their panel already open.
-  const [openPanel, setOpenPanel] = useState<PanelKey | null>(initialTab === "profile" ? null : initialTab);
-  useEffect(() => {
-    if (initialTab !== "profile") setOpenPanel(initialTab);
-  }, [initialTab]);
-  // A locked Custom Domain link shows what the add-on is instead of an empty panel.
-  useEffect(() => {
-    if (openPanel === "domain" && domainAccessLoaded && !customDomainAccess) {
-      setOpenPanel(null);
-      setCustomDomainDialogOpen(true);
-    }
-  }, [openPanel, domainAccessLoaded, customDomainAccess]);
-
-  const ROUTED: PanelKey[] = ["profile", "admins", "billing", "domain", "slack", "highlevel", "external"];
-  const showPanel = (key: PanelKey) => {
-    setOpenPanel(key);
-    if (ROUTED.includes(key)) onTabChange?.(key as SettingsTab);
+  // Which page is open comes from the URL, so the browser's Back button returns to the list.
+  // `/app/billing`, `/app/admins` and the other old sub-routes keep working; Profile, Agency
+  // logo and Language (which never had a route) use `/app/settings?page=...`.
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const PAGE_PATHS: Record<PanelKey, string> = {
+    profile: "/app/settings?page=profile",
+    logo: "/app/settings?page=logo",
+    language: "/app/settings?page=language",
+    admins: "/app/admins",
+    billing: "/app/billing",
+    domain: "/app/custom-domain",
+    slack: "/app/slack",
+    highlevel: "/app/highlevel",
+    external: "/app/external",
   };
+  const pageParam = searchParams.get("page");
+  const openPanel: PanelKey | null =
+    initialTab !== "profile"
+      ? initialTab
+      : pageParam === "profile" || pageParam === "logo" || pageParam === "language"
+        ? pageParam
+        : null;
+  const cameFromList = Boolean((location.state as { fromSettingsList?: boolean } | null)?.fromSettingsList);
+  const showPanel = (key: PanelKey, replace = false) =>
+    navigate(PAGE_PATHS[key], { replace, state: { fromSettingsList: replace ? cameFromList : true } });
   const closePanel = () => {
-    setOpenPanel(null);
-    if (initialTab !== "profile") onTabChange?.("profile");
+    // Opened from the list: step back to it, so Back and the back link do the same thing.
+    if (cameFromList) navigate(-1);
+    else navigate("/app/settings", { replace: true });
   };
   const row = (key: PanelKey) => ({
-    open: openPanel === key,
+    open: openPanel === key && !resyncing,
     onOpenChange: (next: boolean) => (next ? showPanel(key) : closePanel()),
   });
+  // SettingItem mirrors `open` into the shared pages context one effect at a time. Jumping straight
+  // from a later page to an earlier one (Cmd+K, Back) can leave the context empty; close and reopen once.
+  const [resyncing, setResyncing] = useState(false);
+  useEffect(() => {
+    if (resyncing) setResyncing(false);
+  }, [resyncing]);
+
+  // When a page closes, keyboard focus returns to the row that opened it.
+  const lastOpenPanel = useRef<PanelKey | null>(openPanel);
+  useEffect(() => {
+    const previous = lastOpenPanel.current;
+    lastOpenPanel.current = openPanel;
+    if (!previous || openPanel) return;
+    const timer = window.setTimeout(() => {
+      document.querySelector<HTMLElement>(`[data-testid="settings-row-${previous}"]`)?.focus();
+    }, 60);
+    return () => window.clearTimeout(timer);
+  }, [openPanel]);
 
   const agencyNameChanged = agencyName.trim() !== savedAgencyName.trim();
   const adminCount = accountAdmins.length;
+  const STRIPE_PORTAL = "https://billing.stripe.com/p/login/bIY04697i9jzghy4gg";
+  const openStripePortal = () => {
+    window.location.href = STRIPE_PORTAL;
+  };
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-3xl space-y-6">
-      <PageHeader
-        title={t.settings_title}
-        subtitle="Pick a row to change it."
-        more={[{ label: "Back to Client Hub", icon: <ArrowLeft />, onSelect: onBack }]}
-      />
+    <SettingPages backLabel="All settings">
+      <PageSync want={openPanel !== null && !resyncing} onMismatch={() => setResyncing(true)} />
+      <SettingsStack>
+        <HideWhileSettingOpen>
+          <PageHeader
+            title={t.settings_title}
+            subtitle="Pick a row to change it."
+            more={[{ label: "Back to Client Hub", icon: <ArrowLeft />, onSelect: onBack }]}
+          />
+        </HideWhileSettingOpen>
 
-      <SettingList label="Account">
-        <SettingItem
-          icon={<UserIcon />}
-          title={t.settings_profile}
-          value={[name || "No name yet", userEmail].filter(Boolean).join(" · ")}
-          testId="settings-row-profile"
-          panel={{
-            description: "Who you are and what your agency is called.",
-            footer: (
-              <Button variant="accent" className="h-11 w-full sm:mr-auto sm:h-10 sm:w-auto" onClick={handleSaveProfile}>
-                {t.settings_saveProfile}
-              </Button>
-            ),
-          }}
-          {...row("profile")}
-        >
-          <div className="grid w-full min-w-0 gap-4">
-            {viewer.showsAccountAdmin && (
-              <Banner tone="info" title={`Signed in as ${viewer.displayName}.`}>
-                <span className="break-all">{viewer.displayEmail}</span>. The name and email below are the agency
-                account. Saving them does not change who is signed in.
-              </Banner>
-            )}
-            <Field label={viewer.showsAccountAdmin ? "Account owner name" : t.settings_name} htmlFor="name">
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder={t.settings_name}
-                autoComplete="name"
-              />
-            </Field>
-            <Field
-              label={viewer.showsAccountAdmin ? "Account email" : t.settings_email}
-              htmlFor="email"
-              hint="Your sign-in email. It can't be changed here."
-            >
-              <Input id="email" value={userEmail} disabled placeholder={t.settings_email} />
-            </Field>
-            <Field label="Phone" htmlFor="phone" hint="Used for text alerts.">
-              <Input
-                id="phone"
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+1 555 123 4567"
-                autoComplete="tel"
-              />
-            </Field>
-            <Field
-              label={t.settings_agencyName}
-              htmlFor="agency"
-              hint={
-                agencyName ? (
-                  <>
-                    {t.settings_urlSlug}: <span className="font-mono">{toAgencySlug(agencyName)}</span>
-                  </>
-                ) : undefined
-              }
-            >
-              <Input
-                id="agency"
-                value={agencyName}
-                onChange={(e) => setAgencyName(e.target.value)}
-                placeholder={t.settings_agencyName}
-                autoComplete="organization"
-              />
-            </Field>
-            {showAgencyWarning && agencyNameChanged && (
-              <Banner tone="warning" title="Saving this name changes your URL.">
-                It moves from <span className="break-words font-mono">{currentAgencyId}</span> to{" "}
-                <span className="break-words font-mono">{toAgencySlug(agencyName)}</span>.
-                {agencyUserCount > 0 && (
-                  <>
-                    {" "}
-                    You have{" "}
-                    <strong>
-                      {agencyUserCount} user{agencyUserCount !== 1 ? "s" : ""}
-                    </strong>{" "}
-                    on the current URL. They will need to <strong>log back in once</strong> at the new one. All
-                    their progress is kept.
-                  </>
-                )}
-              </Banner>
-            )}
-          </div>
-        </SettingItem>
-
-        <SettingItem
-          icon={<ImageIcon />}
-          title="Agency logo"
-          value={agencyLogoUrl ? "Logo added" : "No logo yet"}
-          testId="settings-row-logo"
-          panel={{ description: "Used on your Knowledge Base and your branded login page." }}
-          {...row("logo")}
-        >
-          <AgencyLogoCard key={agencyLogoUrl} bare email={email} logoUrl={agencyLogoUrl} onChange={setAgencyLogoUrl} />
-        </SettingItem>
-
-        <div data-tip-target="settings-tab-admins">
+        <SettingList label="Account">
           <SettingItem
-            icon={<Users />}
-            title={t.settings_admins}
-            value={
-              loadingAdmins
-                ? "Loading"
-                : adminCount === 0
-                  ? "Only you so far"
-                  : `${adminCount} admin${adminCount !== 1 ? "s" : ""} · permissions and notifications`
-            }
-            testId="settings-row-admins"
-            panel={{ title: t.admins_title, description: t.admins_desc, wide: true }}
-            {...row("admins")}
-          >
-            <Tabs defaultValue="team" className="space-y-6">
-              <TabsList>
-                <TabsTrigger value="team">Team</TabsTrigger>
-                <TabsTrigger value="permissions">Permissions</TabsTrigger>
-                <TabsTrigger value="notifications">Notifications</TabsTrigger>
-              </TabsList>
-              <TabsContent value="permissions" className="mt-0">
-                <AdminPermissionsPanel />
-              </TabsContent>
-              <TabsContent value="notifications" className="mt-0">
-                <SupportNotificationsPanel />
-              </TabsContent>
-              <TabsContent value="team" className="mt-0 space-y-6">
-                <div>
-                  <h3 className="text-sm font-semibold text-foreground">Invite an admin</h3>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    They get an email invitation and can sign in with that address.
-                  </p>
-                  <div className="mt-3 grid gap-4 sm:grid-cols-2">
-                    <Field label={t.admins_email} htmlFor="admin-email" className="sm:col-span-2">
-                      <Input
-                        id="admin-email"
-                        type="email"
-                        value={newAdminEmail}
-                        onChange={(e) => setNewAdminEmail(e.target.value)}
-                        placeholder="name@agency.com"
-                        autoComplete="off"
-                      />
-                    </Field>
-                    <Field label={t.admins_name} htmlFor="admin-name">
-                      <Input
-                        id="admin-name"
-                        value={newAdminName}
-                        onChange={(e) => setNewAdminName(e.target.value)}
-                        placeholder={t.admins_name}
-                        autoComplete="off"
-                      />
-                    </Field>
-                    <Field label="Phone" htmlFor="admin-phone" hint="Used for text alerts. Optional.">
-                      <Input
-                        id="admin-phone"
-                        type="tel"
-                        value={newAdminPhone}
-                        onChange={(e) => setNewAdminPhone(e.target.value)}
-                        placeholder="+1 555 123 4567"
-                        autoComplete="off"
-                      />
-                    </Field>
-                  </div>
-                  <SectionFooter note={!newAdminEmail ? "Enter an email address to send the invitation." : undefined}>
-                    <Button variant="accent" onClick={handleAddAdmin} disabled={!newAdminEmail || isAddingAdmin}>
-                      {isAddingAdmin ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t.admins_sending}
-                        </>
-                      ) : (
-                        <>
-                          <UserPlus className="w-4 h-4 mr-2" /> {t.admins_addAdmin}
-                        </>
-                      )}
-                    </Button>
-                  </SectionFooter>
-                </div>
-                <div className="space-y-3">
-                  <h3 className="text-sm font-semibold text-foreground">{t.admins_currentAdmins}</h3>
-                  {loadingAdmins ? (
-                    <div className="space-y-2" aria-busy="true" aria-label="Loading admins">
-                      <div className="px-skeleton h-16 rounded-lg" />
-                      <div className="px-skeleton h-16 rounded-lg" />
-                    </div>
-                  ) : accountAdmins.length === 0 ? (
-                    <EmptyState
-                      className="rounded-lg border border-dashed border-border py-8"
-                      icon={
-                        <EmptyStateIllustration className="size-12 rounded-lg border-border bg-muted text-muted-foreground">
-                          <Users className="size-5" aria-hidden="true" />
-                        </EmptyStateIllustration>
-                      }
-                      title={t.admins_noAdmins}
-                      description="Invite a teammate above to share this account."
-                    />
+            icon={<UserIcon />}
+            title={t.settings_profile}
+            value={[name || "No name yet", userEmail].filter(Boolean).join(" · ")}
+            testId="settings-row-profile"
+            panel={{
+              description: "Who you are and what your agency is called.",
+              footer: (
+                <Button
+                  type="submit"
+                  form="settings-profile-form"
+                  variant="accent"
+                  className="h-11 w-full sm:h-10 sm:w-auto"
+                  disabled={savingProfile}
+                >
+                  {savingProfile ? (
+                    <>
+                      <Loader2 className="animate-spin" aria-hidden="true" /> Saving profile
+                    </>
                   ) : (
-                    <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border">
-                      {accountAdmins.map((admin) => (
-                        <li key={admin.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                          <div className="flex min-w-0 items-center gap-3">
-                            <span
-                              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-subtle text-sm font-semibold uppercase text-brand"
-                              aria-hidden="true"
-                            >
-                              {(admin.admin_name || admin.admin_email).slice(0, 1)}
-                            </span>
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-medium text-foreground">
-                                {admin.admin_name || admin.admin_email}
-                              </p>
-                              {admin.admin_name && (
-                                <p className="truncate text-xs text-muted-foreground">{admin.admin_email}</p>
-                              )}
-                              <div className="mt-1 flex flex-wrap items-center gap-2">
-                                <Tag tone={admin.status === "accepted" ? "success" : "warning"}>
-                                  {admin.status === "accepted" ? t.admins_active : t.admins_pending}
-                                </Tag>
-                                <span className="text-xs text-muted-foreground">
-                                  {t.admins_invited} {new Date(admin.invited_at).toLocaleDateString()}
-                                </span>
+                    t.settings_saveProfile
+                  )}
+                </Button>
+              ),
+            }}
+            {...row("profile")}
+          >
+            <form
+              id="settings-profile-form"
+              className="grid w-full min-w-0 gap-6"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void saveProfile();
+              }}
+            >
+              {viewer.showsAccountAdmin && (
+                <Banner tone="info" title={`Signed in as ${viewer.displayName}.`}>
+                  <span className="break-all">{viewer.displayEmail}</span>. Saving here changes the agency account,
+                  not who is signed in.
+                </Banner>
+              )}
+              <fieldset className="grid min-w-0 gap-4 sm:grid-cols-2">
+                <legend className="px-eyebrow mb-3 !text-[11px] !leading-4">You</legend>
+                <Field label={viewer.showsAccountAdmin ? "Account owner name" : t.settings_name} htmlFor="name">
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder={t.settings_name}
+                    autoComplete="name"
+                  />
+                </Field>
+                <Field label="Phone" htmlFor="phone" hint="Used for text alerts.">
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+1 555 123 4567"
+                    autoComplete="tel"
+                  />
+                </Field>
+                <Field
+                  label={viewer.showsAccountAdmin ? "Account email" : t.settings_email}
+                  htmlFor="email"
+                  hint="Your sign-in email. It can't be changed here."
+                  className="sm:col-span-2"
+                >
+                  <Input id="email" value={userEmail} disabled placeholder={t.settings_email} />
+                </Field>
+              </fieldset>
+              <fieldset className="grid min-w-0 gap-4 border-t border-border/70 pt-5">
+                <legend className="sr-only">Agency</legend>
+                <p className="px-eyebrow !text-[11px] !leading-4" aria-hidden="true">
+                  Agency
+                </p>
+                <Field
+                  label={t.settings_agencyName}
+                  htmlFor="agency"
+                  hint={
+                    agencyName ? (
+                      <>
+                        {t.settings_urlSlug}: <span className="font-mono">{toAgencySlug(agencyName)}</span>
+                      </>
+                    ) : undefined
+                  }
+                >
+                  <Input
+                    id="agency"
+                    value={agencyName}
+                    onChange={(e) => {
+                      setAgencyName(e.target.value);
+                      setAgencyNameError("");
+                    }}
+                    placeholder={t.settings_agencyName}
+                    autoComplete="organization"
+                    aria-invalid={!!agencyNameError}
+                    aria-describedby={agencyNameError ? "agency-error" : undefined}
+                  />
+                  <FieldError id="agency-error">{agencyNameError}</FieldError>
+                </Field>
+                {showAgencyWarning && agencyNameChanged && (
+                  <Banner tone="warning" title="Saving this name changes your URL.">
+                    It moves from <span className="break-words font-mono">{currentAgencyId}</span> to{" "}
+                    <span className="break-words font-mono">{toAgencySlug(agencyName)}</span>.
+                    {agencyUserCount > 0 && (
+                      <>
+                        {" "}
+                        You have{" "}
+                        <strong>
+                          {agencyUserCount} user{agencyUserCount !== 1 ? "s" : ""}
+                        </strong>{" "}
+                        on the current URL. They will need to <strong>log back in once</strong> at the new one. All
+                        their progress is kept.
+                      </>
+                    )}
+                  </Banner>
+                )}
+              </fieldset>
+            </form>
+          </SettingItem>
+
+          <SettingItem
+            icon={<ImageIcon />}
+            title="Agency logo"
+            value={agencyLogoUrl ? "Logo added" : "No logo yet"}
+            testId="settings-row-logo"
+            panel={{ description: "Shown on your Knowledge Base and your branded login page." }}
+            {...row("logo")}
+          >
+            <AgencyLogoCard key={agencyLogoUrl} bare email={email} logoUrl={agencyLogoUrl} onChange={setAgencyLogoUrl} />
+          </SettingItem>
+
+          <div data-tip-target="settings-tab-admins" className="empty:hidden">
+            <SettingItem
+              icon={<Users />}
+              title={t.settings_admins}
+              value={
+                loadingAdmins
+                  ? "Loading"
+                  : adminCount === 0
+                    ? "Only you so far"
+                    : `${adminCount} admin${adminCount !== 1 ? "s" : ""} · permissions and notifications`
+              }
+              testId="settings-row-admins"
+              panel={{ title: t.admins_title, description: "Invite teammates and choose what each one can do." }}
+              {...row("admins")}
+            >
+              <Tabs defaultValue="team">
+                <TabsList className="mb-5">
+                  <TabsTrigger value="team">Team</TabsTrigger>
+                  <TabsTrigger value="permissions">Permissions</TabsTrigger>
+                  <TabsTrigger value="notifications">Notifications</TabsTrigger>
+                </TabsList>
+                <TabsContent value="permissions" className="mt-0">
+                  <AdminPermissionsPanel />
+                </TabsContent>
+                <TabsContent value="notifications" className="mt-0">
+                  <SupportNotificationsPanel />
+                </TabsContent>
+                <TabsContent value="team" className="mt-0">
+                  <form
+                    noValidate
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      inviteAdmin();
+                    }}
+                  >
+                    <h3 className="text-sm font-semibold text-foreground">Invite an admin</h3>
+                    <p className="mt-0.5 text-sm text-muted-foreground">They get an email with a sign-in link.</p>
+                    <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                      <Field label={t.admins_email} htmlFor="admin-email" className="sm:col-span-2">
+                        <Input
+                          id="admin-email"
+                          type="email"
+                          value={newAdminEmail}
+                          onChange={(e) => {
+                            setNewAdminEmail(e.target.value);
+                            setAdminEmailError("");
+                          }}
+                          placeholder="name@agency.com"
+                          autoComplete="off"
+                          aria-invalid={!!adminEmailError}
+                          aria-describedby={adminEmailError ? "admin-email-error" : undefined}
+                        />
+                        <FieldError id="admin-email-error">{adminEmailError}</FieldError>
+                      </Field>
+                      <Field label={t.admins_name} htmlFor="admin-name">
+                        <Input
+                          id="admin-name"
+                          value={newAdminName}
+                          onChange={(e) => setNewAdminName(e.target.value)}
+                          placeholder={t.admins_name}
+                          autoComplete="off"
+                        />
+                      </Field>
+                      <Field label="Phone (optional)" htmlFor="admin-phone" hint="Used for text alerts.">
+                        <Input
+                          id="admin-phone"
+                          type="tel"
+                          value={newAdminPhone}
+                          onChange={(e) => setNewAdminPhone(e.target.value)}
+                          placeholder="+1 555 123 4567"
+                          autoComplete="off"
+                        />
+                      </Field>
+                    </div>
+                    <div className="mt-4 flex justify-end">
+                      <Button
+                        type="submit"
+                        variant="accent"
+                        className="h-11 w-full sm:h-10 sm:w-auto"
+                        disabled={!newAdminEmail || isAddingAdmin}
+                      >
+                        {isAddingAdmin ? (
+                          <>
+                            <Loader2 className="animate-spin" aria-hidden="true" /> {t.admins_sending}
+                          </>
+                        ) : (
+                          <>
+                            <UserPlus aria-hidden="true" /> Send invite
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                  <PageSection title={t.admins_currentAdmins}>
+                    {loadingAdmins ? (
+                      <div className="space-y-2" aria-busy="true" aria-label="Loading admins">
+                        <div className="px-skeleton h-14 rounded-lg" />
+                        <div className="px-skeleton h-14 rounded-lg" />
+                      </div>
+                    ) : accountAdmins.length === 0 ? (
+                      <p className="rounded-lg bg-muted px-4 py-3 text-sm text-muted-foreground">
+                        {t.admins_noAdmins}. Only you can sign in to this account.
+                      </p>
+                    ) : (
+                      <ul className="divide-y divide-border/70">
+                        {accountAdmins.map((admin) => (
+                          <li key={admin.id} className="flex items-center justify-between gap-3 py-3">
+                            <div className="flex min-w-0 items-center gap-3">
+                              <span
+                                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-subtle text-sm font-semibold uppercase text-brand"
+                                aria-hidden="true"
+                              >
+                                {(admin.admin_name || admin.admin_email).slice(0, 1)}
+                              </span>
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-medium text-foreground">
+                                  {admin.admin_name || admin.admin_email}
+                                </p>
+                                <p className="truncate text-xs text-muted-foreground">
+                                  {admin.admin_name ? `${admin.admin_email} · ` : ""}
+                                  {admin.status === "accepted" ? t.admins_active : t.admins_pending} · {t.admins_invited}{" "}
+                                  {new Date(admin.invited_at).toLocaleDateString()}
+                                </p>
                               </div>
                             </div>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label={`Remove ${admin.admin_name || admin.admin_email}`}
-                            onClick={() => handleRemoveAdmin(admin.id, admin.admin_email)}
-                            className="size-11 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive sm:size-10"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </TabsContent>
-            </Tabs>
-          </SettingItem>
-        </div>
+                            <MoreMenu
+                              size="sm"
+                              label={`Actions for ${admin.admin_name || admin.admin_email}`}
+                              items={[
+                                {
+                                  label: "Remove admin",
+                                  icon: <Trash2 />,
+                                  danger: true,
+                                  onSelect: () => handleRemoveAdmin(admin.id, admin.admin_email),
+                                },
+                              ]}
+                            />
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </PageSection>
+                </TabsContent>
+              </Tabs>
+            </SettingItem>
+          </div>
 
-        <div data-tip-target="settings-tab-billing">
-          <SettingItem
-            icon={<CreditCard />}
-            title={t.settings_billing}
-            value={`${planLabel} plan · plans, invoices and add-ons`}
-            testId="settings-row-billing"
-            panel={{
-              title: t.billing_title,
-              description: (
-                <>
-                  {t.billing_currentPlan} <span className="font-semibold text-foreground">{planLabel}</span>.
-                </>
-              ),
-              wide: true,
-              footer: !isNativeApp() ? (
-                <Button
-                  variant="outline"
-                  className="h-11 w-full sm:mr-auto sm:h-10 sm:w-auto"
-                  onClick={() => {
-                    window.location.href = "https://billing.stripe.com/p/login/bIY04697i9jzghy4gg";
-                  }}
-                >
-                  Manage billing <ExternalLink />
-                </Button>
-              ) : undefined,
-            }}
-            {...row("billing")}
-          >
-            <div className="space-y-8">
-              <SaasPricingCards
-                compact
-                currentPlan={userPlan}
-                onSelect={setCheckoutPlan}
-                onStarter={() => {
-                  window.location.href = "https://billing.stripe.com/p/login/bIY04697i9jzghy4gg";
-                }}
-                className="md:[&>div.grid]:grid-cols-1 [&>div:first-child]:mb-5"
-              />
+          <div data-tip-target="settings-tab-billing" className="empty:hidden">
+            <SettingItem
+              icon={<CreditCard />}
+              title={t.settings_billing}
+              value={`${planLabel} plan · plans, invoices and add-ons`}
+              testId="settings-row-billing"
+              panel={{ title: t.billing_title, description: "Your plan, invoices and add-ons." }}
+              {...row("billing")}
+            >
+              <StatusRow
+                tone="on"
+                label={`${planLabel} plan`}
+                detail={
+                  isNativeApp()
+                    ? "Manage this subscription in your phone's subscription settings."
+                    : "Invoices, your card and cancellation open in the secure Stripe portal."
+                }
+              >
+                {!isNativeApp() ? (
+                  <Button variant="accent" className="h-11 flex-1 sm:h-10 sm:flex-none" onClick={openStripePortal}>
+                    Manage billing <ExternalLink aria-hidden="true" />
+                  </Button>
+                ) : null}
+                <MoreMenu
+                  label="More billing actions"
+                  items={[
+                    ...(!isNativeApp()
+                      ? [{ label: "View invoices", icon: <ReceiptText />, onSelect: openStripePortal }]
+                      : []),
+                    { label: "Text us for help", icon: <MessageCircle />, onSelect: handleContact },
+                  ]}
+                />
+              </StatusRow>
 
-              <section aria-labelledby="settings-upgrades-heading">
-                <h3 id="settings-upgrades-heading" className="text-sm font-semibold text-foreground">
-                  Upgrades
-                </h3>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  Optional add-ons that extend your SaaS Suite experience.
-                </p>
-                <div className="mt-3 space-y-3">
-                  {/* Agency Support add-on ($49/month per client account) */}
-                  <UpgradeTile
+              <Disclosure label="Compare plans" defaultOpen={userPlan !== "ADVANCED"}>
+                <SaasPricingCards
+                  compact
+                  currentPlan={userPlan}
+                  onSelect={setCheckoutPlan}
+                  onStarter={openStripePortal}
+                  className="md:[&>div.grid]:grid-cols-1 [&>div:first-child]:mb-5"
+                />
+              </Disclosure>
+
+              <PageSection title="Add-ons" className="mt-2">
+                <ul className="divide-y divide-border/70">
+                  <AddOnRow
                     icon={<Users />}
-                    title="Agency Support add-on"
-                    description="White-glove fulfillment for your client accounts. $49/month per account. Buy accounts into your wallet, then assign who gets support."
+                    title="Agency Support"
+                    description={
+                      userPlan === "ADVANCED"
+                        ? "We answer your clients for you. $49 a month per account."
+                        : "We answer your clients for you. Needs the Advanced plan."
+                    }
                   >
                     {userPlan === "ADVANCED" ? (
                       <Button
                         variant="outline"
-                        className="h-11 w-full sm:h-10"
+                        className="h-11 w-full sm:h-10 sm:w-auto"
                         onClick={() => (window.location.href = "/app/agency-support")}
                       >
-                        Buy Agency Support accounts
+                        Buy accounts
                       </Button>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        Available on the Advanced plan. Upgrade above to add Agency Support.
-                      </p>
-                    )}
-                  </UpgradeTile>
-                  <UpgradeTile
+                    ) : null}
+                  </AddOnRow>
+                  <AddOnRow
                     icon={<GraduationCap />}
                     title="Onboarding Calls"
-                    description="Done-with-you onboarding sessions to get your SaaS launched faster."
+                    description="Done-with-you sessions to launch your SaaS faster."
                   >
                     <Button
                       variant="outline"
-                      className="h-11 w-full sm:h-10"
+                      className="h-11 w-full sm:h-10 sm:w-auto"
                       onClick={() => {
                         window.location.href = "/onboardings";
                       }}
                     >
-                      View onboardings <ExternalLink />
+                      View onboardings
                     </Button>
-                  </UpgradeTile>
-                  <UpgradeTile
+                  </AddOnRow>
+                  <AddOnRow
                     icon={<Globe />}
                     title="Custom Domain"
                     badge={customDomainAccess ? <Tag tone="success">Active</Tag> : null}
-                    description="Replace yoursoftwareonboarding.com with your own domain or subdomain."
+                    description="Use your own domain instead of yoursoftwareonboarding.com."
                   >
                     <Button
                       variant="outline"
-                      className="h-11 w-full sm:h-10"
-                      onClick={() => {
-                        if (customDomainAccess) {
-                          showPanel("domain");
-                        } else {
-                          setCustomDomainDialogOpen(true);
-                        }
-                      }}
+                      className="h-11 w-full sm:h-10 sm:w-auto"
+                      onClick={() => showPanel("domain", true)}
                     >
-                      {customDomainAccess ? "Manage domain" : "Learn more"}
+                      {customDomainAccess ? "Manage domain" : "See Custom Domain"}
                     </Button>
-                  </UpgradeTile>
-                </div>
-              </section>
+                  </AddOnRow>
+                </ul>
+              </PageSection>
+            </SettingItem>
+          </div>
 
-              <p className="text-sm text-muted-foreground">
-                <strong className="font-semibold text-foreground">Need help?</strong>{" "}
-                <TextUsLink message="HELP" variant="inline" icon={false} className="font-normal text-foreground">
-                  Text Us
-                </TextUsLink>{" "}
-                for immediate assistance.
-              </p>
-            </div>
-          </SettingItem>
-        </div>
-
-        {customDomainAccess ? (
           <SettingItem
             icon={<Globe />}
             title="Custom Domain"
-            value="Your own domain or subdomain"
-            status={<Tag tone="success">Active</Tag>}
+            value={customDomainAccess ? "Your own domain or subdomain" : "An add-on. See what it does"}
+            status={
+              !domainAccessLoaded ? undefined : customDomainAccess ? (
+                <Tag tone="success">Active</Tag>
+              ) : (
+                <span className="inline-flex items-center gap-1">
+                  <Lock className="size-3" aria-hidden="true" />
+                  Locked
+                </span>
+              )
+            }
             testId="settings-row-domain"
-            panel={{ description: "Replace yoursoftwareonboarding.com with your own domain.", wide: true }}
+            panel={{ description: "Use your own domain instead of yoursoftwareonboarding.com." }}
             {...row("domain")}
           >
             <CustomDomainPanel />
           </SettingItem>
-        ) : (
+
           <SettingItem
-            icon={<Globe />}
-            title="Custom Domain"
-            value="An add-on. See what it does"
-            status={
-              <span className="inline-flex items-center gap-1">
-                <Lock className="size-3" aria-hidden="true" />
-                Locked
-              </span>
-            }
-            testId="settings-row-domain"
-            onOpen={() => setCustomDomainDialogOpen(true)}
-          />
-        )}
+            icon={<Languages />}
+            title={t.settings_language}
+            value={languageLabel}
+            testId="settings-row-language"
+            panel={{ description: "The language you see across SaaSSuite." }}
+            {...row("language")}
+          >
+            <LanguageSettings />
+          </SettingItem>
 
-        <SettingItem
-          icon={<Languages />}
-          title={t.settings_language}
-          value={languageLabel}
-          testId="settings-row-language"
-          panel={{ description: "The language you see, and the default for your customers." }}
-          {...row("language")}
-        >
-          <LanguageSettings />
-        </SettingItem>
-
-        <SettingItem
-          icon={<Gift />}
-          title={t.settings_hideBonuses}
-          value={`${t.settings_hideBonusesDesc.replace(/\.?\s*$/, "")}. Saves as you switch it.`}
-          toggle={
-            <Switch
-              id="hide-bonuses"
-              aria-label={t.settings_hideBonuses}
-              checked={hideBonuses}
-              onCheckedChange={setHideBonuses}
-            />
-          }
-        />
-      </SettingList>
-
-      <SettingList label="Integrations">
-        <SettingItem
-          icon={<Slack />}
-          title="Slack"
-          value="Connection, weekly AI Copilot and weekly support report"
-          testId="settings-row-slack"
-          panel={{
-            description: "Connect your workspace and choose what we post each week.",
-            wide: true,
-            footer: (
-              <Button
-                type="button"
-                variant="outline"
-                className="h-11 w-full sm:mr-auto sm:h-10 sm:w-auto"
-                onClick={() => {
-                  window.location.href = "https://saassuite.slack.com/archives/C0C6UU543SR";
-                }}
-              >
-                Join our Slack for 1:1 help
-                <ExternalLink />
-              </Button>
-            ),
-          }}
-          open={openPanel === "slack"}
-          onOpenChange={(next) => {
-            if (next) {
-              setSlackSub("connection");
-              showPanel("slack");
-            } else closePanel();
-          }}
-        >
-          <div className="space-y-6">
-            <div className="max-w-full overflow-x-auto">
-              <AnimatedTabs
-                variant="pill"
-                layoutId="settings-slack-sub"
-                activeTab={slackSub}
-                onChange={(id) => setSlackSub(id as typeof slackSub)}
-                tabs={[
-                  { id: "connection", label: "Connection" },
-                  { id: "copilot", label: "Weekly AI Copilot" },
-                  { id: "report", label: "Weekly support report" },
-                ]}
-                className="[&>button]:min-h-[40px] [&>button]:whitespace-nowrap [&>button]:px-3"
+          <SettingItem
+            icon={<Gift />}
+            title={t.settings_hideBonuses}
+            value={`${t.settings_hideBonusesDesc.replace(/\.?\s*$/, "")}. Saves as you switch it.`}
+            toggle={
+              <Switch
+                id="hide-bonuses"
+                aria-label={t.settings_hideBonuses}
+                checked={hideBonuses}
+                onCheckedChange={setHideBonuses}
               />
-            </div>
-            {slackSub === "connection" && <SlackIntegration />}
-            {slackSub === "copilot" && <WeeklyCopilotSlackCard />}
-            {slackSub === "report" && <WeeklySlackReportCard />}
-          </div>
-        </SettingItem>
+            }
+          />
+        </SettingList>
 
-        <SettingItem
-          icon={<Plug />}
-          title="HighLevel"
-          value="Your agency account and sub-accounts"
-          testId="settings-row-highlevel"
-          panel={{ description: "Connect once. Use your sub-accounts across SaaS Suite.", wide: true }}
-          {...row("highlevel")}
-        >
-          <HighLevelIntegrationPanel agencyId={currentAgencyId} />
-        </SettingItem>
-
-        <SettingItem
-          icon={<Link2 />}
-          title="Connect external platform"
-          value="Bring in support from another tool"
-          testId="settings-row-external"
-          panel={{ wide: true }}
-          {...row("external")}
-        >
-          <ExternalPlatformGate>
-            <ExternalPlatformPanel />
-          </ExternalPlatformGate>
-        </SettingItem>
-      </SettingList>
-
-      <DeleteAccountSection />
-
-      {/* Custom Domain info dialog (pre-purchase) */}
-      <Dialog open={customDomainDialogOpen} onOpenChange={setCustomDomainDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Globe className="w-5 h-5" /> Custom Domain Upgrade
-            </DialogTitle>
-            <DialogDescription className="space-y-3 pt-2 text-left">
-              <p>
-                Replace the default <span className="font-mono">yoursoftwareonboarding.com</span>{" "}
-                URL with your own domain or subdomain (for example{" "}
-                <span className="font-mono">app.yoursite.com</span>).
-              </p>
-              <p>
-                After you purchase, you'll be redirected to a page inside your account where
-                you'll enter the exact domain or subdomain you want to use. Our team will wire it
-                up and notify you the moment it's live.
-              </p>
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setCustomDomainDialogOpen(false)}>
-              Close
-            </Button>
-            <Button
-              onClick={() => {
-                window.location.href =
-                  "https://link.saassuite.ai/payment-link/6a3af2039f7c6c76d1f86d4c";
-              }}
+        <SettingList label="Integrations">
+          <SettingItem
+            icon={<Slack />}
+            title="Slack"
+            value={connectionLabel(slackStatus, "Connection, weekly AI Copilot and weekly support report")}
+            testId="settings-row-slack"
+            panel={{ description: "Run SaaSSuite commands and get weekly updates in your Slack channel." }}
+            {...row("slack")}
+          >
+            <SlackIntegration
+              onStatus={setSlackStatus}
+              moreItems={[
+                {
+                  label: "Join our Slack for 1:1 help",
+                  icon: <ExternalLink />,
+                  onSelect: () => {
+                    window.location.href = "https://saassuite.slack.com/archives/C0C6UU543SR";
+                  },
+                },
+              ]}
             >
-              Purchase Custom Domain <ExternalLink className="w-4 h-4 ml-2" />
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              <PageSection title="Weekly posts" description="Each one saves as you switch it.">
+                <div className="divide-y divide-border/70">
+                  <WeeklyCopilotSlackCard bare />
+                  <WeeklySlackReportCard bare />
+                </div>
+              </PageSection>
+            </SlackIntegration>
+          </SettingItem>
 
-      {/* Stripe Embedded Checkout for upgrades */}
-      <StripeEmbeddedCheckout
-        plan={checkoutPlan || "basic"}
-        open={!!checkoutPlan}
-        onOpenChange={(open) => {
-          if (!open) setCheckoutPlan(null);
-        }}
-        email={email || undefined}
-      />
-    </div>
+          <div data-tip-target="settings-tab-highlevel" className="empty:hidden">
+            <SettingItem
+              icon={<Plug />}
+              title="HighLevel"
+              value={connectionLabel(highLevelStatus, "Your agency account and sub-accounts")}
+              testId="settings-row-highlevel"
+              panel={{
+                title: "HighLevel connection",
+                description: "Connect once to use your sub-accounts across SaaS Suite.",
+              }}
+              {...row("highlevel")}
+            >
+              <HighLevelIntegrationPanel agencyId={currentAgencyId} onStatus={setHighLevelStatus} />
+            </SettingItem>
+          </div>
+
+          <SettingItem
+            icon={<Link2 />}
+            title="Connect external platform"
+            value="Bring in support from another tool"
+            testId="settings-row-external"
+            panel={{ description: "Track logins from software that is not built on HighLevel." }}
+            {...row("external")}
+          >
+            <ExternalPlatformGate>
+              <ExternalPlatformPanel />
+            </ExternalPlatformGate>
+          </SettingItem>
+        </SettingList>
+
+        <HideWhileSettingOpen>
+          <DeleteAccountSection />
+        </HideWhileSettingOpen>
+
+        {/* Stripe Embedded Checkout for upgrades */}
+        <StripeEmbeddedCheckout
+          plan={checkoutPlan || "basic"}
+          open={!!checkoutPlan}
+          onOpenChange={(open) => {
+            if (!open) setCheckoutPlan(null);
+          }}
+          email={email || undefined}
+        />
+      </SettingsStack>
+    </SettingPages>
   );
 }
 
-function UpgradeTile({
+/** The list is spaced out; an open page stands alone, so the gaps between hidden groups go away. */
+function SettingsStack({ children }: { children: ReactNode }) {
+  const pageOpen = useSettingPageOpen();
+  return <div className={cn("mx-auto w-full min-w-0 max-w-3xl", !pageOpen && "space-y-6")}>{children}</div>;
+}
+
+/** Tells the panel when the URL says a page is open but the shared pages context did not follow. */
+function PageSync({ want, onMismatch }: { want: boolean; onMismatch: () => void }) {
+  const pageOpen = useSettingPageOpen();
+  useEffect(() => {
+    if (!want || pageOpen) return;
+    // Opening normally lands within a frame; only a real miss is still closed after this.
+    const timer = window.setTimeout(onMismatch, 80);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [want, pageOpen]);
+  return null;
+}
+
+/** One add-on on the Billing page: what it is in a line, and its one button. */
+function AddOnRow({
   icon,
   title,
   description,
@@ -956,23 +1004,23 @@ function UpgradeTile({
   title: string;
   description: string;
   badge?: ReactNode;
-  children: ReactNode;
+  children?: ReactNode;
 }) {
   return (
-    <div className="flex min-w-0 flex-col gap-4 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+    <li className="flex min-w-0 flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 items-start gap-3">
-        <span className="px-icon-chip shrink-0 [&_svg]:size-5" aria-hidden="true">
+        <span className="px-icon-chip size-9 shrink-0 [&_svg]:size-[18px]" aria-hidden="true">
           {icon}
         </span>
         <div className="min-w-0">
-          <h3 className="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground">
+          <h4 className="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground">
             {title}
             {badge}
-          </h3>
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</p>
+          </h4>
+          <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
         </div>
       </div>
-      <div className="shrink-0 sm:max-w-[240px] [&>button]:sm:w-auto">{children}</div>
-    </div>
+      {children ? <div className="shrink-0">{children}</div> : null}
+    </li>
   );
 }

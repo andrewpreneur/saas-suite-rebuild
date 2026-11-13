@@ -5,14 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { SectionCard } from "@/components/premium/SectionCard";
-import { SettingRow } from "@/components/premium/support/SettingRow";
 import { CopyButton } from "@/components/premium/hub/CopyButton";
-import { EmptyState } from "@/components/premium/21st/empty-state";
+import { MoreMenu } from "@/components/premium/MoreMenu";
+import { ToggleRow } from "@/components/premium/settings/Field";
+import { Disclosure, PageSection, StatusRow } from "@/components/premium/settings/Page";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Copy, RefreshCw, Plug, Activity, Code2 } from "lucide-react";
+import { Bot, Loader2, Copy, RefreshCw, Plug } from "lucide-react";
 import { toast } from "sonner";
 
 const INGEST_BASE = "https://backend-disconnected.invalid/functions/v1/external-platform-ingest";
@@ -87,7 +86,7 @@ const ExternalPlatformPanel = () => {
       (userRow as any)?.agency_id_basic;
 
     if (!agencyId) {
-      toast.error("Finish your SaaSSuite setup first — no agency ID found.");
+      toast.error("Finish your SaaSSuite setup first. No agency ID was found.");
       setSaving(false);
       return;
     }
@@ -128,7 +127,7 @@ const ExternalPlatformPanel = () => {
       return;
     }
     setConnection({ ...connection, token: newToken });
-    toast.success("New key generated — reinstall your script");
+    toast.success("New key generated. Reinstall your script.");
   };
 
   const endpoint = connection ? `${INGEST_BASE}?token=${connection.token}` : "";
@@ -213,118 +212,114 @@ ${headerScript}`,
 
   if (loading) {
     return (
-      <div className="px-surface space-y-4 p-4 sm:p-6" role="status" aria-label="Loading connection">
-        <div className="flex items-center gap-3">
-          <Skeleton className="size-10 rounded-md" />
-          <div className="flex-1 space-y-2">
-            <Skeleton className="h-4 w-48" />
-            <Skeleton className="h-3 w-72 max-w-full" />
-          </div>
-        </div>
+      <div className="space-y-3" role="status" aria-label="Loading connection">
+        <Skeleton className="h-12 w-full" />
         <Skeleton className="h-11 w-full" />
-        <Skeleton className="h-11 w-40" />
       </div>
     );
   }
 
   if (!connection) {
     return (
-      <SectionCard
-        icon={<Plug />}
-        title="Connect External Platform"
-        description="Track logins from any software, not just HighLevel. Add one script (or hand an AI agent a prompt) and every login shows up in your SaaSSuite dashboard and Slack alerts."
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          void createConnection();
+        }}
       >
-        <div className="space-y-4">
-          <div className="space-y-2">
+        <StatusRow tone="off" label="No connection yet" detail="Name your platform and we give you one script to install." />
+        <PageSection>
+          <div className="flex flex-col gap-1.5">
             <Label htmlFor="external-platform-name">Platform name</Label>
             <Input
               id="external-platform-name"
               value={platformName}
               onChange={(e) => setPlatformName(e.target.value)}
-              placeholder="e.g., Vendasta, Webflow, my custom app"
+              placeholder="Vendasta, Webflow, my custom app"
+              className="sm:max-w-md"
             />
           </div>
-          <Button variant="accent" onClick={createConnection} disabled={saving}>
-            {saving ? <Loader2 className="animate-spin" /> : <Plug />}
-            Create connection
-          </Button>
-        </div>
-      </SectionCard>
+          <div className="mt-4 flex justify-end">
+            <Button type="submit" variant="accent" className="h-11 w-full sm:h-10 sm:w-auto" disabled={saving}>
+              {saving ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Plug aria-hidden="true" />}
+              {saving ? "Creating connection" : "Create connection"}
+            </Button>
+          </div>
+        </PageSection>
+      </form>
     );
   }
 
   const codeBox =
-    "max-h-80 overflow-auto rounded-md border border-border bg-muted p-4 font-mono text-xs leading-relaxed text-foreground";
+    "max-h-56 overflow-auto rounded-md border border-border bg-muted p-4 font-mono text-xs leading-relaxed text-foreground";
 
   return (
-    <div className="space-y-6">
-      <SectionCard
-        icon={<Plug />}
-        title="Connect External Platform"
-        description="Install once. Logins from your platform merge into your user dashboards and ping Slack."
-        actions={
-          <Badge variant={connection.enabled ? "success" : "neutral"}>
-            {connection.enabled ? "Active" : "Paused"}
-          </Badge>
+    <div>
+      <StatusRow
+        tone={connection.enabled ? "on" : "off"}
+        label={connection.enabled ? `Listening for ${connection.platform_name || "your platform"}` : "Paused"}
+        detail={
+          <>
+            {connection.event_count} login{connection.event_count === 1 ? "" : "s"} received
+            {connection.last_event_at ? `, last on ${new Date(connection.last_event_at).toLocaleDateString()}.` : " so far."}
+          </>
         }
       >
-        <div className="space-y-2">
+        <Button variant="accent" className="h-11 flex-1 sm:h-10 sm:flex-none" onClick={() => copy(headerScript, "Script")}>
+          <Copy aria-hidden="true" />
+          Copy script
+        </Button>
+        <MoreMenu
+          label="More connection actions"
+          items={[
+            { label: "Copy AI agent prompt", icon: <Bot />, onSelect: () => void copy(agentPrompt, "Prompt") },
+            { label: "Copy endpoint", icon: <Copy />, onSelect: () => void copy(endpoint, "Endpoint") },
+            { label: "Rotate key", icon: <RefreshCw />, danger: true, separated: true, onSelect: () => void rotateToken() },
+          ]}
+        />
+      </StatusRow>
+
+      <PageSection>
+        <div className="flex flex-col gap-1.5">
           <Label htmlFor="external-platform-name">Platform name</Label>
           <Input
             id="external-platform-name"
             value={platformName}
             onChange={(e) => setPlatformName(e.target.value)}
             onBlur={() => update({ platform_name: platformName.trim() || "External Platform" })}
+            className="sm:max-w-md"
           />
+          <p className="text-xs text-muted-foreground">Saves when you leave the field.</p>
         </div>
-
-        <div className="mt-4 divide-y divide-border border-y border-border py-4">
-          <SettingRow
-            title="Monitoring enabled"
-            description="Accept incoming login events"
+        <div className="mt-4 divide-y divide-border/70">
+          <ToggleRow
+            className="py-3"
+            label="Monitoring"
             htmlFor="external-monitoring"
-            control={
-              <Switch
-                id="external-monitoring"
-                checked={connection.enabled}
-                onCheckedChange={(v) => update({ enabled: v })}
-              />
-            }
-          />
-          <SettingRow
-            title="Ping Slack on login"
-            description="Send a Slack alert when someone logs into this platform"
+            description="Accept login events from this platform."
+          >
+            <Switch
+              id="external-monitoring"
+              checked={connection.enabled}
+              onCheckedChange={(v) => update({ enabled: v })}
+            />
+          </ToggleRow>
+          <ToggleRow
+            className="py-3"
+            label="Slack alert on login"
             htmlFor="external-slack-notify"
-            control={
-              <Switch
-                id="external-slack-notify"
-                checked={connection.slack_notify}
-                onCheckedChange={(v) => update({ slack_notify: v })}
-              />
-            }
-          />
+            description="Post in Slack when someone logs in."
+          >
+            <Switch
+              id="external-slack-notify"
+              checked={connection.slack_notify}
+              onCheckedChange={(v) => update({ slack_notify: v })}
+            />
+          </ToggleRow>
         </div>
+      </PageSection>
 
-        <div className="mt-4 space-y-2">
-          <Label>Your endpoint</Label>
-          <div className="flex items-center gap-2">
-            <code className="min-w-0 flex-1 break-all rounded-md border border-border bg-muted px-3 py-2.5 font-mono text-xs text-foreground">
-              {endpoint}
-            </code>
-            <CopyButton label="Copy endpoint" onCopy={() => void copy(endpoint, "Endpoint")} />
-          </div>
-          <Button variant="ghost" size="sm" onClick={rotateToken}>
-            <RefreshCw />
-            Rotate key
-          </Button>
-        </div>
-      </SectionCard>
-
-      <SectionCard
-        icon={<Code2 />}
-        title="Install it"
-        description="Paste the script yourself, or hand the prompt to an AI agent."
-      >
+      <PageSection title="Install it" description="Paste the script in your platform's global header, or give the prompt to an AI agent.">
         <Tabs defaultValue="script">
           <TabsList>
             <TabsTrigger value="script">Header script</TabsTrigger>
@@ -332,57 +327,45 @@ ${headerScript}`,
           </TabsList>
 
           <TabsContent value="script" className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Paste this into your platform's global header / custom code area, then swap the
-              placeholder user values for your platform's logged-in user variables.
-            </p>
             <pre className={codeBox}>
               <code>{headerScript}</code>
             </pre>
-            <Button onClick={() => copy(headerScript, "Script")}>
-              <Copy />
-              Copy script
-            </Button>
+            <p className="text-xs text-muted-foreground">
+              Swap the placeholder user values for your platform's logged-in user variables.
+            </p>
           </TabsContent>
 
           <TabsContent value="prompt" className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Don't want to touch code? Copy this and send it to any AI agent (Lovable, Cursor,
-              ChatGPT, your platform's own builder) and it will install the monitoring for you.
-            </p>
             <pre className={`${codeBox} whitespace-pre-wrap`}>
               <code>{agentPrompt}</code>
             </pre>
-            <Button onClick={() => copy(agentPrompt, "Prompt")}>
-              <Copy />
+            <Button variant="outline" className="h-11 sm:h-10" onClick={() => copy(agentPrompt, "Prompt")}>
+              <Copy aria-hidden="true" />
               Copy agent prompt
             </Button>
           </TabsContent>
         </Tabs>
-      </SectionCard>
+      </PageSection>
 
-      <SectionCard
-        icon={<Activity />}
-        title="Recent activity"
-        description={
-          <>
-            {connection.event_count} total events
-            {connection.last_event_at
-              ? ` · last ${new Date(connection.last_event_at).toLocaleString()}`
-              : " · nothing received yet"}
-          </>
-        }
-      >
+      <Disclosure label="Your endpoint">
+        <div className="flex items-center gap-2">
+          <code className="min-w-0 flex-1 break-all rounded-md border border-border bg-muted px-3 py-2.5 font-mono text-xs text-foreground">
+            {endpoint}
+          </code>
+          <CopyButton label="Copy endpoint" onCopy={() => void copy(endpoint, "Endpoint")} />
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">Rotating the key in the menu above replaces this address.</p>
+      </Disclosure>
+
+      <Disclosure label={`Recent activity (${events.length})`} className="mt-0">
         {events.length === 0 ? (
-          <EmptyState
-            className="py-8"
-            title="No events yet"
-            description="Install the script and log into your platform to test it."
-          />
+          <p className="rounded-lg bg-muted px-4 py-3 text-sm text-muted-foreground">
+            No events yet. Install the script, then log into your platform to test it.
+          </p>
         ) : (
-          <div className="divide-y divide-border">
+          <ul className="divide-y divide-border/70">
             {events.map((e) => (
-              <div key={e.id} className="flex min-h-11 items-center justify-between gap-3 py-2 text-sm">
+              <li key={e.id} className="flex min-h-11 items-center justify-between gap-3 py-2 text-sm">
                 <span className="min-w-0 truncate text-foreground">
                   {e.user_name || e.user_email || "Unknown user"}
                   {e.user_name && e.user_email && (
@@ -392,11 +375,11 @@ ${headerScript}`,
                 <span className="whitespace-nowrap text-xs text-muted-foreground">
                   {new Date(e.created_at).toLocaleString()}
                 </span>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
-      </SectionCard>
+      </Disclosure>
     </div>
   );
 };

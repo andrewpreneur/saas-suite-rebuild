@@ -78,3 +78,30 @@ Andrew's note on round 1: "Screens still have a LOT on them. Lots of buttons and
 - Glass has no dark version. Folder labels are small on phones (readable buttons appear under an open folder).
 - A live Stripe publishable key is hard-coded in `OnboardingCallsManager.tsx` and `AgencySupportManager.tsx`
   (from the original code). Publishable keys are public by design, but Andrew should decide whether to strip it.
+
+## Round 3: Settings as pages, done moments, phone bar (Nov 13, 2026)
+
+Andrew: "i don't like the right hand settings slide in", "the walkthrough at the end of it it should go to the
+highlevel connection", and yes to four more 21st.dev pieces.
+
+### Done
+- Settings: each row opens its own page (back link, title, one card) instead of a side panel (`SettingPages` in
+  `premium/SettingList`). The open page is in the URL, so browser Back works. Every Settings screen was redesigned:
+  Profile, Agency logo, Admins, Billing, Custom Domain, Language, Slack (three tabs became one page), HighLevel,
+  Connect external platform, Delete account. Shared pieces: `premium/settings/Page.tsx`.
+- Walkthrough: every variant ends on a "Connect HighLevel" step, and Finish tour opens `/app/highlevel`.
+- 21st.dev: Task Checkbox and Confetti (install checklist), Bottom Menu (basis of `premium/MobileBottomBar`, which
+  replaced the phone icon row), Skeleton shimmer (basis of `premium/PageSkeleton`, shown while the app or a route
+  loads), Glass Card (dashboard "Your next step" in the Glass skin).
+- Mock additions for Settings states: `ss_mock_chrome` flags `domain`, `slack`, `external`, `hl_off`.
+
+### Checks
+- `tsc` 0 errors, build passes, `bun test` 22 failing (same backend-only set).
+- Scripts: Settings navigation 58 checks pass; tour ends on `/app/highlevel` for the nav tour and the hub tour.
+
+### Not done or not verified
+- Side panels are still used outside Settings (Hub Pages, Support, Grow); Andrew has not said whether to change those.
+- Page skeletons were not seen on screen (demo data loads too fast). "Saving" button labels likewise.
+- Glass Card is not on the Billing plan card yet.
+- Slack and HighLevel rows show real status only after their page has been opened once in the session.
+- Slack install link goes nowhere in this copy (it was built from the removed backend URL).

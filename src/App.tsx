@@ -12,6 +12,7 @@ import { ChatProvider } from "@/components/chat-copilot/ChatContext";
 import SiteTracker from "@/components/SiteTracker";
 import RobotsPolicy from "@/components/RobotsPolicy";
 import { Suspense } from "react";
+import { PageSkeleton } from "@/components/premium/PageSkeleton";
 import { lazyRoute, RouteErrorBoundary } from "@/lib/lazyRoute";
 import { pathKey } from "@/entries/paintFirst";
 import { TrainingSuccessShell } from "@/components/one-feature/TrainingSuccessShell";
@@ -143,13 +144,15 @@ function PreserveSearchRedirect({ to }: { to: string }) {
 function RouteFallback() {
   const { pathname } = useLocation();
   if (pathKey(pathname) === "/onefeaturetraining-success") return <TrainingSuccessShell />;
-  return (
-    <div
-      className="min-h-screen bg-background flex items-center justify-center text-muted-foreground"
-      role="status"
-      aria-label="Loading"
-    />
-  );
+  // Signed-in pages get a skeleton in the shape of a page; public pages keep a blank screen.
+  if (pathname.startsWith("/app") || pathname.startsWith("/admin")) {
+    return (
+      <div className="px-canvas min-h-screen">
+        <PageSkeleton />
+      </div>
+    );
+  }
+  return <div className="min-h-screen bg-background" role="status" aria-label="Loading" />;
 }
 
 const App = () => (

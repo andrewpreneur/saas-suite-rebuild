@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { CalendarClock, Send } from "lucide-react";
 import { toast } from "sonner";
+import { ToggleRow } from "@/components/premium/settings/Field";
 
 type Pref = {
   connected: boolean;
@@ -16,7 +17,8 @@ type Pref = {
   channel_id: string | null;
 };
 
-export default function WeeklySlackReportCard() {
+/** `bare`: one switch row with no card, for the Slack page in Settings. */
+export default function WeeklySlackReportCard({ bare }: { bare?: boolean } = {}) {
   const { email } = useUser();
   const [pref, setPref] = useState<Pref | null>(null);
   const [saving, setSaving] = useState(false);
@@ -51,7 +53,19 @@ export default function WeeklySlackReportCard() {
     };
   }, [email]);
 
-  if (!pref) return null;
+  if (!pref) return bare ? <div className="px-skeleton my-3 h-11 rounded-lg" aria-busy="true" aria-label="Loading weekly report" /> : null;
+  if (bare && !pref.connected) {
+    return (
+      <ToggleRow
+        className="py-3"
+        label="Weekly support report"
+        htmlFor="weekly-slack-report"
+        description="A Monday summary of your tickets. Connect Slack first to turn it on."
+      >
+        <Switch id="weekly-slack-report" checked={false} disabled />
+      </ToggleRow>
+    );
+  }
   if (!pref.connected) {
     return (
       <SectionCard
@@ -100,6 +114,31 @@ export default function WeeklySlackReportCard() {
     }
     toast.success("Report sent to your Slack channel");
   };
+
+  if (bare) {
+    return (
+      <div className="py-3">
+        <ToggleRow
+          label="Weekly support report"
+          htmlFor="weekly-slack-report"
+          description={
+            <>
+              A Monday summary of open, answered and waiting tickets.
+              {pref.last_sent_at && <> Last sent {new Date(pref.last_sent_at).toLocaleDateString()}.</>}
+            </>
+          }
+        >
+          <Switch id="weekly-slack-report" checked={pref.enabled} disabled={saving} onCheckedChange={toggle} />
+        </ToggleRow>
+        {pref.enabled && (
+          <Button variant="outline" size="sm" className="mt-2 h-11 sm:h-9" onClick={sendNow} disabled={sending || !agencyId}>
+            <Send className={sending ? "animate-pulse" : ""} aria-hidden="true" />
+            {sending ? "Sending report" : "Send this week's report now"}
+          </Button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <SectionCard
