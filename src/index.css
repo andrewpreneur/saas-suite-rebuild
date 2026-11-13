@@ -36,9 +36,106 @@ html.ds-ui {
   --ring: 249 84% 60%;
   --sidebar-primary: 249 84% 60%;
   --sidebar-accent: 250 87% 97%;
-  --shadow-card: 0 1px 2px rgba(2, 8, 23, 0.06), 0 1px 3px rgba(2, 8, 23, 0.08);
   --ds-radius-sm: 6px;
-  --ds-radius-xl: 16px;
+  --ds-radius-xl: 20px;
+
+  /* ---- SaaSSuite Premium (design system v1) ---- */
+  --canvas: 250 30% 98%; /* cool near-white, a hint of brand */
+  --border: 245 16% 91%;
+  --radius: 0.875rem; /* 14px cards and controls; xl = 20px for hero surfaces */
+  --ink-soft: 244 18% 38%; /* secondary text that still reads premium, 6.6:1 */
+  /* Layered, low shadows: a hairline, a contact shadow, a soft ambient one. */
+  --shadow-card: 0 0 0 1px rgba(23, 18, 64, 0.04), 0 1px 2px rgba(23, 18, 64, 0.05), 0 10px 24px -14px rgba(23, 18, 64, 0.14);
+  --shadow-raised: 0 0 0 1px rgba(23, 18, 64, 0.05), 0 2px 4px rgba(23, 18, 64, 0.06), 0 22px 40px -20px rgba(47, 31, 130, 0.28);
+  --shadow-popover: 0 0 0 1px rgba(23, 18, 64, 0.06), 0 12px 32px -8px rgba(23, 18, 64, 0.2);
+  --shadow-dialog: 0 0 0 1px rgba(23, 18, 64, 0.06), 0 32px 64px -16px rgba(23, 18, 64, 0.34);
+  --shadow-brand: 0 1px 0 rgba(255, 255, 255, 0.22) inset, 0 6px 16px -6px rgba(96, 67, 239, 0.55);
+  --gradient-brand: linear-gradient(135deg, #7a60f5 0%, #6043ef 48%, #4d30d9 100%);
+  --gradient-brand-soft: linear-gradient(135deg, #f4f2fe 0%, #ece8fe 60%, #f7f1ff 100%);
+  /* Motion: one curve for entering, one for leaving (see src/lib/motion.ts). */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
+}
+
+/* Premium surfaces and helpers. Use these instead of one-off shadows and gradients. */
+@layer components {
+  /* App canvas: flat cool white with a faint brand glow at the top. */
+  .px-canvas {
+    background-color: hsl(var(--canvas));
+    background-image:
+      radial-gradient(1100px 420px at 18% -8%, rgba(96, 67, 239, 0.07), transparent 62%),
+      radial-gradient(900px 380px at 96% -12%, rgba(183, 76, 240, 0.05), transparent 60%);
+    background-attachment: fixed;
+  }
+  .px-surface {
+    border-radius: var(--radius);
+    background: hsl(var(--card));
+    box-shadow: var(--shadow-card);
+  }
+  /* A card the user can open. Lifts 2px and deepens its shadow on hover. */
+  .px-surface-interactive {
+    border-radius: var(--radius);
+    background: hsl(var(--card));
+    box-shadow: var(--shadow-card);
+    transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+  }
+  .px-surface-interactive:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-raised);
+  }
+  .px-glass {
+    background: hsl(var(--canvas) / 0.78);
+    backdrop-filter: saturate(160%) blur(14px);
+    -webkit-backdrop-filter: saturate(160%) blur(14px);
+  }
+  .px-brand-fill {
+    background-image: var(--gradient-brand);
+    color: #fff;
+    box-shadow: var(--shadow-brand);
+  }
+  .px-brand-wash {
+    background-image: var(--gradient-brand-soft);
+  }
+  /* Icon chip used on cards, empty states and list rows. */
+  .px-icon-chip {
+    display: inline-grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.75rem;
+    background-image: var(--gradient-brand-soft);
+    color: #3e27ae;
+    box-shadow: inset 0 0 0 1px rgba(96, 67, 239, 0.14);
+  }
+  .px-eyebrow {
+    font-size: 0.6875rem;
+    line-height: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground));
+  }
+  /* Skeleton shimmer in the shape of the real content. */
+  .px-skeleton {
+    border-radius: 0.5rem;
+    background: linear-gradient(90deg, hsl(var(--muted)) 25%, hsl(var(--border)) 37%, hsl(var(--muted)) 63%);
+    background-size: 400% 100%;
+    animation: px-shimmer 1.4s ease-in-out infinite;
+  }
+}
+@keyframes px-shimmer {
+  to { background-position: -135% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.ds-ui *, html.ds-ui *::before, html.ds-ui *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 /* New UI, signed-in app: one brand purple instead of the hand-typed Tailwind purples. */
 html.ds-ui body.ds-app :is(.bg-purple-500, .bg-purple-600, .bg-violet-500, .bg-violet-600, .bg-indigo-500, .bg-indigo-600) { background-color: hsl(var(--brand)); }
@@ -716,13 +813,14 @@ a,
   box-shadow: inset 0 0 0 1px hsl(262 83% 60% / 0.22);
 }
 /* New UI: plain muted hover. The selected row keeps its brand wash. */
-.ds-ui .sidebar-nav-item:hover {
+/* The sidebar's hover and active fills are animated pills (see AppSidebar), not CSS backgrounds. */
+.ds-ui .sidebar-nav-item,
+.ds-ui .sidebar-nav-item:hover,
+.ds-ui .sidebar-nav-item[data-active="true"],
+.ds-ui .sidebar-nav-item[data-active="true"]:hover {
   transform: none;
   box-shadow: none;
-  background-color: hsl(var(--muted)) !important;
-}
-.ds-ui .sidebar-nav-item[data-active="true"]:hover {
-  background-color: hsl(var(--brand-subtle)) !important;
+  background-color: transparent !important;
 }
 .sidebar-nav-item:active {
   transform: scale(0.99);

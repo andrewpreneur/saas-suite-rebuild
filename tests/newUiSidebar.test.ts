@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import {
   NEW_UI_SIDEBAR_SECTIONS,
   SIDEBAR_HOME_TOOL_IDS,
@@ -24,9 +24,8 @@ test("every new-UI sidebar link is a tool the sidebar knows how to render", () =
   }
 });
 
-test("the old UI stays the default and the switch is limited to platform admins", () => {
-  const flag = readFileSync("src/lib/uiVersion.ts", "utf8");
-  expect(flag).toContain('getItem(UI_VERSION_STORAGE_KEY) === "new"');
-  const control = readFileSync("src/components/UiVersionSwitch.tsx", "utf8");
-  expect(control).toContain("isPlatformAdminEmail(actualEmail)");
+test("the rebuild has one UI: no old-UI switch and no legacy components", () => {
+  expect(readFileSync("src/lib/uiVersion.ts", "utf8")).toContain("export const newUi = true");
+  expect(existsSync("src/components/UiVersionSwitch.tsx")).toBe(false);
+  expect(existsSync("src/components/ui/legacy")).toBe(false);
 });

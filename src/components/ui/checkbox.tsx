@@ -1,9 +1,26 @@
-// Picks the old or the new (design system) version of this component.
-// See src/lib/uiVersion.ts. Edit the look in ./ds/checkbox.tsx (new) or ./legacy/checkbox.tsx (old).
-import { newUi } from "@/lib/uiVersion";
-import * as ds from "./ds/checkbox";
-import * as legacy from "./legacy/checkbox";
+import * as React from "react";
+import * as CheckboxPrimitive from "@radix-ui/react-checkbox";
+import { Check } from "lucide-react";
 
-const ui = (newUi ? ds : legacy) as typeof ds;
+import { cn } from "@/lib/utils";
 
-export const Checkbox = ui.Checkbox;
+const Checkbox = React.forwardRef<
+  React.ElementRef<typeof CheckboxPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root>
+>(({ className, ...props }, ref) => (
+  <CheckboxPrimitive.Root
+    ref={ref}
+    className={cn(
+      "grid place-content-center peer h-5 w-5 shrink-0 rounded-sm border-2 border-input bg-card cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-brand data-[state=checked]:bg-brand data-[state=checked]:text-brand-foreground",
+      className,
+    )}
+    {...props}
+  >
+    <CheckboxPrimitive.Indicator className={cn("grid place-content-center text-current")}>
+      <Check className="h-3.5 w-3.5" strokeWidth={3} />
+    </CheckboxPrimitive.Indicator>
+  </CheckboxPrimitive.Root>
+));
+Checkbox.displayName = CheckboxPrimitive.Root.displayName;
+
+export { Checkbox };

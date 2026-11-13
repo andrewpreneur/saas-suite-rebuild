@@ -189,6 +189,8 @@ export default {
 				'glow': 'var(--shadow-glow)',
 				'card': 'var(--shadow-card)',
 				'popover': 'var(--shadow-popover)',
+				'raised': 'var(--shadow-raised)',
+				'brand': 'var(--shadow-brand)',
 				'dialog': 'var(--shadow-dialog)',
 				'elevated': 'var(--shadow-elevated)'
 			}

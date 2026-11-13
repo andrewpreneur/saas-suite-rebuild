@@ -13,9 +13,11 @@ import TrialExpiredOverlay from "@/components/TrialExpiredOverlay";
 import PaymentGraceBanner from "@/components/PaymentGraceBanner";
 import FreeTrialBanner from "@/components/FreeTrialBanner";
 import darkBanner from "@/assets/saassuite-dark-banner.png.asset.json";
+import { motion, MotionConfig } from "framer-motion";
+import { pageEnter } from "@/lib/motion";
+import { AppTopBar } from "@/components/premium/AppTopBar";
 import appBackground from "@/assets/app-background.png.asset.json";
 import { newUi } from "@/lib/uiVersion";
-import { UiVersionSwitch } from "@/components/UiVersionSwitch";
 import CancelNoticeBanner from "@/components/CancelNoticeBanner";
 import PastDueBanner from "@/components/PastDueBanner";
 import OfferCountdownWidget from "@/components/bump/OfferCountdownWidget";
@@ -311,6 +313,8 @@ const AppPage = () => {
     return () => document.body.classList.remove("ds-app");
   }, []);
   const isConfirmed = searchParams.get("confirmed") === "true";
+  // Dashboard, Affiliate and One Feature Kit share a tool id; the view makes each its own page.
+  const dashboardViewKey = searchParams.get("view") ?? "";
   const purchasedEmail = searchParams.get("email")?.trim().toLowerCase() || null;
   useMetaPixel();
 
@@ -642,10 +646,11 @@ const AppPage = () => {
 
   return (
     <InitialQuestionsGuard>
+      <MotionConfig reducedMotion="user">
       <SidebarProvider>
         {/* New UI: plain canvas (#F5F5F5) with white cards. Old UI keeps its background image. */}
         <div
-          className={`min-h-screen flex flex-col w-full ${newUi ? "bg-canvas" : ""}`}
+          className="px-canvas min-h-screen flex flex-col w-full"
           style={
             newUi
               ? undefined
@@ -704,13 +709,17 @@ const AppPage = () => {
                 </div>
               </div>
 
-              {/* Desktop Account Switcher & Admin Login As */}
-              <div className="hidden md:flex justify-end items-center gap-2 p-4 pb-0">
-                <InstallChecklistButton />
-                <UiVersionSwitch />
-                <LoginAsUser />
-                <AccountSwitcher />
-              </div>
+              {/* Top bar: where you are, jump-to menu, account controls */}
+              <AppTopBar
+                tool={selectedTool}
+                actions={
+                  <>
+                    <InstallChecklistButton />
+                    <LoginAsUser />
+                    <AccountSwitcher />
+                  </>
+                }
+              />
 
               {/* Main Content */}
               <main className="flex-1 overflow-auto px-0 md:px-6 relative">
@@ -720,7 +729,13 @@ const AppPage = () => {
                     {/* Hero Section */}
 
                     {/* Selected Tool Component */}
-                    <div className="animate-fade-in relative min-h-[600px]">
+                    <motion.div
+                      key={`${selectedTool}-${dashboardViewKey}`}
+                      variants={pageEnter}
+                      initial="hidden"
+                      animate="show"
+                      className="relative min-h-[600px]"
+                    >
                       <KitReturnLink className="mb-3" />
                       <ToolAccessGate tool={selectedTool}>
                         {selectedTool === "start-here" || selectedTool === "learning" ? (
@@ -810,7 +825,7 @@ const AppPage = () => {
                           </>
                         )}
                       </ToolAccessGate>
-                    </div>
+                    </motion.div>
                   </>
                 </div>
               </main>
@@ -845,6 +860,7 @@ const AppPage = () => {
           targetRef={classicModeButtonRef}
         />
       </SidebarProvider>
+      </MotionConfig>
     </InitialQuestionsGuard>
   );
 };

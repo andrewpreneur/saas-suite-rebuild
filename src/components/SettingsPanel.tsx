@@ -393,7 +393,7 @@ export function SettingsPanel({ onBack, initialTab = "profile", onTabChange }: S
         className="flex w-full min-w-0 flex-col gap-6 xl:flex-row"
       >
         <nav className="shrink-0 xl:w-56">
-          <TabsList className={newUi ? "flex h-auto w-full flex-col items-stretch justify-start gap-1 rounded-xl border bg-card bg-none p-2 [&>button]:h-11 [&>button]:rounded-md [&>button]:px-3 [&>button]:text-gray-700 [&>button]:after:hidden md:[&>button]:h-9 [&>button[data-state=active]]:bg-brand-subtle [&>button[data-state=active]]:text-[#3E27AE] xl:sticky xl:top-4" : "flex h-auto w-full flex-col items-stretch justify-start gap-1 bg-muted/40 p-2 xl:sticky xl:top-4"}>
+          <TabsList className={newUi ? "flex h-auto w-full flex-col items-stretch justify-start gap-1 rounded-xl border bg-card bg-none p-2 [&>button]:h-11 [&>button]:rounded-md [&>button]:px-3 [&>button]:text-gray-700 [&_.tabs-indicator]:hidden md:[&>button]:h-9 [&>button[data-state=active]]:bg-brand-subtle [&>button[data-state=active]]:text-[#3E27AE] xl:sticky xl:top-4" : "flex h-auto w-full flex-col items-stretch justify-start gap-1 bg-muted/40 p-2 xl:sticky xl:top-4"}>
             <TabsTrigger value="profile" className="justify-start">
               {t.settings_profile}
             </TabsTrigger>

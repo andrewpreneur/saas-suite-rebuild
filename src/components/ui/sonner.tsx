@@ -1,10 +1,23 @@
-// Picks the old or the new (design system) version of this component.
-// See src/lib/uiVersion.ts. Edit the look in ./ds/sonner.tsx (new) or ./legacy/sonner.tsx (old).
-import { newUi } from "@/lib/uiVersion";
-import * as ds from "./ds/sonner";
-import * as legacy from "./legacy/sonner";
+import { Toaster as Sonner, toast } from "sonner";
 
-const ui = (newUi ? ds : legacy) as typeof ds;
+type ToasterProps = React.ComponentProps<typeof Sonner>;
 
-export const Toaster = ui.Toaster;
-export const toast = ui.toast;
+const Toaster = ({ ...props }: ToasterProps) => {
+  return (
+    <Sonner
+      className="toaster group"
+      toastOptions={{
+        classNames: {
+          toast:
+            "group toast group-[.toaster]:rounded-xl group-[.toaster]:border-gray-300 group-[.toaster]:bg-white group-[.toaster]:text-foreground group-[.toaster]:shadow-popover",
+          description: "group-[.toast]:text-gray-700",
+          actionButton: "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
+          cancelButton: "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
+        },
+      }}
+      {...props}
+    />
+  );
+};
+
+export { Toaster, toast };

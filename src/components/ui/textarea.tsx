@@ -1,9 +1,21 @@
-// Picks the old or the new (design system) version of this component.
-// See src/lib/uiVersion.ts. Edit the look in ./ds/textarea.tsx (new) or ./legacy/textarea.tsx (old).
-import { newUi } from "@/lib/uiVersion";
-import * as ds from "./ds/textarea";
-import * as legacy from "./legacy/textarea";
+import * as React from "react";
 
-const ui = (newUi ? ds : legacy) as typeof ds;
+import { cn } from "@/lib/utils";
 
-export const Textarea = ui.Textarea;
+const Textarea = React.forwardRef<HTMLTextAreaElement, React.ComponentProps<"textarea">>(
+  ({ className, ...props }, ref) => {
+    return (
+      <textarea
+        className={cn(
+          "flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2.5 text-base placeholder:text-muted-foreground focus-visible:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+          className,
+        )}
+        ref={ref}
+        {...props}
+      />
+    );
+  },
+);
+Textarea.displayName = "Textarea";
+
+export { Textarea };

@@ -6,7 +6,6 @@ import { isPlatformAdminEmail } from "@/lib/platformAdmins";
 import { platformMockEnabled } from "@/lib/platformMock";
 import { chartColors } from "@/lib/chart-colors";
 import { newUi } from "@/lib/uiVersion";
-import { UiVersionSwitch } from "@/components/UiVersionSwitch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -109,9 +108,6 @@ export default function AdminDesignSystem() {
               The components below show their old look. Switch to New UI to see the design system.
             </Banner>
           ) : null}
-          <div>
-            <UiVersionSwitch />
-          </div>
 
           <Section title="Colors" note="Each swatch reads the live token, so it always matches the app.">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">

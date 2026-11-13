@@ -1,9 +1,22 @@
-// Picks the old or the new (design system) version of this component.
-// See src/lib/uiVersion.ts. Edit the look in ./ds/input.tsx (new) or ./legacy/input.tsx (old).
-import { newUi } from "@/lib/uiVersion";
-import * as ds from "./ds/input";
-import * as legacy from "./legacy/input";
+import * as React from "react";
 
-const ui = (newUi ? ds : legacy) as typeof ds;
+import { cn } from "@/lib/utils";
 
-export const Input = ui.Input;
+const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
+  ({ className, type, ...props }, ref) => {
+    return (
+      <input
+        type={type}
+        className={cn(
+          "flex ds-control w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground md:text-sm",
+          className,
+        )}
+        ref={ref}
+        {...props}
+      />
+    );
+  },
+);
+Input.displayName = "Input";
+
+export { Input };

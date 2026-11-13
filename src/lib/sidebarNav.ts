@@ -97,3 +97,37 @@ export const NEW_UI_TOOL_NAMES: Record<string, string> = {
   "one-feature-kit": "One Feature Kit",
   settings: "Settings",
 };
+
+/** Default label for every tool id. The sidebar, top bar and command menu all read this. */
+export const TOOL_LABELS: Record<string, string> = {
+  dashboard: "Dashboard",
+  challenge: "Challenge",
+  "client-hub": "Hub Pages",
+  "simple-onboarding": "Simplified Onboarding",
+  "knowledge-base": "Knowledge Base",
+  workflows: "Workflows",
+  branding: "Branding",
+  streamline: "Menu Link Removal",
+  support: "Client Support",
+  "onboarding-calls": "Onboarding Calls",
+  "agency-support": "Agency Support",
+  "affiliate-dashboard": "Affiliate",
+  "one-feature-kit": "One Feature Kit",
+  "email-warmup": "Email Warmup",
+  "free-leads": "My Free Leads",
+  learning: "Learning Hub",
+  "start-here": "Learning Hub",
+  community: "Community",
+  agents: "Agents",
+  help: "Help",
+  settings: "Settings",
+  walkthrough: "Walkthrough",
+  copilot: "Copilot",
+};
+
+/** Sidebar group a tool belongs to, for the top bar's "Group / Page" trail. */
+export function sectionLabelForTool(toolId: string): string | null {
+  if ((SIDEBAR_HOME_TOOL_IDS as readonly string[]).includes(toolId)) return null;
+  const id = toolId === "start-here" ? "learning" : toolId;
+  return NEW_UI_SIDEBAR_SECTIONS.find((section) => section.toolIds.includes(id))?.label ?? null;
+}

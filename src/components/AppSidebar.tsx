@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
+import { motion } from "framer-motion";
+import { SPRING_SNAPPY } from "@/lib/motion";
 import { MessageCircle } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { newUi } from "@/lib/uiVersion";
@@ -209,6 +211,8 @@ export function AppSidebar({ selectedTool, onSelectTool }: AppSidebarProps) {
   const challengeCountdown = useChallengeCountdown();
   const teamAccess = useTeamAccess();
   const [v2NavigationEnabled, setV2NavigationEnabled] = useState(true);
+  // Row the pointer or keyboard focus is on; drives the sliding hover highlight.
+  const [hoveredTool, setHoveredTool] = useState<string | null>(null);
   const [fullName, setFullName] = useState<string | null>(null);
   const viewer = useViewerIdentity(fullName);
   const [onboardingCallAccess, setOnboardingCallAccess] = useState(false);
@@ -434,6 +438,10 @@ export function AppSidebar({ selectedTool, onSelectTool }: AppSidebarProps) {
         <SidebarMenuButton
           isActive={active}
           aria-current={active ? "page" : undefined}
+          onMouseEnter={() => setHoveredTool(tool.id)}
+          onMouseLeave={() => setHoveredTool((current) => (current === tool.id ? null : current))}
+          onFocus={() => setHoveredTool(tool.id)}
+          onBlur={() => setHoveredTool((current) => (current === tool.id ? null : current))}
           onClick={() => {
             if (locked) {
               setUpgradeOpen(true);
@@ -472,7 +480,7 @@ export function AppSidebar({ selectedTool, onSelectTool }: AppSidebarProps) {
               : undefined
           }
           className={`
-            group sidebar-nav-item relative rounded-md
+            group sidebar-nav-item relative isolate rounded-lg !bg-transparent
             ${
               tool.id === "challenge"
                 ? "h-auto min-h-9 overflow-visible py-1.5 group-data-[collapsible=icon]:!h-8 group-data-[collapsible=icon]:!min-h-0 group-data-[collapsible=icon]:!py-2"
@@ -489,21 +497,43 @@ export function AppSidebar({ selectedTool, onSelectTool }: AppSidebarProps) {
                     ? "text-sidebar-foreground/50 hover:text-sidebar-foreground/70"
                     : "text-sidebar-foreground/80 hover:text-sidebar-foreground"
                 : active
-                  ? "bg-brand-subtle font-semibold text-[#3E27AE]"
+                  ? "font-semibold text-[#3E27AE]"
                   : locked
                     ? "text-gray-500 hover:text-gray-700"
                     : "text-gray-700 hover:text-foreground"
             }
           `}
         >
-          <Icon
+          {/* Sliding highlights (idea from 21st.dev "Animated Sidebar"): one shared pill
+              follows the pointer, another marks the current page. */}
+          {hoveredTool === tool.id && !active ? (
+            <motion.span
+              layoutId="sidebar-hover-pill"
+              aria-hidden="true"
+              transition={SPRING_SNAPPY}
+              className="absolute inset-0 -z-10 rounded-lg bg-[#17124008]"
+            />
+          ) : null}
+          {active ? (
+            <motion.span
+              layoutId="sidebar-active-pill"
+              aria-hidden="true"
+              transition={SPRING_SNAPPY}
+              className="absolute inset-0 -z-10 rounded-lg bg-brand-subtle shadow-[inset_0_0_0_1px_rgba(96,67,239,0.16)]"
+            />
+          ) : null}
+          <motion.span
             aria-hidden="true"
-            className={
-              newUi
-                ? `!size-5 flex-shrink-0 ${active ? "text-[#3E27AE]" : "text-gray-500"}`
-                : `w-4 h-4 flex-shrink-0 ${active ? "text-sidebar-primary" : "text-sidebar-foreground/60"}`
+            className="flex shrink-0"
+            animate={
+              hoveredTool === tool.id
+                ? { rotate: [0, -10, 8, 0], scale: [1, 1.12, 1.12, 1] }
+                : { rotate: 0, scale: 1 }
             }
-          />
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <Icon className={`!size-5 ${active ? "text-[#3E27AE]" : "text-gray-500"}`} />
+          </motion.span>
           {!collapsed && tool.id === "challenge" && (
             <span className="ml-3 flex min-w-0 flex-1 flex-col items-start !overflow-visible !whitespace-normal leading-tight">
               <span className="w-full truncate text-sm">Challenge</span>
