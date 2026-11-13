@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { LANGUAGE_OPTIONS, type SupportedLanguage } from "@/translations";
 import { saveLanguagePreferences } from "@/lib/languagePreferences";
 import { Button } from "@/components/ui/button";
-import { Field, SectionFooter, ToggleRow } from "@/components/premium/settings/Field";
+import { Field, ToggleRow } from "@/components/premium/settings/Field";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -57,32 +57,42 @@ export default function LanguageSettings() {
     }
   };
 
+  const customerLabel = LANGUAGE_OPTIONS.find((option) => option.value === customerLanguage)?.label;
+
   return (
-    <section className="space-y-4" aria-label="Language preferences">
-      <Field label={t.settings_language} htmlFor="settings-language" hint="The language you see across SaaSSuite.">
+    <form
+      className="space-y-5"
+      aria-label="Language preferences"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void save();
+      }}
+    >
+      <Field label={t.settings_language} htmlFor="settings-language">
         <Select value={selected} onValueChange={(value) => setSelected(value as SupportedLanguage)} disabled={saving}>
-          <SelectTrigger id="settings-language" className="h-11 w-full sm:h-10 sm:w-64"><SelectValue /></SelectTrigger>
+          <SelectTrigger id="settings-language" className="h-11 w-full sm:h-10 sm:w-72"><SelectValue /></SelectTrigger>
           <SelectContent>{LANGUAGE_OPTIONS.map((option) => (
             <SelectItem key={option.value} value={option.value}>{option.flag} {option.label}</SelectItem>
           ))}</SelectContent>
         </Select>
       </Field>
       <ToggleRow
-        label="Also set customer default"
+        label="Also use it as the default for customers"
         htmlFor="language-customers"
+        className="border-t border-border/70 pt-4"
         description={
           <span role="status">
-            Customer default: {LANGUAGE_OPTIONS.find((option) => option.value === customerLanguage)?.label ?? "Unavailable"}. Customer Hub activation pending.
+            {customerLabel ? `Customer default is ${customerLabel}, pending Customer Hub activation.` : "The customer default is unavailable."}
           </span>
         }
       >
         <Switch id="language-customers" checked={includeCustomers} onCheckedChange={setIncludeCustomers} disabled={saving || !canEditCustomers || !customerLanguage} />
       </ToggleRow>
-      <SectionFooter>
-        <Button type="button" variant="accent" onClick={save} disabled={saving}>
-          {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save language
+      <div className="flex justify-end border-t border-border/70 pt-4">
+        <Button type="submit" variant="accent" className="h-11 w-full sm:h-10 sm:w-auto" disabled={saving}>
+          {saving ? <><Loader2 className="animate-spin" aria-hidden="true" /> Saving language</> : "Save language"}
         </Button>
-      </SectionFooter>
-    </section>
+      </div>
+    </form>
   );
 }

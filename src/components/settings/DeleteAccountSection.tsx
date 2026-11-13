@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Loader2, Trash2 } from 'lucide-react';
+import { ChevronDown, Loader2, Trash2 } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useUser } from '@/contexts/UserContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -48,7 +49,7 @@ export default function DeleteAccountSection() {
 
   return <DangerZone
     title="Delete account"
-    description="Permanently delete your SaaSSuite account and account data, then sign out and return to the home page. This cannot be undone."
+    description="Permanently removes your SaaSSuite account and its data. This cannot be undone."
   >
     <Button variant="outline" className="h-11 w-full border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive sm:h-10 sm:w-auto" onClick={() => { setOpen(true); setError(''); setConfirmation(''); setAcknowledged(false); }}>
       <Trash2 className="mr-2 h-4 w-4" />Delete account
@@ -56,23 +57,37 @@ export default function DeleteAccountSection() {
     <Dialog open={open} onOpenChange={(value) => { if (!busy) setOpen(value); }}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md" onEscapeKeyDown={(e) => { if (busy) e.preventDefault(); }} onInteractOutside={(e) => { if (busy) e.preventDefault(); }}>
         <DialogHeader>
-          <DialogTitle>Permanently delete your account?</DialogTitle>
-          <DialogDescription className="break-words">This deletes {actualEmail} from SaaSSuite, including your profile, Client Hub settings, saved connections, learning history and Copilot history. Your team will lose access to this workspace, and its live Hub links will stop working. You will be signed out and returned to the home page. Your HighLevel account is not deleted.</DialogDescription>
+          <DialogTitle>Delete your account for good?</DialogTitle>
+          <DialogDescription className="break-words">This deletes {actualEmail} and everything in its workspace, then signs you out.</DialogDescription>
         </DialogHeader>
-        <p className="text-sm text-muted-foreground">Deleting your account does not cancel paid subscriptions. Cancel web subscriptions in Settings → Billing; cancel Apple or Google subscriptions in your phone’s subscription settings. Required billing and legal records may be retained.</p>
-        <div className="flex items-start gap-2">
-          <Checkbox id="delete-account-ack" checked={acknowledged} disabled={busy} onCheckedChange={(value) => setAcknowledged(value === true)} />
-          <Label htmlFor="delete-account-ack" className="text-sm leading-relaxed">I understand deletion is permanent and I am responsible for canceling any subscriptions.</Label>
+        <Collapsible>
+          <CollapsibleTrigger className="group flex min-h-11 w-full items-center justify-between gap-3 rounded-lg text-left text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            What gets deleted, and what does not
+            <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 ease-out group-data-[state=open]:rotate-180 motion-reduce:transition-none" aria-hidden="true" />
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <ul className="list-disc space-y-1.5 pb-2 pl-5 text-sm text-muted-foreground">
+              <li>Deleted: your profile, Client Hub settings, saved connections, learning history and Copilot history.</li>
+              <li>Your team loses access to this workspace and its live Hub links stop working.</li>
+              <li>Your HighLevel account is not deleted.</li>
+              <li>Paid subscriptions are not cancelled. Cancel web plans in Settings, Billing, and Apple or Google plans in your phone’s subscription settings.</li>
+              <li>Required billing and legal records may be retained.</li>
+            </ul>
+          </CollapsibleContent>
+        </Collapsible>
+        <div className="flex items-start gap-3">
+          <Checkbox id="delete-account-ack" className="mt-0.5" checked={acknowledged} disabled={busy} onCheckedChange={(value) => setAcknowledged(value === true)} />
+          <Label htmlFor="delete-account-ack" className="text-sm font-normal leading-relaxed">I understand this is permanent and that I must cancel any subscriptions myself.</Label>
         </div>
-        <div className="space-y-2">
+        <div className="flex flex-col gap-1.5">
           <Label htmlFor="delete-account-confirm">Type DELETE to confirm</Label>
-          <Input id="delete-account-confirm" autoComplete="off" value={confirmation} disabled={busy} onChange={(e) => setConfirmation(e.target.value)} />
+          <Input id="delete-account-confirm" autoComplete="off" autoCapitalize="characters" spellCheck={false} value={confirmation} disabled={busy} onChange={(e) => setConfirmation(e.target.value)} aria-invalid={!!error} aria-describedby={error ? 'delete-account-error' : undefined} />
+          {error && <p id="delete-account-error" role="alert" className="text-sm text-destructive">{error}</p>}
         </div>
-        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         <DialogFooter className="gap-2">
-          <Button variant="outline" disabled={busy} onClick={() => setOpen(false)}>Keep account</Button>
-          <Button variant="destructive" disabled={busy || !acknowledged || confirmation !== 'DELETE'} onClick={deleteAccount}>
-            {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{busy ? 'Deleting…' : 'Permanently delete account'}
+          <Button variant="outline" className="h-11 sm:h-10" disabled={busy} onClick={() => setOpen(false)}>Keep account</Button>
+          <Button variant="destructive" className="h-11 sm:h-10" disabled={busy || !acknowledged || confirmation !== 'DELETE'} onClick={deleteAccount}>
+            {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{busy ? 'Deleting account' : 'Delete account for good'}
           </Button>
         </DialogFooter>
       </DialogContent>

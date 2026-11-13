@@ -340,6 +340,17 @@ export const TipsBotToast: React.FC = () => {
     }, 300);
   };
 
+  // "Finish tour" on the last step: end the tour, then open the page that step points at
+  // (the HighLevel connection). Skip and Esc end the tour where the person is.
+  const handleFinishWalkthrough = () => {
+    const finishPath = currentTip?.navigation?.finishPath;
+    handleEndWalkthrough();
+    if (finishPath && typeof window !== 'undefined' && window.location.pathname !== finishPath) {
+      window.history.pushState({}, '', finishPath);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }
+  };
+
   const handleDisableTours = () => {
     stopWalkthrough({ permanent: true, disableAll: true });
     setIsExiting(true);
@@ -357,7 +368,7 @@ export const TipsBotToast: React.FC = () => {
   const isFirst = currentIndex <= 0;
   const isLast = currentIndex >= total - 1;
   keyHandlersRef.current = {
-    next: () => (isLast ? handleEndWalkthrough() : handleNext()),
+    next: () => (isLast ? handleFinishWalkthrough() : handleNext()),
     prev: () => {
       if (!isFirst) handlePrev();
     },
@@ -550,7 +561,7 @@ export const TipsBotToast: React.FC = () => {
                       </Button>
                     )}
                     {isLast ? (
-                      <Button variant="accent" size="sm" onClick={handleEndWalkthrough} className="h-9 px-3">
+                      <Button variant="accent" size="sm" onClick={handleFinishWalkthrough} className="h-9 px-3">
                         Finish tour
                       </Button>
                     ) : (

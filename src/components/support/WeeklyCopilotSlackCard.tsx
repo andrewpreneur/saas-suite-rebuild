@@ -5,9 +5,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Bot } from "lucide-react";
+import { ToggleRow } from "@/components/premium/settings/Field";
 import { toast } from "sonner";
 
-export default function WeeklyCopilotSlackCard() {
+/** `bare`: one switch row with no card, for the Slack page in Settings. */
+export default function WeeklyCopilotSlackCard({ bare }: { bare?: boolean } = {}) {
   const { email } = useUser();
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [lastSent, setLastSent] = useState<string | null>(null);
@@ -46,6 +48,24 @@ export default function WeeklyCopilotSlackCard() {
     }
     toast.success(next ? "Weekly AI Copilot check-in turned on" : "Weekly AI Copilot check-in turned off");
   };
+
+  if (bare) {
+    return (
+      <ToggleRow
+        className="py-3"
+        label="Weekly AI Copilot check-in"
+        htmlFor="weekly-copilot-slack"
+        description={
+          <>
+            One idea to grow your SaaS each week, and you can reply in Slack.
+            {lastSent && <> Last sent {new Date(lastSent).toLocaleDateString()}.</>}
+          </>
+        }
+      >
+        <Switch id="weekly-copilot-slack" checked={!!enabled} disabled={saving || enabled === null} onCheckedChange={toggle} />
+      </ToggleRow>
+    );
+  }
 
   return (
     <Card className="border-brand/20 bg-brand/[0.03]">

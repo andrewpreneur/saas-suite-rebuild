@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import confetti from "canvas-confetti";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { SectionCard } from "@/components/premium/SectionCard";
-import { ArrowLeft, ArrowRight, CircleCheck, ExternalLink, Terminal, Workflow } from "lucide-react";
+import { MoreMenu, type MoreMenuItem } from "@/components/premium/MoreMenu";
+import { Disclosure, StatusRow } from "@/components/premium/settings/Page";
+import { ArrowLeft, ArrowRight, ExternalLink, RefreshCw, Workflow } from "lucide-react";
 import { toast } from "sonner";
 import slackLogoAsset from "@/assets/slack-logo.webp.asset.json";
 import { useUser } from "@/contexts/UserContext";
@@ -144,7 +144,16 @@ function SuccessView({ teamId }: { teamId: string | null }) {
   );
 }
 
-function InstallView() {
+type InstallViewProps = {
+  /** Reports the connection once it is known, so a list row can show it. */
+  onStatus?: (status: { connected: boolean; name?: string | null }) => void;
+  /** Extra entries for the page's "..." menu. */
+  moreItems?: MoreMenuItem[];
+  /** Rendered between the connection status and the list of slash commands. */
+  children?: ReactNode;
+};
+
+function InstallView({ onStatus, moreItems = [], children }: InstallViewProps) {
   const { email: effectiveEmail } = useUser();
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [agencyId, setAgencyId] = useState<string>("");
@@ -197,89 +206,119 @@ function InstallView() {
   const installHref = agencyId
     ? `${INSTALL_ENDPOINT}?agency_id=${encodeURIComponent(agencyId)}&email=${encodeURIComponent(userEmail ?? "")}`
     : "#";
+  const blockedReason = () => (loading ? "Loading your agency ID" : "No agency ID found for your account.");
 
-  // Inside Settings the shell already supplies the canvas, padding and the page's h1.
+  const onStatusRef = useRef(onStatus);
+  onStatusRef.current = onStatus;
+  useEffect(() => {
+    if (!loading) onStatusRef.current?.({ connected: !!connectedInstall, name: connectedInstall?.teamDomain });
+  }, [loading, connectedInstall]);
+
+  // Inside Settings the page already has its card, back link and title.
   const embedded = useLocation().pathname.startsWith("/app");
-  const Title = embedded ? "h2" : "h1";
+  const commands = SLIDES.filter((slide) => slide.cmd);
+
+  const body = (
+    <>
+      <div data-tip-target="slack-header">
+        {loading ? (
+          <div className="px-skeleton h-12 rounded-lg" aria-busy="true" aria-label="Loading Slack connection" />
+        ) : (
+          <StatusRow
+            inline={!!connectedInstall}
+            tone={connectedInstall ? "on" : "off"}
+            label={
+              connectedInstall
+                ? `Connected to ${connectedInstall.teamDomain || "your Slack workspace"}`
+                : "Not connected"
+            }
+            detail={
+              connectedInstall
+                ? "SaaSSuite posts into the channel you picked."
+                : "One click installs the app. Slack asks which channel it should post into."
+            }
+          >
+            {!connectedInstall ? (
+              <span data-tip-target="slack-install" className="flex flex-1 sm:flex-none">
+                <Button asChild variant="accent" className="h-11 flex-1 sm:h-10 sm:flex-none">
+                  <a
+                    href={installHref}
+                    onClick={(e) => {
+                      if (!agencyId) {
+                        e.preventDefault();
+                        toast.error(blockedReason());
+                      }
+                    }}
+                  >
+                    <img src={SLACK_LOGO} alt="" className="size-4" />
+                    Connect Slack
+                  </a>
+                </Button>
+              </span>
+            ) : null}
+            <span data-tip-target={connectedInstall ? "slack-install" : undefined}>
+              <MoreMenu
+                label="More Slack actions"
+                items={[
+                  ...(connectedInstall
+                    ? [
+                        {
+                          label: "Reconnect Slack",
+                          icon: <RefreshCw />,
+                          onSelect: () => {
+                            if (!agencyId) toast.error(blockedReason());
+                            else window.location.href = installHref;
+                          },
+                        },
+                      ]
+                    : []),
+                  ...moreItems,
+                ]}
+              />
+            </span>
+          </StatusRow>
+        )}
+      </div>
+
+      {children}
+
+      <div data-tip-target="slack-commands">
+        <Disclosure label={`Slash commands (${commands.length})`}>
+          <ul className="divide-y divide-border/70 text-sm">
+            {commands.map((slide) => (
+              <li key={slide.cmd} className="flex flex-col gap-1 py-2.5 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:gap-4">
+                <code className="w-fit shrink-0 rounded-sm bg-muted px-2 py-1 font-mono text-xs text-foreground sm:w-56">{slide.cmd}</code>
+                <span className="text-muted-foreground">{slide.subhead}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Each workspace gets its own private bot token, stored encrypted. Uninstall any time from Slack settings.
+          </p>
+        </Disclosure>
+      </div>
+    </>
+  );
+
+  if (embedded) return <div>{body}</div>;
 
   return (
-    <div className={embedded ? "" : "px-canvas min-h-screen p-4 sm:p-6"}>
-      <div className={embedded ? "space-y-6" : "mx-auto max-w-2xl space-y-6"}>
-        <div className="flex items-center gap-3" data-tip-target="slack-header">
-          <img src={SLACK_LOGO} alt="Slack" className="size-10 shrink-0" />
+    <div className="px-canvas min-h-screen p-4 sm:p-6">
+      <div className="mx-auto max-w-2xl space-y-6">
+        <div className="flex items-center gap-3">
+          <img src={SLACK_LOGO} alt="" className="size-10 shrink-0" />
           <div className="min-w-0">
-            <Title className={embedded ? "text-h4 text-foreground" : "text-h3 tracking-tight text-foreground sm:text-h2"}>
-              Slack Integration
-            </Title>
-            <p className="text-sm text-muted-foreground">Connect your Slack workspace to run SaaSSuite slash commands.</p>
+            <h1 className="text-h3 tracking-tight text-foreground sm:text-h2">Slack</h1>
+            <p className="text-sm text-muted-foreground">Run SaaSSuite commands from your Slack workspace.</p>
           </div>
-          {connectedInstall ? (
-            <Badge variant="success" className="ml-auto shrink-0">
-              <CircleCheck /> Connected
-            </Badge>
-          ) : null}
         </div>
-
-        {connectedInstall && (
-          <SectionCard
-            icon={<CircleCheck />}
-            title="Slack is connected"
-            description={`${connectedInstall.teamDomain || "Your Slack workspace"} is linked to this SaaSSuite account.`}
-          />
-        )}
-
-        <div data-tip-target="slack-install">
-          <SectionCard
-            icon={<img src={SLACK_LOGO} alt="" className="size-5" />}
-            title="Add SaaSSuite to Slack"
-            description="One click to install the SaaSSuite Slack app in your workspace. Slack will ask which channel it should post into. Pick your team's channel."
-          >
-            <a
-              href={installHref}
-              className="inline-block rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-              onClick={(e) => {
-                if (!agencyId) {
-                  e.preventDefault();
-                  toast.error(loading ? "Loading your agency ID…" : "No agency ID found for your account.");
-                }
-              }}
-            >
-              <img
-                alt="Add to Slack"
-                height={40}
-                width={139}
-                src="https://platform.slack-edge.com/img/add_to_slack.png"
-                srcSet="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x"
-              />
-            </a>
-            <p className="mt-3 text-xs text-muted-foreground">
-              Each workspace gets its own private bot token, stored encrypted in SaaSSuite. Uninstall anytime from Slack settings.
-            </p>
-          </SectionCard>
-        </div>
-
-        <div data-tip-target="slack-commands">
-          <SectionCard
-            icon={<Terminal />}
-            title="What you get"
-            description="After install, run these slash commands in Slack:"
-          >
-            <div className="divide-y divide-border text-sm">
-              {SLIDES.filter((s) => s.cmd).map((s) => (
-                <div key={s.cmd} className="flex flex-col gap-1 py-2.5 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:gap-4">
-                  <code className="w-fit shrink-0 rounded-sm bg-muted px-2 py-1 font-mono text-xs text-foreground sm:w-56">{s.cmd}</code>
-                  <span className="text-muted-foreground">{s.subhead}</span>
-                </div>
-              ))}
-            </div>
-          </SectionCard>
-        </div>
+        <div className="px-surface p-4 sm:p-6">{body}</div>
       </div>
     </div>
   );
 }
 
-export default function SlackIntegration() {
+export default function SlackIntegration(props: InstallViewProps) {
   const [searchParams] = useSearchParams();
   const installed = searchParams.get("installed") === "1";
   const teamId = searchParams.get("team_id");
@@ -299,5 +338,5 @@ export default function SlackIntegration() {
     })();
   }, [installed, resolvedTeamId]);
 
-  return installed ? <SuccessView teamId={resolvedTeamId} /> : <InstallView />;
+  return installed ? <SuccessView teamId={resolvedTeamId} /> : <InstallView {...props} />;
 }

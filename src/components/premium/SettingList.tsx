@@ -27,7 +27,13 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
  * settings ARE the screen (Settings); keep panels where a row edits something
  * beside content you still need to see.
  */
-type PagesContext = { openId: string | null; setOpenId: (id: string | null) => void; backLabel: string };
+type PagesContext = {
+  openId: string | null;
+  setOpenId: (id: string | null) => void;
+  /** Closes only if this item is still the open one, so a later item never clears an earlier one that just opened. */
+  closeId: (id: string) => void;
+  backLabel: string;
+};
 const SettingPagesContext = createContext<PagesContext | null>(null);
 
 export function SettingPages({
@@ -46,7 +52,19 @@ export function SettingPages({
     onOpenChange?.(id !== null);
   };
   return (
-    <SettingPagesContext.Provider value={{ openId, setOpenId, backLabel }}>{children}</SettingPagesContext.Provider>
+    <SettingPagesContext.Provider
+      value={{
+        openId,
+        setOpenId,
+        closeId: (id) =>
+          setOpenIdState((current) => {
+            if (current !== id) return current;
+            onOpenChange?.(false);
+            return null;
+          }),
+        backLabel,
+      }}
+    >{children}</SettingPagesContext.Provider>
   );
 }
 
@@ -130,7 +148,7 @@ export function SettingItem({
   useEffect(() => {
     if (!pages || !asPage) return;
     if (open && pages.openId !== pageId) pages.setOpenId(pageId);
-    if (!open && pages.openId === pageId) pages.setOpenId(null);
+    if (!open) pages.closeId(pageId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, asPage]);
 

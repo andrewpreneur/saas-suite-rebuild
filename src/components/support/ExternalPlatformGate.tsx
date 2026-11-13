@@ -1,5 +1,5 @@
 import { ReactNode, useState } from "react";
-import { SectionCard } from "@/components/premium/SectionCard";
+import { StatusRow } from "@/components/premium/settings/Page";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -11,7 +11,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { HelpCircle } from "lucide-react";
 
 /** Explains the external-platform feature and requires confirmation before showing it. */
 export default function ExternalPlatformGate({ children }: { children: ReactNode }) {
@@ -21,28 +20,31 @@ export default function ExternalPlatformGate({ children }: { children: ReactNode
   if (confirmed) return <>{children}</>;
 
   return (
-    <SectionCard icon={<HelpCircle />} title="What is this?" bodyClassName="space-y-4">
-        <p className="max-w-[65ch] text-sm leading-relaxed text-muted-foreground">
-          This is for connecting SaaS Suite to a platform that is not based on GoHighLevel. If you run a
-          different SaaS that you would like to use our system for, such as our support systems, login
-          tracking, Slack integrations, or anything like that, this allows you to do so.
-        </p>
-        <Button variant="accent" onClick={() => setAskOpen(true)}>Continue</Button>
+    <div>
+      <StatusRow
+        tone="off"
+        label="Not set up"
+        detail="For a SaaS that is not built on GoHighLevel: use our support, login tracking and Slack alerts with it."
+      >
+        <Button variant="accent" className="h-11 flex-1 sm:h-10 sm:flex-none" onClick={() => setAskOpen(true)}>
+          Set up a platform
+        </Button>
+      </StatusRow>
 
       <AlertDialog open={askOpen} onOpenChange={setAskOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>One last check</AlertDialogTitle>
             <AlertDialogDescription>
-              Confirm you are trying to install SaaS Suite on a non-GoHighLevel SaaS.
+              Confirm you are installing SaaS Suite on a SaaS that is not GoHighLevel.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => setConfirmed(true)}>Confirm</AlertDialogAction>
+            <AlertDialogAction onClick={() => setConfirmed(true)}>Yes, continue</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </SectionCard>
+    </div>
   );
 }

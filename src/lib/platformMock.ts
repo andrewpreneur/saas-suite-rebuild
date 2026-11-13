@@ -522,7 +522,9 @@ function readMockSession(key: string): string | null {
 /**
  * UI QA only: shows the banners and overlays around the app. Set `sessionStorage.ss_mock_chrome`
  * (or open any page once with `?ss_mock_chrome=...`, `off` clears it) to a comma or dot separated list of:
- * past_due, grace, cancel, trial, suspended, limit, offer, team.
+ * past_due, grace, cancel, trial, suspended, limit, offer, team,
+ * and for the Settings pages: domain (Custom Domain bought, one request pending), slack (workspace connected),
+ * external (an external platform connection exists), hl_off (HighLevel not connected).
  */
 function mockChromeFlags(): Set<string> {
   try {
@@ -551,6 +553,12 @@ function mockChromePatch(): Record<string, unknown> {
   }
   if (flags.has("suspended")) patch.approval = "NO";
   if (flags.has("limit")) patch.plan = "BASIC";
+  if (flags.has("domain")) {
+    patch.custom_domain_access = true;
+    patch.custom_domain = "app.northstar.example";
+    patch.custom_domain_live = false;
+    patch.custom_domain_submitted_at = inDays(-1);
+  }
   return patch;
 }
 
@@ -874,6 +882,21 @@ function rowsFor(table: string): unknown[] {
       if (mockInstallMissing()) user.install_confirmed_at = null;
       return [user];
     }
+    case "slack_channel_agency_map":
+      return mockChromeFlags().has("slack")
+        ? [{ agency_id: "demo-agency", team_domain: "northstar-team", is_active: true, installed_at: "2026-10-02T15:00:00.000Z", updated_at: "2026-10-02T15:00:00.000Z" }]
+        : [];
+    case "external_platform_connections":
+      return mockChromeFlags().has("external")
+        ? [{ id: "ext-1", owner_email: MOCK_EMAIL, agency_id: "demo-agency-2", platform_name: "Northstar Portal", token: "demo0000token0000demo0000token00", enabled: true, slack_notify: false, event_count: 2, last_event_at: "2026-11-11T16:20:00.000Z" }]
+        : [];
+    case "external_platform_events":
+      return mockChromeFlags().has("external")
+        ? [
+            { id: "ev-1", connection_id: "ext-1", user_email: "jordan@client.example", user_name: "Jordan Lee", event_type: "user_login", created_at: "2026-11-11T16:20:00.000Z" },
+            { id: "ev-2", connection_id: "ext-1", user_email: "sam@client.example", user_name: null, event_type: "user_login", created_at: "2026-11-10T09:05:00.000Z" },
+          ]
+        : [];
     case "bump_offers":
       return mockChromeFlags().has("offer")
         ? [{ plan: "advanced", promo_code: "NORTHSTAR20", percent_off: 20, expires_at: new Date(Date.now() + 5.4 * 3_600_000).toISOString() }]
@@ -1193,6 +1216,25 @@ function rpcResult(fn: string, args?: Record<string, unknown>): unknown {
         email: { alert_new_unassigned_chats: false },
         slack: { connected: true, alert_assigned_updates: false },
       };
+    // Settings > Profile save. Mirrors the real RPC's return shape: the updated row with its agency ID.
+    case "update_account_profile": {
+      const agencyName = typeof args?.p_agency_name === "string" ? args.p_agency_name : "";
+      Object.assign(userPatch, {
+        full_name: typeof args?.p_full_name === "string" ? args.p_full_name : "",
+        bonuses_phone: typeof args?.p_phone === "string" ? args.p_phone : "",
+        agency_name: agencyName,
+      });
+      return [{ agency_id: (rowFor("saas_suite_users") as { agency_id?: string } | null)?.agency_id ?? "demo-agency" }];
+    }
+    case "set_customer_language":
+      return true;
+    case "get_slack_weekly_report_pref":
+      return mockChromeFlags().has("slack")
+        ? [{ connected: true, enabled: true, last_sent_at: "2026-11-09T14:00:00.000Z", channel_id: "C0DEMO" }]
+        : [{ connected: false, enabled: false, last_sent_at: null, channel_id: null }];
+    case "set_slack_weekly_report_pref":
+    case "set_copilot_nudge_pref":
+      return true;
     case "set_support_email_alert_pref_for":
     case "set_slack_support_alert_pref":
       return true;
@@ -1536,7 +1578,9 @@ export function createPlatformMockClient() {
           });
         }
         if (name === "ghl-connection") {
-          const shape = mockAccountShape(currentMockShape());
+          const demoShape = mockAccountShape(currentMockShape());
+          // `ss_mock_chrome=hl_off` shows the Settings page for an account that has not connected yet.
+          const shape = { ...demoShape, connected: demoShape.connected && !mockChromeFlags().has("hl_off") };
           return Promise.resolve({
             data: {
               connection: shape.connected

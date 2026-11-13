@@ -6,12 +6,14 @@ import { Loader2, Upload, X, Image as ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SectionCard } from "@/components/premium/SectionCard";
+import { MoreMenu } from "@/components/premium/MoreMenu";
+import { Disclosure, FieldError } from "@/components/premium/settings/Page";
 
 interface Props {
   email: string | null;
   logoUrl: string;
   onChange: (url: string) => void;
-  /** Render only the controls, without the card around them (inside a side panel). */
+  /** Render only the controls, without the card around them (on its Settings page). */
   bare?: boolean;
 }
 
@@ -20,6 +22,7 @@ export default function AgencyLogoCard({ email, logoUrl, onChange, bare }: Props
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [draft, setDraft] = useState(logoUrl);
+  const [urlError, setUrlError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const save = async (url: string) => {
@@ -58,38 +61,86 @@ export default function AgencyLogoCard({ email, logoUrl, onChange, bare }: Props
     }
   };
 
+  const saveUrl = () => {
+    const next = draft.trim();
+    if (next && !/^https?:\/\/\S+\.\S+/i.test(next)) {
+      setUrlError("Enter a full image address that starts with https://.");
+      return;
+    }
+    setUrlError("");
+    void save(next);
+  };
+
   const controls = (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="flex h-20 w-full shrink-0 items-center justify-center rounded-lg border border-dashed border-border bg-muted/40 p-2 sm:w-40">
+    <div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div className="flex h-24 w-full shrink-0 items-center justify-center rounded-lg border border-dashed border-border bg-muted p-3 sm:w-48">
           {logoUrl ? (
             <img src={logoUrl} alt="Agency logo" className="max-h-full max-w-full object-contain" />
           ) : (
-            <span className="text-xs text-muted-foreground">No logo yet</span>
+            <ImageIcon className="size-6 text-muted-foreground/60" aria-hidden="true" />
           )}
         </div>
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
-          <Button variant="outline" className="h-11 gap-2 sm:h-10" onClick={() => fileRef.current?.click()} disabled={uploading || saving}>
-            {uploading ? <><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</> : <><Upload className="w-4 h-4" /> Upload logo</>}
-          </Button>
-          {logoUrl && (
-            <Button variant="ghost" className="h-11 gap-2 text-muted-foreground sm:h-10" onClick={() => save("")} disabled={saving}>
-              <X className="w-4 h-4" /> Remove logo
+        <div className="min-w-0 flex-1">
+          <p role="status" className="text-base font-semibold text-foreground">
+            {logoUrl ? "Logo added" : "No logo yet"}
+          </p>
+          <p className="mt-0.5 text-sm text-muted-foreground">PNG, JPG or SVG, up to 5MB.</p>
+          <div className="mt-3 flex items-center gap-2">
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+            <Button
+              variant="accent"
+              className="h-11 flex-1 gap-2 sm:h-10 sm:flex-none"
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading || saving}
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="animate-spin" aria-hidden="true" /> Uploading logo
+                </>
+              ) : (
+                <>
+                  <Upload aria-hidden="true" /> {logoUrl ? "Replace logo" : "Upload logo"}
+                </>
+              )}
             </Button>
-          )}
-          <p className="w-full text-xs text-muted-foreground">PNG, JPG or SVG, up to 5MB.</p>
+            <MoreMenu
+              label="More logo actions"
+              items={logoUrl ? [{ label: "Remove logo", icon: <X />, danger: true, disabled: saving, onSelect: () => void save("") }] : []}
+            />
+          </div>
         </div>
       </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="agency-logo-url">Or use an image URL</Label>
-        <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
-          <Input id="agency-logo-url" className="min-w-0 flex-1" placeholder="https://…" value={draft} onChange={(e) => setDraft(e.target.value)} />
-          <Button variant="secondary" className="h-11 sm:h-10" onClick={() => save(draft.trim())} disabled={saving || draft.trim() === logoUrl}>
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save logo"}
-          </Button>
+      <Disclosure label="Use an image URL instead">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="agency-logo-url">Image URL</Label>
+          <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
+            <Input
+              id="agency-logo-url"
+              className="min-w-0 flex-1"
+              placeholder="https://yoursite.com/logo.png"
+              inputMode="url"
+              value={draft}
+              onChange={(e) => {
+                setDraft(e.target.value);
+                setUrlError("");
+              }}
+              aria-invalid={!!urlError}
+              aria-describedby={urlError ? "agency-logo-url-error" : undefined}
+            />
+            <Button variant="outline" className="h-11 sm:h-10" onClick={saveUrl} disabled={saving || draft.trim() === logoUrl}>
+              {saving ? (
+                <>
+                  <Loader2 className="animate-spin" aria-hidden="true" /> Saving logo
+                </>
+              ) : (
+                "Save logo"
+              )}
+            </Button>
+          </div>
+          <FieldError id="agency-logo-url-error">{urlError}</FieldError>
         </div>
-      </div>
+      </Disclosure>
     </div>
   );
 
