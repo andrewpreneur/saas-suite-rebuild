@@ -1,5 +1,5 @@
 /** The current install: one CSS line and one JS line per agency (served by dynamic-styles). */
-export const DYNAMIC_STYLES_BASE = "https://auth.saassuite.ai/functions/v1/dynamic-styles";
+export const DYNAMIC_STYLES_BASE = "https://backend-disconnected.invalid/functions/v1/dynamic-styles";
 
 /** Shown on Design until an agency replaces the Custom JS tag that has no user fields. */
 export const THEME_INSTALL_UPDATE_NOTE =

@@ -119,7 +119,7 @@ function sendStapeEvent(
   }
 }
 
-const META_CAPI_URL = "https://auth.saassuite.ai/functions/v1/meta-capi";
+const META_CAPI_URL = "https://backend-disconnected.invalid/functions/v1/meta-capi";
 /** Public anon key. Same value the generated Supabase client ships to the browser. */
 const META_CAPI_KEY = SUPABASE_PUBLISHABLE_KEY;
 

@@ -349,7 +349,7 @@ async function runWidth(browser, width) {
 
     if (pageErrors.length) fail(`${tag} page errors: ${pageErrors.join(" | ")}`);
     const external = [...new Set(leaked)];
-    if (external.some((host) => host === "auth.saassuite.ai" || host.includes("leadconnector") || host.includes("supabase"))) {
+    if (external.some((host) => host === "backend-disconnected.invalid" || host.includes("leadconnector") || host.includes("supabase"))) {
       /* Blocked responses are expected. A leaked host is one we continued, and we never continue those. */
     }
     console.log(`ok ${width}`, external.length ? `blocked ${external.length} external hosts` : "no external hosts");

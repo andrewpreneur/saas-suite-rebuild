@@ -117,7 +117,7 @@ const sections: GuideSection[] = [
       },
       {
         title: "Dynamic CSS placeholder",
-        body: "@import url('https://auth.saassuite.ai/functions/v1/dynamic-styles?agency_id=YOUR_AGENCY_ID&type=css');",
+        body: "@import url('https://backend-disconnected.invalid/functions/v1/dynamic-styles?agency_id=YOUR_AGENCY_ID&type=css');",
       },
       {
         title: "Where the code goes",

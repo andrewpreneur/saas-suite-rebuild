@@ -9,8 +9,8 @@ import { mockSaasPartnerInvoke } from "@/lib/saasPartnerMock";
  * builds replace `import.meta.env.DEV` with false, so this path cannot turn on
  * in a production bundle. It never talks to the live project.
  */
-export const platformMockEnabled =
-  import.meta.env.DEV === true && import.meta.env.VITE_PLATFORM_MOCK === "1";
+// Rebuild copy: always on, in dev and in builds. This app has no live backend.
+export const platformMockEnabled = true;
 
 export const MOCK_EMAIL = "agency@example.com";
 export const MOCK_USER_ID = "00000000-0000-4000-8000-000000000001";

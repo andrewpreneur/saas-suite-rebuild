@@ -14,7 +14,7 @@ import { requiresCustomAnswer } from "@/lib/copilotWorkspace";
 import { SAAS_PLANS, SAME_DAY_WL_SUPPORT } from "@/constants/pricingPlans";
 import PlanFeatureLabel from "@/components/pricing/PlanFeatureLabel";
 
-const SLACK_INSTALL = "https://auth.saassuite.ai/functions/v1/slack-install";
+const SLACK_INSTALL = "https://backend-disconnected.invalid/functions/v1/slack-install";
 
 export function Choices({ options, disabled, onPick }: { options: string[]; disabled?: boolean; onPick: (o: string) => void }) {
   const [customOption, setCustomOption] = useState<string | null>(null);

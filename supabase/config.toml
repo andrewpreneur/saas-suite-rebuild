@@ -1,4 +1,5 @@
-project_id = "cjqeebyeqtzzqmmwvfga"
+# Rebuild copy: not linked to any Supabase project. Do not deploy from here.
+project_id = "disconnected"
 
 [api]
 enabled = true

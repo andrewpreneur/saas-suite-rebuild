@@ -94,7 +94,7 @@ SELECT cron.schedule(
   $$
   SELECT net.http_post(
     url := 'https://cjqeebyeqtzzqmmwvfga.supabase.co/functions/v1/sweep-user-sessions',
-    headers := '{"Content-Type":"application/json","apikey":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqcWVlYnllcXR6enFtbXd2ZmdhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NDQ0OTYsImV4cCI6MjA2MzUyMDQ5Nn0.x1Y9McmvpMkJ8GwIp315zEGQHdIomj4ChUpj7eyUqdo"}'::jsonb,
+    headers := '{"Content-Type":"application/json","apikey":"disconnected"}'::jsonb,
     body := '{"source":"cron"}'::jsonb
   );
   $$

@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Copy, RefreshCw, Plug, Activity } from "lucide-react";
 import { toast } from "sonner";
 
-const INGEST_BASE = "https://auth.saassuite.ai/functions/v1/external-platform-ingest";
+const INGEST_BASE = "https://backend-disconnected.invalid/functions/v1/external-platform-ingest";
 
 interface Connection {
   id: string;

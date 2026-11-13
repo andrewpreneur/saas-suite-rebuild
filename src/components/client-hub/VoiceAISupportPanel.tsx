@@ -22,7 +22,7 @@ interface Props {
   agencyId: string | null;
 }
 
-const FUNCTION_BASE = `https://auth.saassuite.ai/functions/v1/agency-voice-api`;
+const FUNCTION_BASE = `https://backend-disconnected.invalid/functions/v1/agency-voice-api`;
 
 // SHA-256 hex (must match the edge function)
 async function sha256Hex(input: string): Promise<string> {

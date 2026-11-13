@@ -25,7 +25,7 @@ import {
 
 const FUNCTION_URL =
   process.env.KIT_PURCHASED_REFIRE_URL ??
-  "https://auth.saassuite.ai/functions/v1/one-feature-kit-refire";
+  "https://backend-disconnected.invalid/functions/v1/one-feature-kit-refire";
 
 function flag(name: string): string | undefined {
   const index = process.argv.indexOf(name);

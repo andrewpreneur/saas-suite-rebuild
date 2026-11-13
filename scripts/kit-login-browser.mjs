@@ -10,7 +10,7 @@ const PORT = 4173;
 const ORIGIN = `http://127.0.0.1:${PORT}`;
 const KIT = "/app/dashboard?view=kit";
 const PASSWORD = "local-test-pass";
-const HOSTS = ["https://auth.saassuite.ai", "https://cjqeebyeqtzzqmmwvfga.supabase.co"];
+const HOSTS = ["https://backend-disconnected.invalid", "https://backend-disconnected.invalid"];
 
 const PEOPLE = {
   password: { email: "kit-buyer-password@example.test", state: "password" },

@@ -16,7 +16,7 @@ interface Props {
   onVoiceStarted?: () => void;
 }
 
-const SUPABASE_URL = 'https://auth.saassuite.ai';
+const SUPABASE_URL = 'https://backend-disconnected.invalid';
 
 // Tiny silent WAV — used to "unlock" a persistent <audio> element on the
 // initial user gesture so subsequent programmatic .play() calls work on iOS

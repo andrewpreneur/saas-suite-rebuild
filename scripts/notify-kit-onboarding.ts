@@ -16,7 +16,7 @@ import { KIT_ONBOARDING_WEBHOOK_FALLBACK, kitOnboardingWebhookUrl } from "../sup
 
 const FUNCTION_URL =
   process.env.KIT_ONBOARDING_NOTIFY_URL ??
-  "https://auth.saassuite.ai/functions/v1/kit-onboarding-notify";
+  "https://backend-disconnected.invalid/functions/v1/kit-onboarding-notify";
 
 function flag(name: string): string | undefined {
   const index = process.argv.indexOf(name);

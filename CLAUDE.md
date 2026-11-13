@@ -9,12 +9,16 @@ It is not the live app. The live app and its repository are separate and must ne
 - Run the app locally, take screenshots, write tests for the UI.
 
 ## Never
-- **Never change customer data or settings in the database.** This copy still points at the live Supabase project (the
-  browser key in `.env`), so treat every database call as live: read-only while testing, and only with test accounts.
-- No database migrations, no SQL, no changes under `supabase/migrations` or `supabase/functions`, no function deploys.
-- No server keys in the environment (service role, Stripe, HighLevel); you don't need them for UI work.
-- Never push to `main`. Work on a new branch and open a pull request in **this** repository only.
-- Don't change billing, payments, auth or permission logic, even if a screen you're restyling calls it.
+- **This copy is disconnected from Supabase and must stay that way.** `supabase` in
+  `src/integrations/supabase/client.ts` is always the in-memory mock (`src/lib/platformMock.ts`), there is no project
+  URL or key anywhere, and `src/lib/backendDisconnected.ts` blocks live hosts and trackers at the network level.
+  Never add a Supabase URL, key, or any call to the live app. `tests/rebuildDisconnected.test.ts` enforces this.
+- No database migrations, no SQL, no function deploys. `supabase/` is kept only because the front end imports a few
+  shared files from it; `supabase/config.toml` is unlinked on purpose.
+- No server keys in the environment (service role, Stripe, HighLevel).
+- Never push straight to `main`. Work on a branch and open a pull request in **this** repository only. Andrew has
+  approved merging those pull requests into this repository's `main` (Nov 13, 2026).
+- Never touch the live `andrewpreneur/saas-suite` repository from here.
 
 ## Good to know
 - Read `AGENTS.md` (project decisions) before changing files; subfolders may have their own.
@@ -22,5 +26,6 @@ It is not the live app. The live app and its repository are separate and must ne
   `src/components/ui/ds`, tokens in `src/index.css`). Build on it rather than starting a third system, unless the task says otherwise.
 - This copy is **not connected to Lovable**: the Lovable publish workflow and script were removed (they pointed at the live
   project). Don't add any deploy or publish step that targets the live app.
-- Analytics (PostHog) is switched off in this copy (`VITE_LOVABLE_CONNECTOR_POSTHOG_API_KEY` is empty) so test clicks
-  don't show up in the real numbers. Leave it off.
+- All trackers are off in this copy: the Ospry tag is removed and `index.html` sets the tracking opt-out before anything
+  loads, so test clicks never reach the real numbers. Leave them off.
+- New screens need mock data: add fixtures to `src/lib/platformMock.ts` rather than reaching for a real backend.

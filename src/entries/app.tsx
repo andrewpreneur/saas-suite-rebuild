@@ -1,3 +1,4 @@
+import { installBackendGuard } from "../lib/backendDisconnected";
 import { HelmetProvider } from "react-helmet-async";
 import { bootRoot } from "./bootRoot";
 import App from "../App.tsx";
@@ -10,6 +11,8 @@ import { toast as sonnerToast } from "sonner";
 import { installChunkReload } from "../lib/chunkReload";
 import { startTextUsLift } from "../lib/liftTextUs";
 import { installGlobalErrorLogging, logClientError } from "../lib/errorLog";
+
+installBackendGuard();
 
 installGlobalErrorLogging();
 {
