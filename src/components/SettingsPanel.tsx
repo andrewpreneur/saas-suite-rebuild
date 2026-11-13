@@ -24,6 +24,7 @@ import {
 import { MoreMenu } from "@/components/premium/MoreMenu";
 import { Field } from "@/components/premium/settings/Field";
 import { Disclosure, FieldError, PageSection, StatusRow } from "@/components/premium/settings/Page";
+import { HeroPane } from "@/components/premium/HeroPane";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -758,6 +759,7 @@ export function SettingsPanel({ onBack, initialTab = "profile", onTabChange }: S
               panel={{ title: t.billing_title, description: "Your plan, invoices and add-ons." }}
               {...row("billing")}
             >
+              <HeroPane>
               <StatusRow
                 tone="on"
                 label={`${planLabel} plan`}
@@ -782,6 +784,7 @@ export function SettingsPanel({ onBack, initialTab = "profile", onTabChange }: S
                   ]}
                 />
               </StatusRow>
+              </HeroPane>
 
               <Disclosure label="Compare plans" defaultOpen={userPlan !== "ADVANCED"}>
                 <SaasPricingCards
@@ -894,6 +897,18 @@ export function SettingsPanel({ onBack, initialTab = "profile", onTabChange }: S
             }
           />
         </SettingList>
+
+        {/* Asks each integration for its connection once, out of sight, so the rows below can say "Connected" before their page is opened. */}
+        {!slackStatus ? (
+          <div hidden aria-hidden="true">
+            <SlackIntegration onStatus={setSlackStatus} />
+          </div>
+        ) : null}
+        {!highLevelStatus && currentAgencyId ? (
+          <div hidden aria-hidden="true">
+            <HighLevelIntegrationPanel agencyId={currentAgencyId} onStatus={setHighLevelStatus} />
+          </div>
+        ) : null}
 
         <SettingList label="Integrations">
           <SettingItem
