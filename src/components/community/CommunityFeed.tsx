@@ -1075,7 +1075,7 @@ function PostDetail({
                           <div className="mt-1.5 flex items-center gap-4 text-xs text-muted-foreground">
                             <button
                               className={`flex items-center gap-1.5 transition-colors hover:text-foreground ${
-                                myLikes.has(comment.id) ? "text-primary" : ""
+                                myLikes.has(comment.id) ? "text-brand" : ""
                               }`}
                               onClick={() => void toggleCommentLike(comment.id)}
                             >
@@ -1141,7 +1141,7 @@ function PostDetail({
                               <div className="mt-1.5 flex items-center gap-4 text-xs text-muted-foreground">
                                 <button
                                   className={`flex items-center gap-1.5 transition-colors hover:text-foreground ${
-                                    myLikes.has(child.id) ? "text-primary" : ""
+                                    myLikes.has(child.id) ? "text-brand" : ""
                                   }`}
                                   onClick={() => void toggleCommentLike(child.id)}
                                 >
@@ -1294,10 +1294,10 @@ function AnnouncementComposer({ onPosted }: { onPosted: () => void }) {
   };
 
   return (
-    <Card className="border-primary/30 bg-primary/5">
+    <Card className="border-brand/30 bg-brand-subtle">
       <CardContent className="space-y-3 pt-4">
         <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-          <Megaphone className="h-4 w-4 text-primary" /> Post as SaaSSuite
+          <Megaphone className="h-4 w-4 text-brand" /> Post as SaaSSuite
         </div>
         <SmoothInput
           value={title}

@@ -74,7 +74,7 @@ function SuccessView({ teamId }: { teamId: string | null }) {
   const goNext = () => setSlideIdx((i) => Math.min(SLIDES.length - 1, i + 1));
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-brand/5 flex items-center justify-center p-6">
       <div className="w-full max-w-2xl space-y-8 text-center">
         <div ref={iconRef} className="mx-auto flex h-24 w-24 items-center justify-center animate-scale-in">
           <img src={SLACK_LOGO} alt="Slack" className="h-20 w-20" />
@@ -93,13 +93,13 @@ function SuccessView({ teamId }: { teamId: string | null }) {
             className="p-8 min-h-[240px] flex flex-col items-center justify-center gap-4 animate-fade-in"
           >
             {slide.workflow ? (
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                <Workflow className="h-6 w-6 text-primary" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-subtle">
+                <Workflow className="h-6 w-6 text-brand" />
               </div>
             ) : null}
             <h2 className="text-2xl font-bold tracking-tight">{slide.title}</h2>
             {slide.cmd && (
-              <code className="rounded-md bg-primary/10 px-3 py-1.5 font-mono text-sm text-primary">
+              <code className="rounded-md bg-brand-subtle px-3 py-1.5 font-mono text-sm text-brand">
                 {slide.cmd}
               </code>
             )}
@@ -116,7 +116,7 @@ function SuccessView({ teamId }: { teamId: string | null }) {
                   aria-label={`Go to slide ${i + 1}`}
                   onClick={() => setSlideIdx(i)}
                   className={`h-1.5 rounded-full transition-all ${
-                    i === slideIdx ? "w-6 bg-primary" : "w-1.5 bg-muted-foreground/30"
+                    i === slideIdx ? "w-6 bg-brand" : "w-1.5 bg-muted-foreground/30"
                   }`}
                 />
               ))}
@@ -209,7 +209,7 @@ function InstallView() {
         </div>
 
         {connectedInstall && (
-          <Card className="border-primary/30">
+          <Card className="border-brand/30">
             <CardHeader>
               <CardTitle>Slack is connected</CardTitle>
               <CardDescription>

@@ -226,7 +226,7 @@ const SyncPlansDialog = ({ open, onOpenChange, agencyVersions, onSyncComplete }:
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <RefreshCw className="w-5 h-5 text-primary" />
+            <RefreshCw className="w-5 h-5 text-brand" />
             Sync Plans
           </DialogTitle>
           <DialogDescription>

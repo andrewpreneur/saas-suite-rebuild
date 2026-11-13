@@ -6,6 +6,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       className="toaster group"
+      // Top right, under the top bar: bottom corners hold the save bar and the Copilot launcher.
+      position="top-right"
+      offset={68}
+      visibleToasts={3}
+      duration={5000}
       toastOptions={{
         classNames: {
           toast:

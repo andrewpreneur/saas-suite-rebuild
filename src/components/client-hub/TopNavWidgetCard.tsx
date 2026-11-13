@@ -278,7 +278,7 @@ const TopNavWidgetCard = ({ email, colors, controlled, hideToggle = false }: Pro
               className={cn(
                 "flex flex-col items-center gap-1 p-2 rounded-md border text-[11px] transition-colors",
                 modes[target] === s.mode
-                  ? "border-primary bg-primary/5"
+                  ? "border-brand bg-brand-subtle"
                   : "border-border hover:bg-muted",
               )}
             >
@@ -622,7 +622,7 @@ const TopNavWidgetCard = ({ email, colors, controlled, hideToggle = false }: Pro
                       className={cn(
                         "rounded-md border px-2 py-2 text-xs font-medium",
                         option.openMode === "tab"
-                          ? "border-primary bg-primary/5"
+                          ? "border-brand bg-brand-subtle"
                           : "border-border hover:bg-muted",
                       )}
                     >
@@ -634,7 +634,7 @@ const TopNavWidgetCard = ({ email, colors, controlled, hideToggle = false }: Pro
                       className={cn(
                         "rounded-md border px-2 py-2 text-xs font-medium",
                         option.openMode === "embed"
-                          ? "border-primary bg-primary/5"
+                          ? "border-brand bg-brand-subtle"
                           : "border-border hover:bg-muted",
                       )}
                     >

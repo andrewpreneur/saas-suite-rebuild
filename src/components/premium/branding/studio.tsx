@@ -46,11 +46,11 @@ export function StudioSteps({
     document.getElementById(`${testIdPrefix}-${steps[next].id}`)?.focus();
   };
   return (
-    <div className="[container-type:inline-size]">
+    <div className="w-full min-w-0 [container-type:inline-size]">
     <div
       role="tablist"
       aria-label={label}
-      className="px-surface grid grid-cols-4 gap-1 p-1.5"
+      className="px-surface grid w-full grid-cols-4 gap-1 p-1.5 [&>button]:!min-w-0 [&>button]:!flex-1"
     >
       {steps.map((step, index) => {
         const selected = step.id === active;

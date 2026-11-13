@@ -1,5 +1,5 @@
 import { ReactNode, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionCard } from "@/components/premium/SectionCard";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -21,21 +21,13 @@ export default function ExternalPlatformGate({ children }: { children: ReactNode
   if (confirmed) return <>{children}</>;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <HelpCircle className="w-5 h-5 text-primary" />
-          What is this?
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground leading-relaxed">
+    <SectionCard icon={<HelpCircle />} title="What is this?" bodyClassName="space-y-4">
+        <p className="max-w-[65ch] text-sm leading-relaxed text-muted-foreground">
           This is for connecting SaaS Suite to a platform that is not based on GoHighLevel. If you run a
           different SaaS that you would like to use our system for, such as our support systems, login
           tracking, Slack integrations, or anything like that, this allows you to do so.
         </p>
-        <Button onClick={() => setAskOpen(true)}>Continue</Button>
-      </CardContent>
+        <Button variant="accent" onClick={() => setAskOpen(true)}>Continue</Button>
 
       <AlertDialog open={askOpen} onOpenChange={setAskOpen}>
         <AlertDialogContent>
@@ -51,6 +43,6 @@ export default function ExternalPlatformGate({ children }: { children: ReactNode
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>
+    </SectionCard>
   );
 }

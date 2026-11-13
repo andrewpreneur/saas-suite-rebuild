@@ -125,9 +125,9 @@ const OnboardingCallRecorder = ({ ownerEmail, title = "Your Onboarding Calls", o
                       <TableCell>{b.name || "—"}{b.is_manual && <Badge variant="outline" className="ml-2 text-[10px]">Manual</Badge>}</TableCell>
                       <TableCell className="whitespace-nowrap">{b.email || "—"}</TableCell>
                       <TableCell className="space-x-3 whitespace-nowrap">
-                        {b.meeting_link && <a href={b.meeting_link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">Meeting <ExternalLink className="w-3 h-3" /></a>}
-                        {b.recording_link && <a href={b.recording_link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline"><Video className="w-3 h-3" /> Recording</a>}
-                        {b.transcript && <button type="button" onClick={() => setTranscriptView(b.transcript)} className="inline-flex items-center gap-1 text-primary hover:underline"><FileText className="w-3 h-3" /> Transcript</button>}
+                        {b.meeting_link && <a href={b.meeting_link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-brand hover:underline">Meeting <ExternalLink className="w-3 h-3" /></a>}
+                        {b.recording_link && <a href={b.recording_link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-brand hover:underline"><Video className="w-3 h-3" /> Recording</a>}
+                        {b.transcript && <button type="button" onClick={() => setTranscriptView(b.transcript)} className="inline-flex items-center gap-1 text-brand hover:underline"><FileText className="w-3 h-3" /> Transcript</button>}
                         {!b.meeting_link && !b.recording_link && !b.transcript && "—"}
                       </TableCell>
                       <TableCell>

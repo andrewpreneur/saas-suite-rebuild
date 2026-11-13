@@ -26,14 +26,14 @@ export default function MenuLinkPicker({ menus, value, agencyId, onSelect, onRef
 
   if (phase === "install") {
     return (
-      <Button size="lg" className="w-full gap-2 animate-in fade-in duration-300" onClick={refresh}>
-        <Check className="w-4 h-4" /> I've installed it
+      <Button variant="accent" className="w-full animate-in fade-in duration-300 motion-reduce:animate-none sm:w-auto" onClick={refresh}>
+        <Check /> I've installed it
       </Button>
     );
   }
   if (phase === "loading") {
     return (
-      <div className="flex items-center justify-center gap-2 rounded-lg border p-6 text-sm text-muted-foreground animate-in fade-in duration-300">
+      <div className="flex items-center justify-center gap-2 rounded-lg border border-border bg-muted/40 p-6 text-sm text-muted-foreground animate-in fade-in duration-300">
         <Loader2 className="w-4 h-4 animate-spin" /> Getting your menu links from HighLevel…
       </div>
     );
@@ -49,13 +49,13 @@ export default function MenuLinkPicker({ menus, value, agencyId, onSelect, onRef
   return (
     <div className="space-y-2 animate-in fade-in slide-in-from-bottom-1 duration-300 motion-reduce:animate-none">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium">Which one is your onboarding link?</p>
-        <Button variant="ghost" size="sm" className="gap-1.5" onClick={refresh}><RefreshCw className="w-3.5 h-3.5" /> Refresh</Button>
+        <p className="text-sm font-medium text-foreground">Which one is your onboarding link?</p>
+        <Button variant="ghost" size="sm" onClick={refresh}><RefreshCw /> Refresh</Button>
       </div>
       {sorted.length === 0 ? (
-        <p className="rounded-lg border p-4 text-sm text-muted-foreground">No custom menu links found yet. Save it in HighLevel, then press Refresh.</p>
+        <p className="rounded-lg border border-dashed border-border bg-muted/30 p-4 text-sm text-muted-foreground">No custom menu links found yet. Save it in HighLevel, then press Refresh.</p>
       ) : (
-        <div className="rounded-lg border divide-y max-h-72 overflow-y-auto" role="listbox" aria-label="Custom menu links">
+        <div className="rounded-lg border border-border divide-y divide-border max-h-72 overflow-y-auto" role="listbox" aria-label="Custom menu links">
           {sorted.map((m, i) => {
             const active = value === m.menu_id;
             const ours = isCurrentInstallationMenu(m, agencyId);
@@ -69,16 +69,16 @@ export default function MenuLinkPicker({ menus, value, agencyId, onSelect, onRef
                 style={{ animationDelay: `${Math.min(i, 10) * 30}ms` }}
                 className={cn(
                   "w-full flex items-center gap-3 px-3 py-3 text-left transition-colors animate-in fade-in slide-in-from-left-1 duration-300 fill-mode-both motion-reduce:animate-none",
-                  active ? "bg-primary/10" : "hover:bg-muted",
+                  active ? "bg-brand-subtle" : "hover:bg-muted",
                 )}
               >
-                <span className={cn("w-8 h-8 rounded-md flex items-center justify-center shrink-0", active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
+                <span className={cn("w-8 h-8 rounded-md flex items-center justify-center shrink-0", active ? "bg-brand text-brand-foreground" : "bg-muted text-muted-foreground")}>
                   {active ? <Check className="w-4 h-4" /> : <Link2 className="w-4 h-4" />}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2 text-sm font-medium">
                     {m.title || "Untitled link"}
-                    {ours && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">Your onboarding URL</span>}
+                    {ours && <span className="rounded-full bg-brand-subtle px-2 py-0.5 text-[11px] font-medium text-brand">Your onboarding URL</span>}
                   </span>
                   <span className="block text-xs text-muted-foreground truncate">{m.url}</span>
                 </span>

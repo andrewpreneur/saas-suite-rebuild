@@ -486,7 +486,7 @@ const ChatInterventionPanel = ({ agencyVersions, filterMode = 'all', onStats }: 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
       </div>
     );
   }
@@ -545,8 +545,8 @@ const ChatInterventionPanel = ({ agencyVersions, filterMode = 'all', onStats }: 
                   className="w-full p-3 md:p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors text-left cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 hidden sm:flex items-center justify-center flex-shrink-0">
-                      <User className="w-5 h-5 text-primary" />
+                    <div className="w-10 h-10 rounded-full bg-brand-subtle hidden sm:flex items-center justify-center flex-shrink-0">
+                      <User className="w-5 h-5 text-brand" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
@@ -598,8 +598,8 @@ const ChatInterventionPanel = ({ agencyVersions, filterMode = 'all', onStats }: 
         <Button variant="ghost" size="sm" onClick={handleBackToContacts}>
           <ArrowLeft className="w-4 h-4" />
         </Button>
-        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-          <User className="w-5 h-5 text-primary" />
+        <div className="w-10 h-10 rounded-full bg-brand-subtle flex items-center justify-center">
+          <User className="w-5 h-5 text-brand" />
         </div>
         <div>
           <p className="font-medium">{selectedContact.display_name}</p>
@@ -647,7 +647,7 @@ const ChatInterventionPanel = ({ agencyVersions, filterMode = 'all', onStats }: 
                 <div className={`max-w-[70%] ${isOwner ? 'text-right' : ''}`}>
                   <div className={`rounded-lg px-3 py-2 text-sm ${
                     isOwner
-                      ? 'bg-primary text-primary-foreground'
+                      ? 'bg-brand text-brand-foreground'
                       : isUser
                         ? 'bg-muted'
                         : 'bg-cyan-500/10 border border-cyan-500/20'
@@ -677,8 +677,8 @@ const ChatInterventionPanel = ({ agencyVersions, filterMode = 'all', onStats }: 
                   </div>
                 </div>
                 {isOwner && (
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <User className="w-4 h-4 text-primary" />
+                  <div className="w-8 h-8 rounded-full bg-brand-subtle flex items-center justify-center flex-shrink-0">
+                    <User className="w-4 h-4 text-brand" />
                   </div>
                 )}
               </div>
@@ -690,7 +690,7 @@ const ChatInterventionPanel = ({ agencyVersions, filterMode = 'all', onStats }: 
 
       {/* Send Message */}
       <div
-        className={`pt-3 border-t rounded-md transition-colors ${dragOver ? 'bg-primary/5 ring-2 ring-primary/40' : ''}`}
+        className={`pt-3 border-t rounded-md transition-colors ${dragOver ? 'bg-brand-subtle ring-2 ring-brand/40' : ''}`}
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => {
@@ -699,7 +699,7 @@ const ChatInterventionPanel = ({ agencyVersions, filterMode = 'all', onStats }: 
           setDropFiles((prev) => [...prev, ...filesToDropFiles(e.dataTransfer.files)].slice(0, 10));
         }}
       >
-        {dragOver && <p className="text-xs text-primary mb-2">Drop images to attach</p>}
+        {dragOver && <p className="text-xs text-brand mb-2">Drop images to attach</p>}
         {dropFiles.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-2">
             {dropFiles.map((f, i) => (

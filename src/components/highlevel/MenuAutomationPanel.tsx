@@ -125,7 +125,7 @@ export default function MenuAutomationPanel({ agencyId, presetName, presets = []
     <div className="space-y-1.5">
       <Label className="text-xs">Header: X-SaaSSuite-Webhook-Secret</Label>
       {newSecret ? (
-        <div className="rounded-md border border-primary p-2 space-y-1">
+        <div className="rounded-md border border-brand p-2 space-y-1">
           <div className="flex gap-2"><Input readOnly value={newSecret} className="font-mono text-xs" /><Button size="icon" variant="outline" aria-label="Copy secret" onClick={() => copy(newSecret)}><Copy className="w-4 h-4" /></Button></div>
           <p className="text-xs text-destructive">Copy it now — it won't be shown again.</p>
         </div>
@@ -147,7 +147,7 @@ export default function MenuAutomationPanel({ agencyId, presetName, presets = []
     <div className="space-y-6 min-w-0">
       <Card data-tip-target="menu-automation-snapshot">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base"><Download className="w-4 h-4 text-primary" />1. Install the standard snapshot</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base"><Download className="w-4 h-4 text-brand" />1. Install the standard snapshot</CardTitle>
           <CardDescription>Install the snapshot and load it into your main agency account.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -184,7 +184,7 @@ export default function MenuAutomationPanel({ agencyId, presetName, presets = []
 
       <Card data-tip-target="menu-automation-removal">
         <CardHeader>
-          <CardTitle className="flex items-start gap-2 text-base"><Webhook className="w-4 h-4 text-primary shrink-0 mt-1" />{removalStep}. Configure, Copy, And Paste The Body Into The Webhook Action in Your Workflow</CardTitle>
+          <CardTitle className="flex items-start gap-2 text-base"><Webhook className="w-4 h-4 text-brand shrink-0 mt-1" />{removalStep}. Configure, Copy, And Paste The Body Into The Webhook Action in Your Workflow</CardTitle>
           <CardDescription>Applies one of your presets to the buyer's sub-account.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 text-sm">
@@ -212,7 +212,7 @@ export default function MenuAutomationPanel({ agencyId, presetName, presets = []
 
       <Card data-tip-target="menu-automation-ai">
         <CardHeader>
-          <CardTitle className="flex items-start gap-2 text-base"><Sparkles className="w-4 h-4 text-primary shrink-0 mt-1" />{aiStep}. For Selling Standalone AI Features ONLY (AI Studio, Voice AI, etc.)</CardTitle>
+          <CardTitle className="flex items-start gap-2 text-base"><Sparkles className="w-4 h-4 text-brand shrink-0 mt-1" />{aiStep}. For Selling Standalone AI Features ONLY (AI Studio, Voice AI, etc.)</CardTitle>
           <CardDescription>Skip this if you aren't selling a single AI feature on its own.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 text-sm">
@@ -250,7 +250,7 @@ export default function MenuAutomationPanel({ agencyId, presetName, presets = []
 
       <Card data-tip-target="menu-automation-assignment">
         <CardHeader>
-          <CardTitle className="flex items-start gap-2 text-base"><Link2 className="w-4 h-4 text-primary shrink-0 mt-1" />{assignStep}. Optional: Configure, copy, and paste into your menu link adding workflow</CardTitle>
+          <CardTitle className="flex items-start gap-2 text-base"><Link2 className="w-4 h-4 text-brand shrink-0 mt-1" />{assignStep}. Optional: Configure, copy, and paste into your menu link adding workflow</CardTitle>
           <CardDescription>Open your menu link adding workflow, then configure and paste the body into its Webhook action.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 text-sm">

@@ -75,8 +75,8 @@ export const ExistingAgencyDialog = () => {
     <Dialog open={open} onOpenChange={() => { /* require a choice */ }}>
       <DialogContent className="sm:max-w-md [&>button]:hidden">
         <DialogHeader>
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            <Building2 className="h-6 w-6 text-primary" />
+          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-brand-subtle">
+            <Building2 className="h-6 w-6 text-brand" />
           </div>
           <DialogTitle className="text-center">Existing agency detected</DialogTitle>
           <DialogDescription className="text-center">

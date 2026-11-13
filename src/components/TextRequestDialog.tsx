@@ -211,7 +211,7 @@ const TextRequestDialog = ({ open, onOpenChange, source }: TextRequestDialogProp
               
               <Button 
                 type="submit" 
-                className="w-full h-12 text-lg bg-primary hover:bg-primary/90" 
+                className="w-full h-12 text-lg bg-brand hover:bg-brand/90" 
                 disabled={isSubmitting}
               >
                 {isSubmitting ? "Submitting..." : "Send Me More Info"}

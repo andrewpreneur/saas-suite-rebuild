@@ -7,10 +7,10 @@ export default function CommunityWelcome({ name }: { name?: string }) {
         initial={{ scale: 0.4, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 180, damping: 14 }}
-        className="relative flex h-28 w-28 items-center justify-center rounded-full bg-primary/10"
+        className="relative flex h-28 w-28 items-center justify-center rounded-full bg-brand-subtle"
       >
         <motion.span
-          className="absolute inset-0 rounded-full bg-primary/20"
+          className="absolute inset-0 rounded-full bg-brand/20"
           initial={{ scale: 0.8, opacity: 0.8 }}
           animate={{ scale: 1.7, opacity: 0 }}
           transition={{ duration: 1.4, repeat: Infinity, ease: "easeOut" }}

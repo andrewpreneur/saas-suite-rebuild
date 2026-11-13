@@ -54,7 +54,7 @@ export default function CommunityWidget({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
-          <Users className="w-4 h-4 text-primary" />
+          <Users className="w-4 h-4 text-brand" />
           Community
         </CardTitle>
         <Button variant="ghost" size="sm" onClick={() => go("feed")}>
@@ -95,7 +95,7 @@ export default function CommunityWidget({
             <div className="grid gap-2 sm:grid-cols-2">
               <button
                 onClick={() => go("ask")}
-                className="flex items-center gap-2 rounded-md border border-border p-3 text-left transition-colors hover:border-primary/40"
+                className="flex items-center gap-2 rounded-md border border-border p-3 text-left transition-colors hover:border-brand/40"
               >
                 <HelpCircle className="w-4 h-4 text-muted-foreground" />
                 <span className="text-sm text-foreground">Unanswered</span>
@@ -105,7 +105,7 @@ export default function CommunityWidget({
               </button>
               <button
                 onClick={() => go("snapshots")}
-                className="flex items-center gap-2 rounded-md border border-border p-3 text-left transition-colors hover:border-primary/40"
+                className="flex items-center gap-2 rounded-md border border-border p-3 text-left transition-colors hover:border-brand/40"
               >
                 <Package className="w-4 h-4 text-muted-foreground" />
                 <span className="min-w-0 truncate text-sm text-foreground">

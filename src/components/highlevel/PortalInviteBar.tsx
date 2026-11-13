@@ -57,10 +57,10 @@ export default function PortalInviteBar() {
             <span className="text-muted-foreground">of {stats.total_accounts.toLocaleString()} HighLevel accounts · {pct}%</span>
           </div>
           <div className="h-2 rounded-full bg-muted overflow-hidden">
-            <div className="h-full rounded-full bg-primary transition-[width] duration-1000 ease-out" style={{ width: `${pct}%` }} />
+            <div className="h-full rounded-full bg-brand transition-[width] duration-1000 ease-out" style={{ width: `${pct}%` }} />
           </div>
         </div>
-        <Button size="sm" onClick={share} className="gap-1.5">
+        <Button size="sm" variant="outline" onClick={share}>
           <Link2 className="w-4 h-4" /> Share portal link
         </Button>
       </div>
@@ -71,12 +71,12 @@ export default function PortalInviteBar() {
             <DialogTitle>Share your portal link</DialogTitle>
             <DialogDescription>Copy this link and send it to your sub-accounts.</DialogDescription>
           </DialogHeader>
-          <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm font-mono break-all min-h-10">
+          <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm font-mono break-all min-h-10">
             {loadingLink ? <Loader2 className="w-4 h-4 animate-spin" /> : link}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Close</Button>
-            <Button onClick={copy} disabled={!link || loadingLink} className="gap-1.5">
+            <Button variant="accent" onClick={copy} disabled={!link || loadingLink}>
               <Copy className="w-4 h-4" /> Copy link
             </Button>
           </DialogFooter>

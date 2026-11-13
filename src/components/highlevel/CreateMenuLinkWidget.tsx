@@ -69,8 +69,8 @@ export default function CreateMenuLinkWidget({ agencyId, defaultUrl, onCreated, 
 
   if (doneId) {
     return (
-      <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 flex items-start gap-3">
-        <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+      <div className="rounded-lg border border-brand/30 bg-brand-subtle p-4 flex items-start gap-3">
+        <CheckCircle2 className="w-5 h-5 text-brand shrink-0 mt-0.5" />
         <div className="text-sm">
           <p className="font-medium">Menu link installed in HighLevel</p>
           <p className="text-muted-foreground">It's saved below as your Menu Link ID. Refresh HighLevel to see it in the sidebar.</p>
@@ -105,7 +105,7 @@ export default function CreateMenuLinkWidget({ agencyId, defaultUrl, onCreated, 
               key={name} type="button" title={label} aria-label={label} aria-pressed={icon === name}
               onClick={() => setIcon(name)}
               className={cn("flex items-center justify-center h-10 rounded-md border transition-colors",
-                icon === name ? "border-primary bg-primary/10 text-primary" : "hover:bg-muted")}
+                icon === name ? "border-brand bg-brand-subtle text-brand" : "hover:bg-muted")}
             >
               <Icon className="w-5 h-5" />
             </button>

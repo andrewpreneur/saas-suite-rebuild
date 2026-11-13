@@ -39,8 +39,10 @@ export function AppTopBar({ tool, actions }: { tool: string; actions?: ReactNode
       : tool === "dashboard" && view === "kit"
         ? "one-feature-kit"
         : tool;
-  const section = sectionLabelForTool(pageId);
   const page = TOOL_LABELS[pageId] ?? "SaaSSuite";
+  // A group named after its own page ("Branding › Branding") would just repeat itself.
+  const sectionLabel = sectionLabelForTool(pageId);
+  const section = sectionLabel === page ? null : sectionLabel;
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {

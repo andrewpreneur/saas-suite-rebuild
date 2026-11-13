@@ -69,7 +69,7 @@ const CATEGORIES = [
 
 const STATUS_STYLES: Record<string, string> = {
   pending: "bg-muted text-muted-foreground",
-  planned: "bg-primary/15 text-primary",
+  planned: "bg-brand/15 text-brand",
   // In development → purple
   in_progress: "bg-[hsl(270_85%_60%/0.15)] text-[hsl(270_85%_65%)]",
   // Live → green
@@ -86,7 +86,7 @@ const STATUS_OPTIONS = [
 // Full-card treatment per status: colored border + light tinted background
 const CARD_STYLES: Record<string, string> = {
   pending: "border-border bg-muted/20",
-  planned: "border-primary/50 bg-primary/[0.06]",
+  planned: "border-brand/50 bg-brand/[0.06]",
   in_progress: "border-[hsl(270_85%_60%/0.5)] bg-[hsl(270_85%_60%/0.07)]",
   implemented: "border-emerald-500/50 bg-emerald-500/[0.07]",
 };
@@ -571,8 +571,8 @@ export default function CommunityIdeas({
                       }}
                       className={`flex w-12 flex-col items-center rounded-md border py-1.5 transition-colors ${
                         voted
-                          ? "border-primary/50 bg-primary/10 text-primary"
-                          : "border-border text-muted-foreground hover:border-primary/40"
+                          ? "border-brand/50 bg-brand-subtle text-brand"
+                          : "border-border text-muted-foreground hover:border-brand/40"
                       }`}
                     >
                       <ChevronUp className="h-4 w-4" />

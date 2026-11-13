@@ -29,7 +29,7 @@ export default function ConnectedPlanLinks({ agencyId }: { agencyId: string }) {
     {error && <p role="alert" className="break-words text-sm text-destructive">{error}</p>}
     {result && <details className="group">
       <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-md text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
-        {!!(result.links ?? []).length && <Check className="h-4 w-4 shrink-0 text-primary" />}
+        {!!(result.links ?? []).length && <Check className="h-4 w-4 shrink-0 text-brand" />}
         <span className="min-w-0 flex-1 text-muted-foreground">{(result.links ?? []).length} {(result.links ?? []).length === 1 ? "link" : "links"} connected{(result.unresolved ?? []).length ? ` · ${(result.unresolved ?? []).length} need attention` : ""}</span>
         <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-150 group-open:rotate-180 motion-reduce:transition-none" />
       </summary>

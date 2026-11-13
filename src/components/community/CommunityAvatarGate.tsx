@@ -77,7 +77,7 @@ export default function CommunityAvatarGate({
           <BorderBeam duration={8} size={120} />
           <CardHeader>
             <div className="flex items-center gap-2">
-              <ImagePlus className="h-5 w-5 text-primary" />
+              <ImagePlus className="h-5 w-5 text-brand" />
               <CardTitle>Add your profile picture</CardTitle>
             </div>
             <CardDescription>

@@ -16,6 +16,7 @@ import darkBanner from "@/assets/saassuite-dark-banner.png.asset.json";
 import { motion, MotionConfig } from "framer-motion";
 import { pageEnter } from "@/lib/motion";
 import { AppTopBar } from "@/components/premium/AppTopBar";
+import { MobileQuickNav } from "@/components/premium/MobileQuickNav";
 import appBackground from "@/assets/app-background.png.asset.json";
 import { newUi } from "@/lib/uiVersion";
 import CancelNoticeBanner from "@/components/CancelNoticeBanner";
@@ -706,6 +707,7 @@ const AppPage = () => {
                     <AccountSwitcher />
                   </div>
                 </div>
+                <MobileQuickNav tool={selectedTool} />
               </div>
 
               {/* Top bar: where you are, jump-to menu, account controls */}

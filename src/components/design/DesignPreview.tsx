@@ -283,7 +283,7 @@ export function DesignPreview({
           if (value === "sidebar" || value === "hub" || value === "login") onSurface(value);
         }}
         tabs={SURFACES}
-        className="!flex w-full [&_button]:px-2 [&_button]:py-1.5"
+        className="!flex w-full [&>button]:!flex-1 [&_button]:px-2 [&_button]:py-1.5"
       />
       <div className="px-brand-wash overflow-hidden rounded-lg border border-border/60 p-3 sm:p-5">
         <motion.div

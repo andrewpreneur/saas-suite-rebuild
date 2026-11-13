@@ -59,7 +59,7 @@ const graphicFor = (title: string) =>
   GRAPHICS.find((g) => g.match.test(title)) ?? {
     match: /./,
     icon: Workflow,
-    gradient: "from-primary/25 via-primary/10 to-transparent",
+    gradient: "from-brand/25 via-brand/10 to-transparent",
     blurb: "Ready-to-import GoHighLevel workflow",
   };
 
@@ -170,7 +170,7 @@ export default function CommunitySnapshots({ isPaid }: { isPaid: boolean }) {
                 whileHover={{ y: -4 }}
                 className="h-full"
               >
-              <Card className="overflow-hidden flex h-full flex-col transition-colors hover:border-primary/40">
+              <Card className="overflow-hidden flex h-full flex-col transition-colors hover:border-brand/40">
                 <div className="relative h-36 bg-muted">
                   {snapshot.thumbnail_url ? (
                     <motion.img
@@ -186,7 +186,7 @@ export default function CommunitySnapshots({ isPaid }: { isPaid: boolean }) {
                       className={`flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br px-4 text-center ${graphic.gradient} ${locked ? "blur-sm" : ""}`}
                     >
                       <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-background/70 shadow-sm ring-1 ring-border">
-                        <GraphicIcon className="h-5 w-5 text-primary" />
+                        <GraphicIcon className="h-5 w-5 text-brand" />
                       </span>
                       <span className="text-[11px] font-medium leading-snug text-muted-foreground">
                         {graphic.blurb}
